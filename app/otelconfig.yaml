@@ -1,0 +1,36 @@
+---
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+processors:
+  batch:
+exporters:
+  azuredataexplorer:
+    cluster_uri: "https://trd-sxwndfr8sm0vy6844c.z5.kusto.fabric.microsoft.com"
+    application_id: "c84761b4-8a31-4cd9-baf9-bd6752190365"
+    application_key: "<application key>"
+    tenant_id: "539d8bb1-bbd5-4f9d-836d-223c3e6d1e43"
+    db_name: "OTELEventHouse"
+    metrics_table_name: "OTELMetrics"
+    logs_table_name: "OTELLogs"
+    traces_table_name: "OTELTraces"
+    ingestion_type : "managed"
+    metrics_table_json_mapping : "<json metrics_table_name mapping>"
+    logs_table_json_mapping  : "<json logs_table_name mapping>"
+    traces_table_json_mapping  : "<json traces_table_name mapping>"
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [azuredataexplorer]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [azuredataexplorer]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [azuredataexplorer]

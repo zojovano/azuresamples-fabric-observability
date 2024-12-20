@@ -11,11 +11,10 @@
 using System;
 using System.Reflection;
 
-[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("dotnet-OTELWorker-8a336398-f5c1-4259-9fb5-04230a583356")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("OTELWorker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0c1bc69f59ee16ccec6fe042e73b7dabe389ae85")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1faa540856519077d8a515c499e168f37ff95e96")]
 [assembly: System.Reflection.AssemblyProductAttribute("OTELWorker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OTELWorker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

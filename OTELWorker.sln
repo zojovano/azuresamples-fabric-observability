@@ -9,22 +9,29 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet-client", "dotnet-cli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELWorker", "app\dotnet-client\OTELWorker\OTELWorker.csproj", "{E55ED827-059B-44BD-9D8D-81A1180EA5D4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADXExporter", "app\dotnet-client\ADXExporter\ADXExporter.csproj", "{76ADD111-27FF-4B2F-9C83-68AC4636E874}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{E55ED827-059B-44BD-9D8D-81A1180EA5D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E55ED827-059B-44BD-9D8D-81A1180EA5D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E55ED827-059B-44BD-9D8D-81A1180EA5D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E55ED827-059B-44BD-9D8D-81A1180EA5D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76ADD111-27FF-4B2F-9C83-68AC4636E874}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76ADD111-27FF-4B2F-9C83-68AC4636E874}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76ADD111-27FF-4B2F-9C83-68AC4636E874}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76ADD111-27FF-4B2F-9C83-68AC4636E874}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2766EFAD-B33C-4FA0-8720-C7A712597994} = {B051A1D0-A923-4BF1-95DF-8F63C0EEE5B8}
 		{E55ED827-059B-44BD-9D8D-81A1180EA5D4} = {2766EFAD-B33C-4FA0-8720-C7A712597994}
+		{76ADD111-27FF-4B2F-9C83-68AC4636E874} = {2766EFAD-B33C-4FA0-8720-C7A712597994}
 	EndGlobalSection
 EndGlobal

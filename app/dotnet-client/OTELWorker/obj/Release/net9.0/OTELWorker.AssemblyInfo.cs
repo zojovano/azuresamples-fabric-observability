@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OTELWorker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c37c61160e4c2610c6118667034faf4d7151d9e7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0c1bc69f59ee16ccec6fe042e73b7dabe389ae85")]
 [assembly: System.Reflection.AssemblyProductAttribute("OTELWorker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OTELWorker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

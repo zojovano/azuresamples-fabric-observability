@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ADXExporter": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

@@ -1,30 +1,37 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\zojovano\\OneDrive - Microsoft\\Source\\zojovano\\fabric-monitoring-demo\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj": {}
+    "C:\\Users\\zojovano\\source\\repos\\zojovano\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj": {}
   },
   "projects": {
-    "C:\\Users\\zojovano\\OneDrive - Microsoft\\Source\\zojovano\\fabric-monitoring-demo\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj": {
+    "C:\\Users\\zojovano\\source\\repos\\zojovano\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\zojovano\\OneDrive - Microsoft\\Source\\zojovano\\fabric-monitoring-demo\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj",
+        "projectUniqueName": "C:\\Users\\zojovano\\source\\repos\\zojovano\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj",
         "projectName": "OTELWorker",
-        "projectPath": "C:\\Users\\zojovano\\OneDrive - Microsoft\\Source\\zojovano\\fabric-monitoring-demo\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj",
+        "projectPath": "C:\\Users\\zojovano\\source\\repos\\zojovano\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\OTELWorker.csproj",
         "packagesPath": "C:\\Users\\zojovano\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\zojovano\\OneDrive - Microsoft\\Source\\zojovano\\fabric-monitoring-demo\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\obj\\",
+        "outputPath": "C:\\Users\\zojovano\\source\\repos\\zojovano\\farbic-monitoring-demo\\app\\dotnet-client\\OTELWorker\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\zojovano\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\zojovano\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net8.0"
+          "net9.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net8.0": {
-            "targetAlias": "net8.0",
+          "net9.0": {
+            "targetAlias": "net9.0",
             "projectReferences": {}
           }
         },
@@ -37,15 +44,28 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
-        "net8.0": {
-          "targetAlias": "net8.0",
+        "net9.0": {
+          "targetAlias": "net9.0",
           "dependencies": {
             "Microsoft.Extensions.Hosting": {
               "target": "Package",
-              "version": "[8.0.1, )"
+              "version": "[9.0.0, )"
+            },
+            "OpenTelemetry": {
+              "target": "Package",
+              "version": "[1.10.0, )"
+            },
+            "OpenTelemetry.Exporter.OpenTelemetryProtocol": {
+              "target": "Package",
+              "version": "[1.10.0, )"
+            },
+            "OpenTelemetry.Extensions.Hosting": {
+              "target": "Package",
+              "version": "[1.10.0, )"
             }
           },
           "imports": [
@@ -64,7 +84,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.404/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.101/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -35,12 +35,12 @@ public class Program
             options.IncludeFormattedMessage = true;
             options.IncludeScopes = true;
             options.ParseStateValues = true;
-            options.AddConsoleExporter();
-            //options.AddOtlpExporter(otlpOptions =>
-            //{
-            //    // Use IConfiguration directly for Otlp exporter endpoint option.
-            //    otlpOptions.Endpoint = new Uri("grpc://localhost:4317");
-            //});
+            //options.AddConsoleExporter();
+            options.AddOtlpExporter(otlpOptions =>
+            {
+                // Use IConfiguration directly for Otlp exporter endpoint option.
+                otlpOptions.Endpoint = new Uri("http://localhost:4317");
+            });
         });
         var host = builder.Build();
         host.Run();

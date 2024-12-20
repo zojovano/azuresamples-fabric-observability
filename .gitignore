@@ -1,5 +1,7 @@
 app\dotnet-client\OTELWorker\bin
 app\dotnet-client\OTELWorker\obj
 /.vs
-/app/dotnet-client/OTELWorker/bin/Debug/net9.0
+/app/dotnet-client/OTELWorker/bin
+/app/dotnet-client/OTELWorker/obj
 /app/dotnet-client/ADXExporter/obj
+*.user

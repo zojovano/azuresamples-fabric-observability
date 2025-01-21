@@ -1,0 +1,77 @@
+{
+  "records": [
+    {
+      "Sku": "Developer",
+      "DeploymentVersion": "0.47.20601.0",
+      "Level": 4,
+      "isRequestSuccess": false,
+      "time": "2025-01-21T16:37:39.7526336Z",
+      "operationName": "Microsoft.ApiManagement/GatewayLogs",
+      "category": "GatewayLogs",
+      "durationMs": 0,
+      "callerIpAddress": "167.94.138.201",
+      "correlationId": "2f8028c5-38c0-4dd5-b5f7-8592aac32b3a",
+      "location": "UK South",
+      "properties": {
+        "method": "GET",
+        "url": "https://democsuapim2.azure-api.net/",
+        "responseCode": 404,
+        "responseSize": 130,
+        "cache": "none",
+        "workspaceId": "Space1",
+        "apiId": "echo",
+        "clientProtocol": "HTTP/1.1",
+        "apiRevision": "1",
+        "clientTlsVersion": "1.2",
+        "lastError": {
+          "source": "configuration",
+          "reason": "OperationNotFound",
+          "message": "Unable to match incoming request to an operation.",
+          "section": "backend"
+        }
+      },
+      "resourceId": "/SUBSCRIPTIONS/D3E7DB45-420C-474D-84AB-641527971564/RESOURCEGROUPS/DEMO-APIM/PROVIDERS/MICROSOFT.APIMANAGEMENT/SERVICE/DEMOCSUAPIM2",
+      "internalProperties": "{\"method\":\"GET\",\"url\":\"https://democsuapim2.azure-api.net/\",\"responseCode\":404,\"responseSize\":130,\"cache\":\"none\",\"workspaceId\":\"Space1\",\"apiId\":\"echo\",\"clientProtocol\":\"HTTP/1.1\",\"apiRevision\":\"1\",\"clientTlsVersion\":\"1.2\",\"lastError\":{\"source\":\"configuration\",\"reason\":\"OperationNotFound\",\"message\":\"Unable to match incoming request to an operation.\",\"section\":\"backend\"}}",
+      "resultType": "Failed",
+      "truncated": 0
+    }
+  ]
+}
+
+{
+    "records": [
+        {
+            "count": 1,
+            "total": 4,
+            "minimum": 4,
+            "maximum": 0,
+            "average": 4,
+            "resourceId": "/SUBSCRIPTIONS/D3E7DB45-420C-474D-84AB-641527971564/RESOURCEGROUPS/DEMO-APIM/PROVIDERS/MICROSOFT.APIMANAGEMENT/SERVICE/DEMOCSUAPIM2",
+            "time": "2025-01-21T19:42:00.0000000Z",
+            "metricName": "Capacity",
+            "timeGrain": "PT1M"
+        },
+        {
+            "count": 1,
+            "total": 2,
+            "minimum": 2,
+            "maximum": 0,
+            "average": 2,
+            "resourceId": "/SUBSCRIPTIONS/D3E7DB45-420C-474D-84AB-641527971564/RESOURCEGROUPS/DEMO-APIM/PROVIDERS/MICROSOFT.APIMANAGEMENT/SERVICE/DEMOCSUAPIM2",
+            "time": "2025-01-21T19:43:00.0000000Z",
+            "metricName": "Capacity",
+            "timeGrain": "PT1M"
+        },
+        {
+            "count": 1,
+            "total": 2,
+            "minimum": 2,
+            "maximum": 0,
+            "average": 2,
+            "resourceId": "/SUBSCRIPTIONS/D3E7DB45-420C-474D-84AB-641527971564/RESOURCEGROUPS/DEMO-APIM/PROVIDERS/MICROSOFT.APIMANAGEMENT/SERVICE/DEMOCSUAPIM2",
+            "time": "2025-01-21T19:44:00.0000000Z",
+            "metricName": "Capacity",
+            "timeGrain": "PT1M"
+        }
+    ]
+}

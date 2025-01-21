@@ -9,7 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet-client", "dotnet-cli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELWorker", "app\dotnet-client\OTELWorker\OTELWorker.csproj", "{E55ED827-059B-44BD-9D8D-81A1180EA5D4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADXExporter", "app\dotnet-client\ADXExporter\ADXExporter.csproj", "{76ADD111-27FF-4B2F-9C83-68AC4636E874}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELCollector", "app\dotnet-client\ADXExporter\OTELCollector.csproj", "{76ADD111-27FF-4B2F-9C83-68AC4636E874}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,0 +1,64 @@
+# To limit exposure to denial of service attacks, change the host in endpoints below from 0.0.0.0 to a specific network interface.
+# See https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/security-best-practices.md#safeguards-against-denial-of-service-attacks
+
+extensions:
+  #health_check:
+  #pprof:
+  #  endpoint: 0.0.0.0:1777
+
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+  azureeventhub:
+    connection: Endpoint=sb://namespace.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<key>;EntityPath=maindiagnosticcollection
+    partition: ""
+    group: $Default
+    offset: ""
+    format: "azure"
+    # optional
+    time_formats:
+      # All supported time format. Default is empty string array, which means using the current iso8601 parser. The format is based on https://pkg.go.dev/time#Layout. If no time-zone info, will use UTC time.
+      logs: ["01/02/2006 15:04:05","2006-01-02 15:04:05","2006-01-02T15:04:05Z07:00"]
+      metrics: ["01/02/2006 15:04:05"]
+
+processors:
+  batch:
+
+exporters:
+  debug:
+    verbosity: basic
+  azuredataexplorer:
+    cluster_uri: "https://trd-sxwndfr8sm0vy6844c.z5.kusto.fabric.microsoft.com"
+    application_id: "c84761b4-8a31-4cd9-baf9-bd6752190365"
+    application_key: "<client secret>"
+    tenant_id: "539d8bb1-bbd5-4f9d-836d-223c3e6d1e43"
+    db_name: "OTELEventHouse"
+    metrics_table_name: "OTELMetrics"
+    logs_table_name: "OTELLogs"
+    traces_table_name: "OTELTraces"
+    ingestion_type : "managed"
+
+service:
+
+  pipelines:
+
+    traces:
+      receivers: [otlp,azureeventhub]
+      processors: [batch]
+      exporters: [debug,azuredataexplorer]
+
+    metrics:
+      receivers: [otlp,azureeventhub]
+      processors: [batch]
+      exporters: [debug,azuredataexplorer]
+
+    logs:
+      receivers: [otlp,azureeventhub]
+      processors: [batch]
+      exporters: [debug,azuredataexplorer]
+
+  #extensions: [health_check, pprof]

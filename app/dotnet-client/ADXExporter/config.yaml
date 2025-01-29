@@ -20,10 +20,19 @@ receivers:
     offset: ""
     format: "azure"
     # optional
-    time_formats:
+    # time_formats:
+    # time_formats:
       # All supported time format. Default is empty string array, which means using the current iso8601 parser. The format is based on https://pkg.go.dev/time#Layout. If no time-zone info, will use UTC time.
-      logs: ["01/02/2006 15:04:05","2006-01-02 15:04:05","2006-01-02T15:04:05Z07:00"]
-      metrics: ["01/02/2006 15:04:05"]
+      # logs: ["01/02/2006 15:04:05","2006-01-02 15:04:05","2006-01-02T15:04:05Z07:00"]
+      # metrics: ["01/02/2006 15:04:05"]
+      # logs: ["2025-01-21T16:37:39.7526336Z"]  # Example time format
+      # metrics: ["2025-01-21T16:37:39.7526336Z"]  # Example time format
+
+      # logs: ["01/02/2006 15:04:05","2006-01-02 15:04:05","2006-01-02T15:04:05Z07:00"]
+      # metrics: ["01/02/2006 15:04:05"]
+      # logs: ["2025-01-21T16:37:39.7526336Z"]  # Example time format
+      # metrics: ["2025-01-21T16:37:39.7526336Z"]  # Example time format
+
 
 processors:
   batch:
@@ -34,7 +43,8 @@ exporters:
   azuredataexplorer:
     cluster_uri: "https://trd-sxwndfr8sm0vy6844c.z5.kusto.fabric.microsoft.com"
     application_id: "c84761b4-8a31-4cd9-baf9-bd6752190365"
-    application_key: "<client secret>"
+    application_key: "<key>"
+    application_key: "<key>"
     tenant_id: "539d8bb1-bbd5-4f9d-836d-223c3e6d1e43"
     db_name: "OTELEventHouse"
     metrics_table_name: "OTELMetrics"
@@ -47,17 +57,24 @@ service:
   pipelines:
 
     traces:
-      receivers: [otlp,azureeventhub]
+      #receivers: [otlp,azureeventhub]
+      receivers: [otlp]
+      #receivers: [otlp,azureeventhub]
+      receivers: [otlp]
       processors: [batch]
       exporters: [debug,azuredataexplorer]
 
     metrics:
       receivers: [otlp,azureeventhub]
+      #receivers: [otlp]
+      #receivers: [otlp]
       processors: [batch]
       exporters: [debug,azuredataexplorer]
 
     logs:
       receivers: [otlp,azureeventhub]
+      #receivers: [otlp]
+      #receivers: [otlp]
       processors: [batch]
       exporters: [debug,azuredataexplorer]
 

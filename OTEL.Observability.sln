@@ -9,9 +9,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet-client", "dotnet-cli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELWorker", "app\dotnet-client\OTELWorker\OTELWorker.csproj", "{E55ED827-059B-44BD-9D8D-81A1180EA5D4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELCollector", "app\dotnet-client\ADXExporter\OTELCollector.csproj", "{76ADD111-27FF-4B2F-9C83-68AC4636E874}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELCollector", "app\otel-eh-receiver\OTELCollector.csproj", "{76ADD111-27FF-4B2F-9C83-68AC4636E874}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infra", "Infra", "{CD7D0B6E-84A1-4F18-8579-31C2E0124369}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "otel-eh-receiver", "otel-eh-receiver", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "otel.observability.infra", "infra\otel.observability.infra\otel.observability.infra.deployproj", "{0E45C874-8CBB-449E-A9E0-7E6C138C80F6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{CF7EF3B0-972D-48F3-8F36-88F08D5415D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +33,10 @@ Global
 		{76ADD111-27FF-4B2F-9C83-68AC4636E874}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76ADD111-27FF-4B2F-9C83-68AC4636E874}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76ADD111-27FF-4B2F-9C83-68AC4636E874}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E45C874-8CBB-449E-A9E0-7E6C138C80F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E45C874-8CBB-449E-A9E0-7E6C138C80F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E45C874-8CBB-449E-A9E0-7E6C138C80F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E45C874-8CBB-449E-A9E0-7E6C138C80F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -34,6 +44,11 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{2766EFAD-B33C-4FA0-8720-C7A712597994} = {B051A1D0-A923-4BF1-95DF-8F63C0EEE5B8}
 		{E55ED827-059B-44BD-9D8D-81A1180EA5D4} = {2766EFAD-B33C-4FA0-8720-C7A712597994}
-		{76ADD111-27FF-4B2F-9C83-68AC4636E874} = {2766EFAD-B33C-4FA0-8720-C7A712597994}
+		{76ADD111-27FF-4B2F-9C83-68AC4636E874} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {B051A1D0-A923-4BF1-95DF-8F63C0EEE5B8}
+		{0E45C874-8CBB-449E-A9E0-7E6C138C80F6} = {CD7D0B6E-84A1-4F18-8579-31C2E0124369}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {156AA80A-6324-487F-BA54-3236BE5E27A1}
 	EndGlobalSection
 EndGlobal

@@ -144,6 +144,18 @@ Deployed Azure Container with OTEL Collector
 
 ![alt text](./docs/assets/image009.png)
 
+## Deploy telemetry sample Azure services
+
+Deploy two Azure App Services and configure Diagnostic settings to send the telemetry to configured Azure Event Hub.
+
+![alt text](./docs/assets/image012.png)
+
+![alt text](./docs/assets/image013.png)
+
+## Verify OTEL Telemetry Flow
+
+
+
 ## References
 - https://learn.microsoft.com/en-us/azure/data-explorer/open-telemetry-connector?context=%2Ffabric%2Fcontext%2Fcontext-rti&pivots=fabric&tabs=command-line
 - https://github.com/open-telemetry/opentelemetry-dotnet/tree/main/docs

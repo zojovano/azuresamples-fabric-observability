@@ -5,3 +5,4 @@ app\dotnet-client\OTELWorker\obj
 /app/dotnet-client/OTELWorker/obj
 /app/dotnet-client/ADXExporter/obj
 *.user
+/app/otel-eh-receiver/obj

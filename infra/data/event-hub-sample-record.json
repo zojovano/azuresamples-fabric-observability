@@ -1,0 +1,29 @@
+{
+    "records": [
+        {
+            "time": "2025-03-02T20:24:00.8208182Z",
+            "resourceId": "/SUBSCRIPTIONS/5F33A090-5B5B-43FF-A6DD-E912E60767EC/RESOURCEGROUPS/DEMO-OBSERVABILITY/PROVIDERS/MICROSOFT.WEB/SITES/OTELWEBAPP02",
+            "category": "AppServiceHTTPLogs",
+            "properties": {
+                "CsMethod": "GET",
+                "CsUriStem": "/",
+                "SPort": "443",
+                "CIp": "52.158.28.64",
+                "UserAgent": "Mozilla/5.0+(compatible;+MSIE+9.0;+Windows+NT+6.1;+Trident/5.0;+AppInsights)",
+                "CsHost": "otelwebapp02-b4ejc3ckb9ecd9fd.uksouth-01.azurewebsites.net",
+                "ScStatus": 200,
+                "ScSubStatus": "0",
+                "ScWin32Status": "0",
+                "ScBytes": 2140,
+                "CsBytes": 1386,
+                "TimeTaken": 17,
+                "Result": "Success",
+                "Cookie": "-",
+                "CsUriQuery": "X-ARR-LOG-ID=aa4d225f-5f9d-4ad3-9ce9-3a85565c0b49",
+                "CsUsername": "-",
+                "Referer": "-",
+                "ComputerName": "WEBWK000003"
+            }
+        }
+    ]
+}

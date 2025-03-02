@@ -1,4 +1,4 @@
-# Microsoft Fabric Observability Sample
+# OTEL based Microsoft Fabric Observability Sample
 
 ## Content
 

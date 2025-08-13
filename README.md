@@ -1,11 +1,10 @@
 # OTEL based Microsoft Fabric Observability Sample
 
-## Content
 
-- Deploy Microsoft Fabric for OTEL Observability use
-- Deploy Azure Event Hub for Azure Diagnostic exports
-- Deploy OTEL contrib distribution as Azure Diagnostic receiver
-- Deploy telemetry sample Azure services
+## Problem (Use Case)
+
+The company strategy focus is to leverage Microsoft Fabric as a main data platform. Traditionally, Infra and Operations teams has leveraged various third-party technologies for collection, storing and platform telemetry analysis.
+The company now wouldl like to leverage Microsoft Fabric investments 
 
 ## Solution
 
@@ -14,7 +13,18 @@ We will use [OTEL Gateway Deployment pattern](https://opentelemetry.io/docs/coll
 
 Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container instance (with OTELContrib Collector) => Microsoft Fabric Real-Time Intelligence (KQL Database)
 
+## Summary of Steps
+
+- Deploy Microsoft Fabric for OTEL Observability use
+- Deploy Azure Event Hub for Azure Diagnostic exports
+- Deploy OTEL contrib distribution as Azure Diagnostic receiver
+- Deploy telemetry sample Azure services
+
+
 ## Deploy Microsoft Fabric for OTEL Observability
+
+<details>
+<summary>Azure Portal</summary>
 
 Follow Microsoft Learn article for [configuring OTEL collection for Azure Data Explorer (or Microsoft Fabric Real-Time Intelligence)](https://learn.microsoft.com/azure/data-explorer/open-telemetry-connector). 
 
@@ -35,8 +45,23 @@ Create OTEL tables
 
 ![alt text](./docs/assets/image002.png)
 
+</details>
+
+<details>
+<summary>Bicep</summary>
+
+TBD
+
+</details>
+
+
+
 
 ## Deploy Azure Event Hub
+
+<details>
+<summary>Azure Portal</summary>
+
 
 ![alt text](./docs/assets/image006.png)
 
@@ -79,7 +104,20 @@ Sample Even Hubs diagnostic record from Azure App Service
 }
 ```
 
+</details>
+
+<details>
+<summary>Bicep</summary>
+
+TBD
+
+</details>
+
+
 ## Deploy OTEL contrib distribution as Azure Diagnostic receiver
+
+<details>
+<summary>Azure Portal</summary>
 
 [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) distribution will be configured and deployed as a Azure Container Instance as a OTEL Collector Gateway. 
 Docker image "otel/opentelemetry-collector-contrib" 
@@ -92,6 +130,7 @@ and Azure Data Explorer Exporter
 ![alt text](./docs/assets/image011.png)
 
 You can search for available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
+
 
 Following is the full OTEL config.yaml content:
 
@@ -153,7 +192,22 @@ Deployed Azure Container with OTEL Collector
 
 ![alt text](./docs/assets/image009.png)
 
+</details>
+
+<details>
+<summary>Bicep</summary>
+
+TBD
+
+</details>
+
+
+
+
 ## Deploy telemetry sample Azure services
+
+<details>
+<summary>Azure Portal</summary>
 
 Deploy two Azure App Services and configure Diagnostic settings to send the telemetry to configured Azure Event Hub.
 
@@ -161,8 +215,17 @@ Deploy two Azure App Services and configure Diagnostic settings to send the tele
 
 ![alt text](./docs/assets/image013.png)
 
-## Verify OTEL Telemetry Flow
+</details>
 
+<details>
+<summary>Bicep</summary>
+
+TBD
+
+</details>
+
+
+## Verify OTEL Telemetry Flow
 
 
 ## References

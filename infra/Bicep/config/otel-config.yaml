@@ -1,0 +1,57 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  azureeventhub:
+    connection: ${EVENTHUB_CONNECTION_STRING}
+    format: "azure"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+exporters:
+  debug:
+    verbosity: basic
+  
+  azuredataexplorer:
+    cluster: ${ADX_CLUSTER_URI}
+    database: ${ADX_DATABASE}
+    routing_tables:
+      logs_table: "${LOGS_TABLE_NAME}"
+      metrics_table: "${METRICS_TABLE_NAME}"
+      traces_table: "${TRACES_TABLE_NAME}"
+    auth:
+      application_id: ${AAD_APP_ID}
+      application_key: ${AAD_APP_SECRET}
+      tenant_id: ${AAD_TENANT_ID}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp, azureeventhub]
+      processors: [batch]
+      exporters: [debug, azuredataexplorer]
+    metrics:
+      receivers: [otlp, azureeventhub]
+      processors: [batch]
+      exporters: [debug, azuredataexplorer]
+    logs:
+      receivers: [otlp, azureeventhub]
+      processors: [batch]
+      exporters: [debug, azuredataexplorer]
+  
+  telemetry:
+    logs:
+      level: "info"
+  
+  extensions: [health_check]

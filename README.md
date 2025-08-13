@@ -1,4 +1,4 @@
-# OTEL based Microsoft Fabric Observability Sample
+# Microsoft Fabric and OTEL based Platform Observability Sample
 
 
 ## Problem (Use Case)

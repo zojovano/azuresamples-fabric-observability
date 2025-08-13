@@ -88,12 +88,29 @@ Set-AzContext -SubscriptionId "<your-subscription-id>"
 
 - `main.bicep` - Main orchestration template
 - `modules/` - Individual resource modules
+  - `fabriccapacity.bicep` - Microsoft Fabric capacity
+  - `kqldatabase.bicep` - Microsoft Fabric workspace and KQL database parameters
   - `eventhub.bicep` - Event Hub namespace and hub
   - `containerinstance.bicep` - Container Instance for OTEL Collector
   - `appservice.bicep` - App Service for sample telemetry
 - `config/` - Configuration files
   - `otel-config.yaml` - OTEL Collector configuration
 - `parameters.json` - Parameter values for deployment
+
+### Sample Deployment Commands
+
+```powershell
+# Deploy just the Fabric capacity
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+$adminObjectId = (Get-AzADUser -UserPrincipalName "admin@contoso.com").Id
+
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/fabriccapacity.bicep `
+  -capacityName "fabric-capacity-observability" `
+  -skuName "F2" `
+  -adminObjectId $adminObjectId `
+  -location "eastus"
+```
 
 ### Post-Deployment Configuration
 
@@ -102,6 +119,10 @@ After deployment, you'll need to:
 1. Configure environment variables for the OTEL collector container with actual connection strings
 2. Update the diagnostic settings on any resources you want to monitor
 3. Deploy your applications to the App Service
+4. Complete the Microsoft Fabric workspace setup in the Fabric portal:
+   - Create the KQL Database using the provided schema
+   - Set up permissions for the database
+   - Configure OTEL connector for ingestion from the Event Hub
 
 </details>
 

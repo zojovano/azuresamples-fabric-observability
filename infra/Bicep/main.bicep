@@ -9,12 +9,42 @@ param tags object = {
   project: 'OTEL Observability'
 }
 
+@description('Administrator AAD object ID for Fabric capacity')
+param adminObjectId string
+
 // Resource Group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: 'azuresamples-platformobservabilty-fabric'
   location: location
   tags: tags
 }
+
+// Deploy Fabric Capacity
+module fabricCapacity './modules/fabriccapacity.bicep' = {
+  name: 'fabricCapacityDeploy'
+  scope: resourceGroup
+  params: {
+    location: location
+    capacityName: 'fabric-capacity-observability'
+    skuName: 'F2'
+    adminObjectId: adminObjectId
+    tags: tags
+  }
+}
+
+// Deploy KQL Database for OpenTelemetry
+module fabricWorkspace './modules/kqldatabase.bicep' = {
+  name: 'fabricWorkspaceDeploy'
+  scope: resourceGroup
+  params: {
+    location: location
+    databaseName: 'otel-observability-db'
+    fabricCapacityId: fabricCapacity.outputs.capacityId
+    tags: tags
+  }
+}
+
+// Deploy Event Hub
 
 // Deploy Fabric Workspace (Note: Fabric deployments require ARM template - limited Bicep support)
 // This is a placeholder as direct Fabric workspace deployment requires special considerations
@@ -69,6 +99,8 @@ module appService './modules/appservice.bicep' = {
 
 // Outputs
 output resourceGroupName string = resourceGroup.name
+output fabricCapacityName string = fabricCapacity.outputs.capacityName
+output fabricWorkspaceName string = fabricWorkspace.outputs.fabricWorkspaceName
 output eventHubNamespaceName string = eventHubNamespace.outputs.namespaceName
 output eventHubName string = eventHubNamespace.outputs.eventHubName
 output containerGroupName string = containerInstance.outputs.containerGroupName

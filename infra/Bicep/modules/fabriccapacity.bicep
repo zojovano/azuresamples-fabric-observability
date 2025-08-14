@@ -26,13 +26,14 @@ param adminObjectId string
 @description('Tags to apply to all resources')
 param tags object = {}
 
-// Fabric Capacity
-resource fabricCapacity 'Microsoft.Fabric/capacities@2022-07-01-preview' = {
+// Fabric Capacity with updated API version and validation
+resource fabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' = {
   name: capacityName
   location: location
   tags: tags
   sku: {
     name: skuName
+    tier: 'Fabric'
   }
   properties: {
     administration: {

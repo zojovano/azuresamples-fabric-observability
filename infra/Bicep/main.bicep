@@ -25,7 +25,7 @@ module fabricCapacity './modules/fabriccapacity.bicep' = {
   scope: resourceGroup
   params: {
     location: location
-    capacityName: 'fabric-capacity-observability'
+    capacityName: 'fabriccapacityobservability'
     skuName: 'F2'
     adminObjectId: adminObjectId
     tags: tags
@@ -38,7 +38,7 @@ module fabricWorkspace './modules/kqldatabase.bicep' = {
   scope: resourceGroup
   params: {
     location: location
-    databaseName: 'otel-observability-db'
+    databaseName: 'otelobservabilitydb'
     fabricCapacityId: fabricCapacity.outputs.capacityId
     tags: tags
   }

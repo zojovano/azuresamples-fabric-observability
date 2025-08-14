@@ -38,7 +38,7 @@ resource fabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' = {
   properties: {
     administration: {
       members: [
-        'admin@MngEnvMCAP742925.onmicrosoft.com'
+        adminObjectId
       ]
     }
   }

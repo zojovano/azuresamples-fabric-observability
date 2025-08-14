@@ -74,6 +74,12 @@ jobs:
           region: ${{ env.LOCATION }}
           failOnStdErr: false
 
+      - name: Debug deployment parameters
+        run: |
+          echo "Location: ${{ env.LOCATION }}"
+          echo "Admin Object ID is set: ${{ secrets.ADMIN_OBJECT_ID != '' }}"
+          echo "Subscription ID is set: ${{ secrets.AZURE_SUBSCRIPTION_ID != '' }}"
+
   deploy-kql-tables:
     name: Deploy KQL Tables
     needs: deploy-infra
@@ -102,7 +108,7 @@ jobs:
           fi
           
           WORKSPACE_NAME=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --resource-type "Microsoft.Fabric/workspaces" --query "[0].name" -o tsv 2>/dev/null || echo "")
-          DATABASE_NAME="otel-observability-db"
+          DATABASE_NAME="otelobservabilitydb"
           
           if [ -z "$WORKSPACE_NAME" ] || [ "$WORKSPACE_NAME" = "null" ]; then
             echo "No Fabric workspace found. This is expected if Fabric resources are still being created."

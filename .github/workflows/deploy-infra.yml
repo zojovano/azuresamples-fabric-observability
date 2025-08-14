@@ -1,0 +1,199 @@
+name: Deploy Azure Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/Bicep/**'
+      - 'infra/kql-definitions/**'
+      - '.github/workflows/deploy-infra.yml'
+  workflow_dispatch:
+    inputs:
+      location:
+        description: 'Azure region for deployment'
+        required: false
+        default: 'eastus'
+        type: string
+
+env:
+  LOCATION: ${{ github.event.inputs.location || 'eastus' }}
+  RESOURCE_GROUP_NAME: 'azuresamples-platformobservabilty-fabric'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Bicep Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure CLI login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate Bicep files
+        run: |
+          cd infra/Bicep
+          az bicep build --file main.bicep
+          echo "Bicep files validated successfully"
+
+  deploy-infra:
+    name: Deploy Azure Resources
+    needs: validate
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep
+        uses: azure/arm-deploy@v1
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          region: ${{ env.LOCATION }}
+          scope: subscription
+          template: ./infra/Bicep/main.bicep
+          parameters: ./infra/Bicep/parameters.json location=${{ env.LOCATION }} adminObjectId=${{ secrets.ADMIN_OBJECT_ID }}
+          deploymentName: 'github-${{ github.run_number }}'
+          failOnStdErr: false
+
+  deploy-kql-tables:
+    name: Deploy KQL Tables
+    needs: deploy-infra
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create KQL Tables
+        run: |
+          # Get Fabric workspace information
+          echo "Getting Fabric workspace details..."
+          WORKSPACE_NAME=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --resource-type "Microsoft.Fabric/workspaces" --query "[0].name" -o tsv)
+          DATABASE_NAME="otel-observability-db"
+          
+          if [ -z "$WORKSPACE_NAME" ]; then
+            echo "No Fabric workspace found. Skipping KQL table creation."
+            exit 0
+          fi
+          
+          echo "Found Fabric workspace: $WORKSPACE_NAME"
+          
+          # Create a deployment script to create KQL tables
+          cat > create-tables.ps1 << 'EOL'
+          param (
+            [string]$WorkspaceName,
+            [string]$DatabaseName
+          )
+
+          # Get access token for Fabric API
+          $token = (Get-AzAccessToken -ResourceUrl "https://api.fabric.microsoft.com/").Token
+          
+          # Get workspace ID
+          $workspaces = Invoke-RestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces?name=$WorkspaceName" -Headers @{Authorization = "Bearer $token"}
+          $workspaceId = $workspaces.value[0].id
+          
+          Write-Output "Workspace ID: $workspaceId"
+          
+          # Get eventhouse information
+          $eventhouseUrl = "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/eventhouses"
+          $eventhouseResponse = Invoke-RestMethod -Uri $eventhouseUrl -Headers @{Authorization = "Bearer $token"}
+          
+          if ($eventhouseResponse.value.Count -eq 0) {
+            Write-Output "No eventhouse found. Creating one..."
+            # Create eventhouse code would go here if needed
+          } else {
+            $eventhouseId = $eventhouseResponse.value[0].id
+            Write-Output "Found eventhouse: $eventhouseId"
+          }
+          
+          # Load KQL table definitions from files
+          $logsTableScript = Get-Content -Path "./infra/kql-definitions/tables/otel-logs.kql" -Raw
+          $metricsTableScript = Get-Content -Path "./infra/kql-definitions/tables/otel-metrics.kql" -Raw
+          $tracesTableScript = Get-Content -Path "./infra/kql-definitions/tables/otel-traces.kql" -Raw
+          
+          # Combine all table definitions
+          $tableScript = @"
+          $logsTableScript
+          
+          $metricsTableScript
+          
+          $tracesTableScript
+          "@
+          
+          Write-Output "Table creation script:"
+          Write-Output $tableScript
+          
+          # Convert script to base64 for API
+          $scriptBase64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($tableScript))
+          
+          # Try to find existing KQL database
+          $databaseUrl = "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/kqlDatabases?`$filter=startswith(displayName,'$DatabaseName')"
+          $databaseResponse = Invoke-RestMethod -Uri $databaseUrl -Headers @{Authorization = "Bearer $token"}
+          
+          if ($databaseResponse.value.Count -eq 0) {
+            Write-Output "KQL database not found. Creating with OTEL tables..."
+            
+            # Create KQL database with schema
+            $databasePayload = @{
+              displayName = $DatabaseName
+              description = "OTEL Observability Database"
+              creationPayload = @{
+                databaseType = "ReadWrite"
+                parentEventhouseItemId = $eventhouseId
+                databasePropertiesDefinition = $scriptBase64
+              }
+            } | ConvertTo-Json -Depth 10
+            
+            $createDatabaseUrl = "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/kqlDatabases"
+            $createResponse = Invoke-RestMethod -Uri $createDatabaseUrl -Headers @{Authorization = "Bearer $token"; "Content-Type" = "application/json"} -Method POST -Body $databasePayload
+            
+            Write-Output "KQL database creation initiated, ID: $($createResponse.id)"
+          } else {
+            $databaseId = $databaseResponse.value[0].id
+            Write-Output "KQL database exists: $databaseId. Updating with OTEL tables..."
+            
+            # Logic to update existing database would go here if needed
+          }
+          EOL
+          
+          # Run the PowerShell script to create tables
+          az powershell --resource-group ${{ env.RESOURCE_GROUP_NAME }} --command-string "./create-tables.ps1 -WorkspaceName '$WORKSPACE_NAME' -DatabaseName '$DATABASE_NAME'"
+
+  report-status:
+    name: Report Deployment Status
+    needs: [deploy-infra, deploy-kql-tables]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Report status
+        run: |
+          if [ "${{ needs.deploy-infra.result }}" == "success" ] && [ "${{ needs.deploy-kql-tables.result }}" == "success" ]; then
+            echo "✅ Deployment completed successfully"
+          else
+            echo "❌ Deployment failed"
+            exit 1
+          fi

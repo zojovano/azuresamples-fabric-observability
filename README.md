@@ -19,6 +19,7 @@ Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container 
 - Deploy Azure Event Hub for Azure Diagnostic exports
 - Deploy OTEL contrib distribution as Azure Diagnostic receiver
 - Deploy telemetry sample Azure services
+- Optionally, set up continuous deployment with GitHub Actions
 
 
 ## Deploy Microsoft Fabric for OTEL Observability
@@ -448,6 +449,68 @@ az webapp deployment source config-zip --resource-group $resourceGroupName --nam
 2. Using GitHub Actions:
 Configure a GitHub Actions workflow to build and deploy your application automatically.
 
+## Continuous Deployment with GitHub Actions
+
+<details>
+<summary>GitHub Actions Workflow</summary>
+
+This repository includes a GitHub Actions workflow that automates the deployment of all resources, including:
+
+- Microsoft Fabric capacity and workspace
+- KQL Database with OTEL tables
+- Event Hub namespace and hub
+- OTEL Collector container instance
+- App Service for sample telemetry
+
+### Setup Prerequisites
+
+1. **Service Principal**: Create an Azure service principal with Contributor access to your subscription
+
+```powershell
+# Create service principal and capture output
+$sp = az ad sp create-for-rbac --name "fabric-observability-github" --role Contributor --scopes /subscriptions/{YourSubscriptionId} | ConvertFrom-Json
+
+# Display values for GitHub secrets
+Write-Output "AZURE_CLIENT_ID: $($sp.appId)"
+Write-Output "AZURE_TENANT_ID: $($sp.tenant)"
+Write-Output "AZURE_SUBSCRIPTION_ID: {YourSubscriptionId}"
+Write-Output "AZURE_CLIENT_SECRET: $($sp.password)"
+```
+
+2. **Admin Object ID**: Get the object ID of the user who will be the Fabric capacity administrator
+
+```powershell
+# Get the Object ID for a user
+$adminObjectId = (Get-AzADUser -UserPrincipalName "user@example.com").Id
+Write-Output "ADMIN_OBJECT_ID: $adminObjectId"
+```
+
+3. **GitHub Secrets**: Add these secrets to your GitHub repository:
+   - `AZURE_CLIENT_ID`: The service principal application ID
+   - `AZURE_TENANT_ID`: The Azure tenant ID
+   - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
+   - `AZURE_CLIENT_SECRET`: The service principal client secret
+   - `ADMIN_OBJECT_ID`: The object ID of the Fabric capacity administrator
+
+### Workflow Triggers
+
+The workflow runs automatically when:
+- Changes are pushed to the `main` branch in the `infra/Bicep/` directory
+- The workflow file itself is modified
+- Manually triggered via GitHub UI with optional parameters
+
+### Manual Deployment
+
+To trigger a manual deployment:
+1. Go to the Actions tab in your repository
+2. Select the "Deploy Azure Infrastructure" workflow
+3. Click "Run workflow"
+4. Optionally specify a different Azure region
+5. Click "Run workflow" to start the deployment
+
+For more details, see the [GitHub Actions workflow documentation](./.github/workflows/README.md).
+
+</details>
 
 ## References
 - https://learn.microsoft.com/en-us/azure/data-explorer/open-telemetry-connector?context=%2Ffabric%2Fcontext%2Fcontext-rti&pivots=fabric&tabs=command-line

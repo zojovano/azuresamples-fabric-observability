@@ -20,13 +20,13 @@ param location string
 ])
 param skuName string = 'F2'
 
-@description('Administrator AAD object ID')
+@description('Administrator object ID (service principal or user)')
 param adminObjectId string
 
 @description('Tags to apply to all resources')
 param tags object = {}
 
-// Fabric Capacity with updated API version and validation
+// Fabric Capacity with specified administrator
 resource fabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' = {
   name: capacityName
   location: location
@@ -38,7 +38,7 @@ resource fabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' = {
   properties: {
     administration: {
       members: [
-        ''
+        adminObjectId
       ]
     }
   }
@@ -47,4 +47,3 @@ resource fabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' = {
 // Outputs
 output capacityName string = fabricCapacity.name
 output capacityId string = fabricCapacity.id
-output adminObjectId string = adminObjectId

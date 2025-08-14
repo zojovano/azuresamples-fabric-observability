@@ -3,14 +3,14 @@ targetScope = 'subscription'
 @description('The Azure region for deploying resources')
 param location string = 'swedencentral'
 
+@description('Administrator object ID for Fabric capacity (service principal or user)')
+param adminObjectId string
+
 @description('Tags to apply to all resources')
 param tags object = {
   environment: 'prod'
   project: 'OTEL Observability'
 }
-
-@description('Administrator AAD object ID for Fabric capacity')
-param adminObjectId string
 
 // Resource Group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {

@@ -46,3 +46,4 @@ resource fabricCapacity 'Microsoft.Fabric/capacities@2022-07-01-preview' = {
 // Outputs
 output capacityName string = fabricCapacity.name
 output capacityId string = fabricCapacity.id
+output adminObjectId string = adminObjectId

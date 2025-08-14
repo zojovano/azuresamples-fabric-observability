@@ -40,7 +40,6 @@ module fabricWorkspace './modules/kqldatabase.bicep' = {
     location: location
     databaseName: 'otelobservabilitydb'
     fabricCapacityId: fabricCapacity.outputs.capacityId
-    tags: tags
   }
 }
 

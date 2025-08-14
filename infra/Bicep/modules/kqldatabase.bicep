@@ -7,26 +7,16 @@ param fabricCapacityId string
 @description('The Azure region for deploying resources')
 param location string
 
-@description('Tags to apply to all resources')
-param tags object = {}
-
-// Fabric Workspace (requires separate deployment in Fabric portal)
-// This is a workaround as direct Fabric workspace deployment is limited in Bicep
-resource fabricWorkspace 'Microsoft.Fabric/workspaces@2022-07-01-preview' = {
-  name: 'fabric-otel-workspace'
-  location: location
-  properties: {
-    description: 'Microsoft Fabric workspace for OTEL Observability'
-    capacityId: fabricCapacityId
-  }
-  tags: tags
-}
+// Note: Microsoft Fabric workspaces cannot be created directly through ARM/Bicep templates
+// They must be created through the Fabric portal or REST APIs
+// This module provides the configuration information needed for manual setup
 
 // Define OTEL KQL Database parameters for manual creation
 var kqlDatabaseParameters = {
   name: databaseName
   location: location
   description: 'KQL Database for OpenTelemetry data'
+  capacityId: fabricCapacityId
   tables: [
     {
       name: 'OTELLogs'
@@ -41,9 +31,11 @@ var kqlDatabaseParameters = {
       schema: 'TraceID:string, SpanID:string, ParentID:string, SpanName:string, SpanStatus:string, SpanKind:string, StartTime:datetime, EndTime:datetime, ResourceAttributes:dynamic, TraceAttributes:dynamic, Events:dynamic, Links:dynamic'
     }
   ]
+  instructions: 'After deployment, manually create a Fabric workspace and KQL database using the provided parameters. Use the KQL scripts in infra/kql-definitions/ to create the required tables.'
 }
 
 // Output KQL Database parameters for manual configuration
-output fabricWorkspaceName string = fabricWorkspace.name
-output fabricWorkspaceId string = fabricWorkspace.id
+output fabricCapacityId string = fabricCapacityId
 output kqlDatabaseInfo object = kqlDatabaseParameters
+output fabricWorkspaceName string = 'fabric-otel-workspace'
+output fabricWorkspaceInstructions string = 'Create workspace manually in Fabric portal using the provided capacity'

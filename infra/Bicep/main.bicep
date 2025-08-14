@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
 @description('The Azure region for deploying resources')
-param location string = 'eastus'
+param location string = 'swedencentral'
 
 @description('Tags to apply to all resources')
 param tags object = {

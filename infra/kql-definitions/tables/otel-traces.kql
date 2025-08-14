@@ -1,0 +1,14 @@
+.create-merge table OTELTraces (
+    TraceID:string, 
+    SpanID:string, 
+    ParentID:string, 
+    SpanName:string, 
+    SpanStatus:string, 
+    SpanKind:string, 
+    StartTime:datetime, 
+    EndTime:datetime, 
+    ResourceAttributes:dynamic, 
+    TraceAttributes:dynamic, 
+    Events:dynamic, 
+    Links:dynamic
+)

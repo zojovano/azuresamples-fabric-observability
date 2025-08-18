@@ -62,22 +62,22 @@ function Test-PythonInstalled {
             $requiredVersion = [version]$MinVersion
             
             if ($installedVersion -ge $requiredVersion) {
-                Write-ColorOutput "✅ Python $($installedVersion) is already installed (meets requirement: $MinVersion+)" $ColorSuccess
+                Write-ColorOutput "Python $($installedVersion) is already installed (meets requirement: $MinVersion+)" $ColorSuccess
                 return $true
             } else {
-                Write-ColorOutput "⚠️  Python $($installedVersion) is installed but version $MinVersion+ is required" $ColorWarning
+                Write-ColorOutput "Python $($installedVersion) is installed but version $MinVersion+ is required" $ColorWarning
                 return $false
             }
         }
     } catch {
-        Write-ColorOutput "❌ Python is not installed or not in PATH" $ColorWarning
+        Write-ColorOutput "Python is not installed or not in PATH" $ColorWarning
         return $false
     }
     return $false
 }
 
 function Install-Python {
-    Write-ColorOutput "📦 Installing Python..." $ColorInfo
+    Write-ColorOutput "Installing Python..." $ColorInfo
     
     try {
         # Check if winget is available
@@ -88,7 +88,7 @@ function Install-Python {
             winget install Python.Python.3.12 --accept-package-agreements --accept-source-agreements
             
             if ($LASTEXITCODE -eq 0) {
-                Write-ColorOutput "✅ Python installed successfully via winget" $ColorSuccess
+                Write-ColorOutput "Python installed successfully via winget" $ColorSuccess
                 
                 # Refresh PATH
                 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
@@ -113,17 +113,17 @@ function Install-Python {
         # Refresh PATH
         $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
         
-        Write-ColorOutput "✅ Python installed successfully" $ColorSuccess
+        Write-ColorOutput "Python installed successfully" $ColorSuccess
         return $true
         
     } catch {
-        Write-ColorOutput "❌ Failed to install Python: $_" $ColorError
+        Write-ColorOutput "Failed to install Python: $_" $ColorError
         return $false
     }
 }
 
 function Install-FabricCLI {
-    Write-ColorOutput "📦 Installing Microsoft Fabric CLI..." $ColorInfo
+    Write-ColorOutput "Installing Microsoft Fabric CLI..." $ColorInfo
     
     try {
         # Upgrade pip first
@@ -135,40 +135,40 @@ function Install-FabricCLI {
         python -m pip install ms-fabric-cli
         
         if ($LASTEXITCODE -eq 0) {
-            Write-ColorOutput "✅ Microsoft Fabric CLI installed successfully" $ColorSuccess
+            Write-ColorOutput "Microsoft Fabric CLI installed successfully" $ColorSuccess
             return $true
         } else {
-            Write-ColorOutput "❌ Failed to install Fabric CLI" $ColorError
+            Write-ColorOutput "Failed to install Fabric CLI" $ColorError
             return $false
         }
         
     } catch {
-        Write-ColorOutput "❌ Failed to install Fabric CLI: $_" $ColorError
+        Write-ColorOutput "Failed to install Fabric CLI: $_" $ColorError
         return $false
     }
 }
 
 function Test-FabricCLI {
-    Write-ColorOutput "🧪 Testing Fabric CLI installation..." $ColorInfo
+    Write-ColorOutput "Testing Fabric CLI installation..." $ColorInfo
     
     try {
         fab --help 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            Write-ColorOutput "✅ Fabric CLI is working correctly" $ColorSuccess
-            Write-ColorOutput "💡 To get started, run: fab auth login" $ColorInfo
+            Write-ColorOutput "Fabric CLI is working correctly" $ColorSuccess
+            Write-ColorOutput "To get started, run: fab auth login" $ColorInfo
             return $true
         } else {
-            Write-ColorOutput "❌ Fabric CLI test failed" $ColorError
+            Write-ColorOutput "Fabric CLI test failed" $ColorError
             return $false
         }
     } catch {
-        Write-ColorOutput "❌ Failed to test Fabric CLI: $_" $ColorError
+        Write-ColorOutput "Failed to test Fabric CLI: $_" $ColorError
         return $false
     }
 }
 
 function Show-UsageInstructions {
-    Write-ColorOutput "`n📋 Microsoft Fabric CLI Usage Instructions:" $ColorInfo
+    Write-ColorOutput "`nMicrosoft Fabric CLI Usage Instructions:" $ColorInfo
     Write-ColorOutput "==========================================" $ColorInfo
     Write-ColorOutput ""
     Write-ColorOutput "1. Login to Fabric:" $ColorInfo
@@ -178,24 +178,24 @@ function Show-UsageInstructions {
     Write-ColorOutput "   fab help" $ColorWarning
     Write-ColorOutput ""
     Write-ColorOutput "3. Get help for a specific command:" $ColorInfo
-    Write-ColorOutput "   fab <command> --help" $ColorWarning
+    Write-ColorOutput "   fab [command] --help" $ColorWarning
     Write-ColorOutput ""
     Write-ColorOutput "4. Logout from Fabric:" $ColorInfo
     Write-ColorOutput "   fab auth logout" $ColorWarning
     Write-ColorOutput ""
-    Write-ColorOutput "📖 Documentation: https://learn.microsoft.com/en-us/rest/api/fabric/articles/fabric-command-line-interface" $ColorInfo
-    Write-ColorOutput "🐙 GitHub: https://aka.ms/FabricCLI" $ColorInfo
+    Write-ColorOutput "Documentation: https://learn.microsoft.com/en-us/rest/api/fabric/articles/fabric-command-line-interface" $ColorInfo
+    Write-ColorOutput "GitHub: https://aka.ms/FabricCLI" $ColorInfo
 }
 
 # Main execution
 try {
-    Write-ColorOutput "🚀 Microsoft Fabric CLI Installation Script" $ColorInfo
+    Write-ColorOutput "Microsoft Fabric CLI Installation Script" $ColorInfo
     Write-ColorOutput "===========================================" $ColorInfo
     Write-ColorOutput ""
     
     # Check if running as administrator
     if (-not (Test-Administrator)) {
-        Write-ColorOutput "❌ This script requires administrator privileges. Please run as administrator." $ColorError
+        Write-ColorOutput "This script requires administrator privileges. Please run as administrator." $ColorError
         exit 1
     }
     
@@ -206,40 +206,40 @@ try {
         if (-not $pythonInstalled) {
             $installPython = Install-Python
             if (-not $installPython) {
-                Write-ColorOutput "❌ Failed to install Python. Exiting." $ColorError
+                Write-ColorOutput "Failed to install Python. Exiting." $ColorError
                 exit 1
             }
             
             # Verify Python installation
             if (-not (Test-PythonInstalled -MinVersion $PythonVersion)) {
-                Write-ColorOutput "❌ Python installation verification failed. Please restart your terminal and try again." $ColorError
+                Write-ColorOutput "Python installation verification failed. Please restart your terminal and try again." $ColorError
                 exit 1
             }
         }
     } else {
-        Write-ColorOutput "⏭️  Skipping Python installation check" $ColorWarning
+        Write-ColorOutput "Skipping Python installation check" $ColorWarning
     }
     
     # Install Fabric CLI
     $fabricInstalled = Install-FabricCLI
     if (-not $fabricInstalled) {
-        Write-ColorOutput "❌ Failed to install Fabric CLI. Exiting." $ColorError
+        Write-ColorOutput "Failed to install Fabric CLI. Exiting." $ColorError
         exit 1
     }
     
     # Test Fabric CLI
     $fabricWorking = Test-FabricCLI
     if (-not $fabricWorking) {
-        Write-ColorOutput "⚠️  Fabric CLI installed but test failed. You may need to restart your terminal." $ColorWarning
+        Write-ColorOutput "Fabric CLI installed but test failed. You may need to restart your terminal." $ColorWarning
     }
     
     # Show usage instructions
     Show-UsageInstructions
     
-    Write-ColorOutput "`n✅ Installation completed successfully!" $ColorSuccess
+    Write-ColorOutput "`nInstallation completed successfully!" $ColorSuccess
     Write-ColorOutput "You may need to restart your terminal for all changes to take effect." $ColorWarning
     
 } catch {
-    Write-ColorOutput "❌ Installation failed: $_" $ColorError
+    Write-ColorOutput "Installation failed: $_" $ColorError
     exit 1
 }

@@ -1,0 +1,106 @@
+{
+    "name": "Azure Fabric Observability DevContainer",
+    "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+    
+    // Features to install
+    "features": {
+        "ghcr.io/devcontainers/features/azure-cli:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest",
+            "dockerDashComposeVersion": "v2"
+        },
+        "ghcr.io/devcontainers/features/dotnet:1": {
+            "version": "8.0"
+        },
+        "ghcr.io/devcontainers/features/powershell:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+            "version": "latest",
+            "helm": "latest",
+            "minikube": "none"
+        }
+    },
+
+    // Configure tool-specific properties
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Azure extensions
+                "ms-vscode.azure-account",
+                "ms-azuretools.azure-dev",
+                "ms-azuretools.vscode-azurefunctions",
+                "ms-azuretools.vscode-azureresourcegroups",
+                "ms-azuretools.vscode-bicep",
+                
+                // Docker and Kubernetes
+                "ms-azuretools.vscode-docker",
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                
+                // .NET development
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                
+                // Python development
+                "ms-python.python",
+                "ms-python.pylint",
+                "ms-python.flake8",
+                
+                // PowerShell
+                "ms-vscode.powershell",
+                
+                // YAML and JSON
+                "redhat.vscode-yaml",
+                "ms-vscode.vscode-json",
+                
+                // Git and GitHub
+                "github.vscode-pull-request-github",
+                "github.copilot",
+                "github.copilot-chat",
+                
+                // Other useful extensions
+                "ms-vscode.vscode-markdown",
+                "streetsidesoftware.code-spell-checker",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.formatting.provider": "black",
+                "files.associations": {
+                    "*.bicep": "bicep",
+                    "*.kql": "kusto"
+                }
+            }
+        }
+    },
+
+    // Use 'forwardPorts' to make a list of ports inside the container available locally
+    "forwardPorts": [
+        8080,  // Common web port
+        5000,  // .NET development
+        8888   // Jupyter notebooks
+    ],
+
+    // Use 'postCreateCommand' to run commands after the container is created
+    "postCreateCommand": ".devcontainer/post-create.sh",
+
+    // Configure user and security
+    "remoteUser": "vscode",
+    "containerUser": "vscode",
+    
+    // Mount additional volumes
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+    ],
+    
+    // Environment variables
+    "containerEnv": {
+        "PYTHONPATH": "${containerWorkspaceFolder}",
+        "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}",
+        "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}"
+    }
+}

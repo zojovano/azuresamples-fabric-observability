@@ -79,20 +79,45 @@
     // Use 'postCreateCommand' to run commands after the container is created
     "postCreateCommand": ".devcontainer/post-create.sh",
 
-    // Configure user and security
+    // Configure user and security - Optimized for Podman WSL
     "remoteUser": "vscode",
     "containerUser": "vscode",
     
-    // Mount additional volumes - Simplified for WSL compatibility
-    "mounts": [],
+    // Mount additional volumes - Optimized for Podman WSL compatibility  
+    "mounts": [
+        // Source bind mount for better performance in WSL
+        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+    ],
     
-    // Simplified run arguments for better compatibility
-    "runArgs": [],
+    // Optimized run arguments for Podman in WSL
+    "runArgs": [
+        "--userns=keep-id",
+        "--security-opt=label=disable",
+        "--cap-add=SYS_PTRACE",
+        "--init"
+    ],
     
-    // Environment variables
+    // Environment variables - Enhanced for Podman WSL
     "containerEnv": {
         "PYTHONPATH": "${containerWorkspaceFolder}",
         "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}",
-        "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}"
-    }
+        "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}",
+        // WSL specific environment variables
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "WSL_DISTRO_NAME": "${localEnv:WSL_DISTRO_NAME}",
+        // Podman specific optimizations
+        "BUILDAH_ISOLATION": "chroot",
+        "CONTAINER_HOST": "unix:///run/user/1000/podman/podman.sock"
+    },
+    
+    // Additional DevContainer settings for Podman WSL
+    "workspaceFolder": "/workspace",
+    "shutdownAction": "stopContainer",
+    
+    // Podman-specific overrides
+    "overrideCommand": false,
+    "privileged": false,
+    
+    // Init process for better signal handling in Podman
+    "init": true
 }

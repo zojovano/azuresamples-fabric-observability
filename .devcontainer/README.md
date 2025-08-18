@@ -26,7 +26,27 @@ This DevContainer provides a complete development environment for the Azure Fabr
 ### Prerequisites
 - [VS Code](https://code.visualstudio.com/)
 - [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Container Runtime (choose one):
+  - **Recommended**: [Docker Desktop](https://www.docker.com/products/docker-desktop/) 
+  - **Alternative**: [Podman](https://podman.io/) (see [Podman WSL Setup Guide](./PODMAN_WSL_SETUP.md))
+
+### Container Runtime Options
+
+#### Option 1: Docker Desktop (Recommended)
+- Easiest setup and best compatibility
+- Works out-of-the-box with VS Code Dev Containers
+- Best performance on Windows
+
+#### Option 2: Podman in WSL (Advanced)
+- Rootless containers for better security
+- Lower resource usage
+- Requires additional configuration
+- See [PODMAN_WSL_SETUP.md](./PODMAN_WSL_SETUP.md) for detailed setup instructions
+
+**Available Configurations:**
+- `devcontainer.json` - Standard configuration (works with both Docker and Podman)
+- `devcontainer-podman.json` - Podman-optimized configuration
+- `devcontainer-simple.json` - Minimal configuration
 
 ### Setup
 1. **Open in DevContainer**
@@ -164,7 +184,7 @@ Add to `.devcontainer/devcontainer.json`:
 
 ## 🐛 Troubleshooting
 
-### Container Issues
+### General Issues
 ```bash
 # Rebuild container
 # Command Palette: "Dev Containers: Rebuild Container"
@@ -174,6 +194,29 @@ docker logs devcontainer
 
 # Access container shell
 docker exec -it devcontainer bash
+```
+
+### Podman-Specific Issues
+If using Podman in WSL, run the validation script:
+```bash
+# In WSL
+cd /path/to/azuresamples-fabric-observability
+./.devcontainer/validate-podman-wsl.sh
+```
+
+Common Podman solutions:
+```bash
+# Restart Podman socket
+systemctl --user restart podman.socket
+
+# Reset Podman storage
+podman system reset --force
+
+# Check Podman configuration
+podman info
+
+# Use Podman-optimized config
+cp .devcontainer/devcontainer-podman.json .devcontainer/devcontainer.json
 ```
 
 ### Tool Issues

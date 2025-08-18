@@ -1,12 +1,24 @@
 #!/bin/bash
 
 # Post-create script for Azure Fabric Observability DevContainer
+# Optimized for Podman in WSL environments
 set -e
 
 echo "🚀 Setting up Azure Fabric Observability development environment..."
+echo "🐧 Container runtime: $(if command -v podman >/dev/null 2>&1; then echo 'Podman'; elif command -v docker >/dev/null 2>&1; then echo 'Docker'; else echo 'Unknown'; fi)"
+echo "🔍 Current user: $(whoami) (UID: $(id -u), GID: $(id -g))"
+echo "📁 Working directory: $(pwd)"
 
-# Update package lists
-sudo apt-get update
+# Check if we're in WSL and log environment info
+if [ -n "$WSL_DISTRO_NAME" ]; then
+    echo "🪟 Running in WSL: $WSL_DISTRO_NAME"
+fi
+
+# Update package lists with error handling
+echo "📦 Updating package lists..."
+if ! sudo apt-get update; then
+    echo "⚠️  Package update failed, continuing anyway..."
+fi
 
 # Install additional system packages
 echo "📦 Installing system packages..."
@@ -81,10 +93,14 @@ alias fabhelp='fab help'
 alias bicepbuild='az bicep build'
 alias bicepvalidate='az deployment group validate'
 
-# Docker aliases
-alias dps='docker ps'
-alias dimg='docker images'
-alias dlog='docker logs'
+# Docker aliases - Updated for Podman compatibility
+alias dps='podman ps 2>/dev/null || docker ps'
+alias dimg='podman images 2>/dev/null || docker images'
+alias dlog='podman logs 2>/dev/null || docker logs'
+alias dpull='podman pull 2>/dev/null || docker pull'
+
+# Container runtime detection alias
+alias container-runtime='if command -v podman >/dev/null 2>&1; then echo "Using Podman"; podman version; elif command -v docker >/dev/null 2>&1; then echo "Using Docker"; docker version; else echo "No container runtime found"; fi'
 
 # Kubernetes aliases
 alias k='kubectl'
@@ -119,19 +135,16 @@ code --install-extension ms-azuretools.vscode-bicep --force
 code --install-extension ms-python.python --force
 code --install-extension ms-vscode.azure-account --force
 
-# Validate installations
+# Validate installations with container runtime detection
 echo "✅ Validating installations..."
-echo "Azure CLI version: $(az version --output tsv --query '"azure-cli"')"
-echo "Python version: $(python --version)"
-echo "Fabric CLI version: $(fab --version || echo 'Not installed')"
-echo "Docker version: $(docker --version)"
-echo ".NET version: $(dotnet --version)"
-echo "Node.js version: $(node --version)"
-echo "npm version: $(npm --version)"
-echo "npx version: $(npx --version)"
-echo "Node.js version: $(node --version)"
-echo "npm version: $(npm --version)"
-echo "npx version: $(npx --version)"
+echo "Azure CLI version: $(az version --output tsv --query '"azure-cli"' 2>/dev/null || echo 'Not available')"
+echo "Python version: $(python --version 2>/dev/null || echo 'Not available')"
+echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Not installed')"
+echo "Container runtime: $(if command -v podman >/dev/null 2>&1; then podman --version; elif command -v docker >/dev/null 2>&1; then docker --version; else echo 'None available'; fi)"
+echo ".NET version: $(dotnet --version 2>/dev/null || echo 'Not available')"
+echo "Node.js version: $(node --version 2>/dev/null || echo 'Not available')"
+echo "npm version: $(npm --version 2>/dev/null || echo 'Not available')"
+echo "npx version: $(npx --version 2>/dev/null || echo 'Not available')"
 
 # Create sample configuration files
 echo "📋 Creating sample configuration files..."

@@ -93,14 +93,14 @@ alias fabhelp='fab help'
 alias bicepbuild='az bicep build'
 alias bicepvalidate='az deployment group validate'
 
-# Docker aliases - Updated for Podman compatibility
-alias dps='podman ps 2>/dev/null || docker ps'
-alias dimg='podman images 2>/dev/null || docker images'
-alias dlog='podman logs 2>/dev/null || docker logs'
-alias dpull='podman pull 2>/dev/null || docker pull'
+# Docker aliases - Podman only (Docker removed from WSL)
+alias dps='podman ps'
+alias dimg='podman images'
+alias dlog='podman logs'
+alias dpull='podman pull'
 
-# Container runtime detection alias
-alias container-runtime='if command -v podman >/dev/null 2>&1; then echo "Using Podman"; podman version; elif command -v docker >/dev/null 2>&1; then echo "Using Docker"; docker version; else echo "No container runtime found"; fi'
+# Container runtime detection alias  
+alias container-runtime='echo "Using Podman"; podman version'
 
 # Kubernetes aliases
 alias k='kubectl'
@@ -135,12 +135,12 @@ code --install-extension ms-azuretools.vscode-bicep --force
 code --install-extension ms-python.python --force
 code --install-extension ms-vscode.azure-account --force
 
-# Validate installations with container runtime detection
+# Validate installations with Podman-only
 echo "✅ Validating installations..."
 echo "Azure CLI version: $(az version --output tsv --query '"azure-cli"' 2>/dev/null || echo 'Not available')"
 echo "Python version: $(python --version 2>/dev/null || echo 'Not available')"
 echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Not installed')"
-echo "Container runtime: $(if command -v podman >/dev/null 2>&1; then podman --version; elif command -v docker >/dev/null 2>&1; then docker --version; else echo 'None available'; fi)"
+echo "Container runtime: $(podman --version 2>/dev/null || echo 'Podman not available')"
 echo ".NET version: $(dotnet --version 2>/dev/null || echo 'Not available')"
 echo "Node.js version: $(node --version 2>/dev/null || echo 'Not available')"
 echo "npm version: $(npm --version 2>/dev/null || echo 'Not available')"
@@ -178,7 +178,7 @@ echo "Available tools:"
 echo "  - Azure CLI: $(az version --output tsv --query '"azure-cli"')"
 echo "  - Python: $(python --version)"
 echo "  - .NET: $(dotnet --version)"
-echo "  - Docker: $(docker --version)"
+echo "  - Podman: $(podman --version)"
 echo "  - Fabric CLI: $(fab --version 2>/dev/null || echo 'Run: fab auth login')"
 echo ""
 echo "Getting started:"

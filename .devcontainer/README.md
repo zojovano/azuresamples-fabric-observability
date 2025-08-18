@@ -11,11 +11,11 @@ This DevContainer provides a complete development environment for the Azure Fabr
 - **.NET 8.0** for C# development
 - **PowerShell** for scripting
 - **Node.js LTS** with npm and npx for VS Code MCP Azure
-- **Docker** and **Docker Compose**
+- **Podman** for container management
 - **kubectl** and **Helm** for Kubernetes
 
 ### Development Environment
-- **VS Code Extensions** for Azure, Python, .NET, Docker
+- **VS Code Extensions** for Azure, Python, .NET, Podman
 - **Git** configuration
 - **Jupyter Lab** for notebooks
 - **Black** and **Flake8** for Python formatting
@@ -26,26 +26,19 @@ This DevContainer provides a complete development environment for the Azure Fabr
 ### Prerequisites
 - [VS Code](https://code.visualstudio.com/)
 - [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-- Container Runtime (choose one):
-  - **Recommended**: [Docker Desktop](https://www.docker.com/products/docker-desktop/) 
-  - **Alternative**: [Podman](https://podman.io/) (see [Podman WSL Setup Guide](./PODMAN_WSL_SETUP.md))
+- **Container Runtime**: [Podman](https://podman.io/) (configured for WSL)
+  - See [Podman WSL Setup Guide](./PODMAN_WSL_SETUP.md) for installation instructions
 
-### Container Runtime Options
-
-#### Option 1: Docker Desktop (Recommended)
-- Easiest setup and best compatibility
-- Works out-of-the-box with VS Code Dev Containers
-- Best performance on Windows
-
-#### Option 2: Podman in WSL (Advanced)
-- Rootless containers for better security
-- Lower resource usage
-- Requires additional configuration
-- See [PODMAN_WSL_SETUP.md](./PODMAN_WSL_SETUP.md) for detailed setup instructions
+### Container Runtime
+This DevContainer is optimized for **Podman in WSL** and provides:
+- **Rootless containers** for better security
+- **Lower resource usage** compared to Docker Desktop
+- **Native WSL integration** with optimized performance
+- **No Docker Desktop dependency**
 
 **Available Configurations:**
-- `devcontainer.json` - Standard configuration (works with both Docker and Podman)
-- `devcontainer-podman.json` - Podman-optimized configuration
+- `devcontainer.json` - Podman-optimized configuration
+- `devcontainer-podman.json` - Alternative Podman-specific configuration
 - `devcontainer-simple.json` - Minimal configuration
 
 ### Setup
@@ -190,14 +183,14 @@ Add to `.devcontainer/devcontainer.json`:
 # Command Palette: "Dev Containers: Rebuild Container"
 
 # Check container logs
-docker logs devcontainer
+podman logs <container-name>
 
 # Access container shell
-docker exec -it devcontainer bash
+podman exec -it <container-name> bash
 ```
 
 ### Podman-Specific Issues
-If using Podman in WSL, run the validation script:
+Run the validation script to check your environment:
 ```bash
 # In WSL
 cd /path/to/azuresamples-fabric-observability
@@ -215,7 +208,7 @@ podman system reset --force
 # Check Podman configuration
 podman info
 
-# Use Podman-optimized config
+# Use alternative Podman config
 cp .devcontainer/devcontainer-podman.json .devcontainer/devcontainer.json
 ```
 

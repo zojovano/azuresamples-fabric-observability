@@ -1,0 +1,31 @@
+{
+    "name": "Azure Fabric Observability DevContainer",
+    "image": "mcr.microsoft.com/devcontainers/python:3.12",
+    
+    "features": {
+        "ghcr.io/devcontainers/features/azure-cli:1": {},
+        "ghcr.io/devcontainers/features/dotnet:1": {
+            "version": "8.0"
+        },
+        "ghcr.io/devcontainers/features/powershell:1": {},
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        }
+    },
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.azure-account",
+                "ms-azuretools.vscode-bicep",
+                "ms-python.python",
+                "ms-dotnettools.csharp",
+                "ms-vscode.powershell"
+            ]
+        }
+    },
+
+    "forwardPorts": [8080, 5000, 8888],
+    "postCreateCommand": "pip install --upgrade pip && pip install -r .devcontainer/requirements.txt && pip install ms-fabric-cli",
+    "remoteUser": "vscode"
+}

@@ -2,14 +2,9 @@
     "name": "Azure Fabric Observability DevContainer",
     "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
     
-    // Features to install
     "features": {
         "ghcr.io/devcontainers/features/azure-cli:1": {
             "version": "latest"
-        },
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {
-            "version": "latest",
-            "dockerDashComposeVersion": "v2"
         },
         "ghcr.io/devcontainers/features/dotnet:1": {
             "version": "8.0"
@@ -17,19 +12,10 @@
         "ghcr.io/devcontainers/features/powershell:1": {
             "version": "latest"
         },
-        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
-            "version": "latest",
-            "helm": "latest",
-            "minikube": "none"
-        },
         "ghcr.io/devcontainers/features/node:1": {
-            "version": "lts",
-            "nodeGypDependencies": true,
-            "installYarnUsingApt": false
+            "version": "lts"
         }
     },
-
-    // Configure tool-specific properties
     "customizations": {
         "vscode": {
             "extensions": [
@@ -97,10 +83,11 @@
     "remoteUser": "vscode",
     "containerUser": "vscode",
     
-    // Mount additional volumes
-    "mounts": [
-        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-    ],
+    // Mount additional volumes - Simplified for WSL compatibility
+    "mounts": [],
+    
+    // Simplified run arguments for better compatibility
+    "runArgs": [],
     
     // Environment variables
     "containerEnv": {

@@ -54,6 +54,12 @@ echo "🔨 Installing .NET tools..."
 dotnet tool install -g Microsoft.Web.LibraryManager.Cli
 dotnet tool install -g dotnet-ef
 
+# Install Node.js tools for VS Code MCP Azure
+echo "📦 Installing Node.js tools for VS Code MCP Azure..."
+npm install -g @azure/mcp-server-azure
+npm install -g typescript
+npm install -g ts-node
+
 # Install kubectl and helm (if not already installed by feature)
 echo "☸️  Configuring Kubernetes tools..."
 # kubectl and helm should already be installed by the feature
@@ -85,6 +91,11 @@ alias k='kubectl'
 alias kgp='kubectl get pods'
 alias kgs='kubectl get services'
 
+# Node.js and npx aliases
+alias npmg='npm install -g'
+alias npxrun='npx'
+alias nodeversion='node --version && npm --version && npx --version'
+
 EOF
 
 # Set up Git configuration (use environment variables if available)
@@ -115,6 +126,12 @@ echo "Python version: $(python --version)"
 echo "Fabric CLI version: $(fab --version || echo 'Not installed')"
 echo "Docker version: $(docker --version)"
 echo ".NET version: $(dotnet --version)"
+echo "Node.js version: $(node --version)"
+echo "npm version: $(npm --version)"
+echo "npx version: $(npx --version)"
+echo "Node.js version: $(node --version)"
+echo "npm version: $(npm --version)"
+echo "npx version: $(npx --version)"
 
 # Create sample configuration files
 echo "📋 Creating sample configuration files..."

@@ -10,6 +10,7 @@ This DevContainer provides a complete development environment for the Azure Fabr
 - **Microsoft Fabric CLI** for Fabric management
 - **.NET 8.0** for C# development
 - **PowerShell** for scripting
+- **Node.js LTS** with npm and npx for VS Code MCP Azure
 - **Docker** and **Docker Compose**
 - **kubectl** and **Helm** for Kubernetes
 

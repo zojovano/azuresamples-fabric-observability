@@ -21,6 +21,11 @@
             "version": "latest",
             "helm": "latest",
             "minikube": "none"
+        },
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts",
+            "nodeGypDependencies": true,
+            "installYarnUsingApt": false
         }
     },
 

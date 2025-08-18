@@ -6,3 +6,9 @@ app\dotnet-client\OTELWorker\obj
 /app/dotnet-client/ADXExporter/obj
 *.user
 /app/otel-eh-receiver/obj
+
+# DevContainer - ignore unwanted monitoring components
+.devcontainer/grafana/
+.devcontainer/Dockerfile
+.devcontainer/docker-compose.yml
+.devcontainer/prometheus.yml

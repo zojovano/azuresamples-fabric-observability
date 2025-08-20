@@ -24,8 +24,61 @@ Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container 
 
 ## Deploy Microsoft Fabric for OTEL Observability
 
+The deployment process is now fully automated using GitHub Actions and Microsoft Fabric CLI:
+
+### Prerequisites
+1. **Azure Subscription** with sufficient quota for Fabric capacity
+2. **GitHub repository** configured with proper secrets (see [GitHub Secrets Setup](GITHUB_SECRETS_SETUP.md))
+3. **Service Principal** with Fabric capacity admin permissions
+
+### Automated Deployment
+
+#### GitHub Actions Workflow
+The main deployment workflow deploys both Azure infrastructure and Fabric artifacts:
+
+```bash
+# Triggered automatically on push to main branch
+# Or manually via GitHub Actions UI
+```
+
+**Deployment Steps:**
+1. **Azure Infrastructure** - Deploys Bicep templates for:
+   - Fabric capacity
+   - Event Hub namespace
+   - Container instances for OTEL collector
+   - Supporting resources
+
+2. **Fabric Artifacts** - Uses Fabric CLI to deploy:
+   - Fabric workspace (`fabric-otel-workspace`)
+   - KQL database (`otelobservabilitydb`)
+   - OTEL tables (logs, metrics, traces)
+
+#### Manual Deployment
+
+For local development or manual deployment:
+
+```bash
+# Deploy Azure infrastructure
+cd infra/Bicep
+./deploy.ps1
+
+# Deploy Fabric artifacts
+cd ../
+./deploy-fabric-artifacts.sh        # Linux/macOS
+# or
+./Deploy-FabricArtifacts.ps1        # PowerShell/Windows
+```
+
+#### Validation
+```bash
+# Test deployment
+./infra/test-fabric-deployment.sh
+```
+
+📚 **Detailed Documentation**: See [Fabric CLI Deployment Guide](docs/FABRIC_CLI_DEPLOYMENT.md)
+
 <details>
-<summary>Azure Portal</summary>
+<summary>Manual Azure Portal Setup (Legacy)</summary>
 
 Follow Microsoft Learn article for [configuring OTEL collection for Azure Data Explorer (or Microsoft Fabric Real-Time Intelligence)](https://learn.microsoft.com/azure/data-explorer/open-telemetry-connector). 
 

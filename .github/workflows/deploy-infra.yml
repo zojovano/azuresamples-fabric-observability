@@ -80,8 +80,8 @@ jobs:
           echo "Admin Object ID is set: ${{ secrets.ADMIN_OBJECT_ID != '' }}"
           echo "Subscription ID is set: ${{ secrets.AZURE_SUBSCRIPTION_ID != '' }}"
 
-  deploy-kql-tables:
-    name: Deploy KQL Tables
+  deploy-fabric-artifacts:
+    name: Deploy Fabric Artifacts
     needs: deploy-infra
     runs-on: ubuntu-latest
     
@@ -96,41 +96,40 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create KQL Tables
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Microsoft Fabric CLI
         run: |
-          # Get Fabric workspace information
-          echo "Getting Fabric workspace details..."
+          echo "Installing Microsoft Fabric CLI..."
+          pip install ms-fabric-cli
+          fab --version
+
+      - name: Deploy Fabric Artifacts
+        run: |
+          echo "Deploying Fabric artifacts using Fabric CLI..."
           
-          # Check if resource group exists first
-          if ! az group show --name ${{ env.RESOURCE_GROUP_NAME }} > /dev/null 2>&1; then
-            echo "Resource group ${{ env.RESOURCE_GROUP_NAME }} not found. Skipping KQL table creation."
-            exit 0
-          fi
+          # Set environment variables for the deployment script
+          export FABRIC_WORKSPACE_NAME="fabric-otel-workspace"
+          export FABRIC_DATABASE_NAME="otelobservabilitydb"
+          export RESOURCE_GROUP_NAME="${{ env.RESOURCE_GROUP_NAME }}"
+          export LOCATION="${{ env.LOCATION }}"
           
-          WORKSPACE_NAME=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --resource-type "Microsoft.Fabric/workspaces" --query "[0].name" -o tsv 2>/dev/null || echo "")
-          DATABASE_NAME="otelobservabilitydb"
-          
-          if [ -z "$WORKSPACE_NAME" ] || [ "$WORKSPACE_NAME" = "null" ]; then
-            echo "No Fabric workspace found. This is expected if Fabric resources are still being created."
-            echo "KQL tables will need to be created manually or in a subsequent run."
-            exit 0
-          fi
-          
-          echo "Found Fabric workspace: $WORKSPACE_NAME"
-          echo "Creating KQL tables will be implemented in future iteration..."
-          # Note: The PowerShell script for KQL table creation via Fabric API
-          # is complex and requires additional authentication setup
-          # For now, tables should be created manually in the Fabric portal
+          # Make script executable and run
+          chmod +x ./infra/deploy-fabric-artifacts.sh
+          ./infra/deploy-fabric-artifacts.sh
 
   report-status:
     name: Report Deployment Status
-    needs: [deploy-infra, deploy-kql-tables]
+    needs: [deploy-infra, deploy-fabric-artifacts]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Report status
         run: |
-          if [ "${{ needs.deploy-infra.result }}" == "success" ] && [ "${{ needs.deploy-kql-tables.result }}" == "success" ]; then
+          if [ "${{ needs.deploy-infra.result }}" == "success" ] && [ "${{ needs.deploy-fabric-artifacts.result }}" == "success" ]; then
             echo "✅ Deployment completed successfully"
           else
             echo "❌ Deployment failed"

@@ -12,3 +12,4 @@ app\dotnet-client\OTELWorker\obj
 .devcontainer/Dockerfile
 .devcontainer/docker-compose.yml
 .devcontainer/prometheus.yml
+runapi.ps1

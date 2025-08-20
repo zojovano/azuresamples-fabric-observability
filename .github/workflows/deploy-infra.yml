@@ -121,17 +121,89 @@ jobs:
           chmod +x ./infra/deploy-fabric-artifacts.sh
           ./infra/deploy-fabric-artifacts.sh
 
+  test-fabric-deployment:
+    name: Test Fabric Deployment
+    needs: deploy-fabric-artifacts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing required tools..."
+          pip install ms-fabric-cli
+          
+          # Install jq for JSON processing
+          sudo apt-get update
+          sudo apt-get install -y jq bc
+          
+          # Verify installations
+          fab --version
+          az --version
+          jq --version
+
+      - name: Run Fabric Integration Tests
+        run: |
+          echo "Running comprehensive Fabric integration tests..."
+          
+          # Set environment variables
+          export FABRIC_WORKSPACE_NAME="fabric-otel-workspace"
+          export FABRIC_DATABASE_NAME="otelobservabilitydb"
+          export RESOURCE_GROUP_NAME="${{ env.RESOURCE_GROUP_NAME }}"
+          export LOCATION="${{ env.LOCATION }}"
+          
+          # Create test results directory
+          mkdir -p test-results
+          
+          # Run the comprehensive test suite
+          chmod +x ./tests/fabric-integration-tests.sh
+          ./tests/fabric-integration-tests.sh
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fabric-test-results
+          path: test-results/
+          retention-days: 30
+
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Fabric Integration Tests
+          path: test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: true
+
   report-status:
     name: Report Deployment Status
-    needs: [deploy-infra, deploy-fabric-artifacts]
+    needs: [deploy-infra, deploy-fabric-artifacts, test-fabric-deployment]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Report status
         run: |
-          if [ "${{ needs.deploy-infra.result }}" == "success" ] && [ "${{ needs.deploy-fabric-artifacts.result }}" == "success" ]; then
-            echo "✅ Deployment completed successfully"
+          if [ "${{ needs.deploy-infra.result }}" == "success" ] && [ "${{ needs.deploy-fabric-artifacts.result }}" == "success" ] && [ "${{ needs.test-fabric-deployment.result }}" == "success" ]; then
+            echo "✅ Deployment and testing completed successfully"
           else
-            echo "❌ Deployment failed"
+            echo "❌ Deployment or testing failed"
+            echo "Infrastructure: ${{ needs.deploy-infra.result }}"
+            echo "Fabric Artifacts: ${{ needs.deploy-fabric-artifacts.result }}"
+            echo "Integration Tests: ${{ needs.test-fabric-deployment.result }}"
             exit 1
           fi

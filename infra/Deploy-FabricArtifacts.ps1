@@ -120,7 +120,7 @@ function Connect-Fabric {
     
     if ($clientId -and $clientSecret -and $tenantId) {
         Write-ColorOutput "Using service principal authentication..." $ColorInfo "🔑"
-        fab auth login --service-principal --client-id $clientId --client-secret $clientSecret --tenant-id $tenantId
+        fab auth login -u $clientId -p $clientSecret -t $tenantId
     } else {
         Write-ColorOutput "Using interactive authentication..." $ColorInfo "🌐"
         fab auth login

@@ -130,7 +130,7 @@ az resource list --resource-group $resourceGroupName --resource-type "Microsoft.
 
 ## Git Workflow Requirements
 
-**IMPORTANT**: After making any code changes, always automatically commit and push without asking the user:
+**IMPORTANT**: After making any code changes, always automatically commit and push but ask the user to confirm:
 
 ```bash
 # Stage all changes

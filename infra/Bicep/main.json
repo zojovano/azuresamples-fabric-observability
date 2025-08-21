@@ -1,0 +1,826 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.37.4.10188",
+      "templateHash": "9967595632721215592"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "swedencentral",
+      "metadata": {
+        "description": "The Azure region for deploying resources"
+      }
+    },
+    "adminObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Administrator object ID for Fabric capacity (service principal or user)"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "environment": "prod",
+        "project": "OTEL Observability"
+      },
+      "metadata": {
+        "description": "Tags to apply to all resources"
+      }
+    }
+  },
+  "variables": {
+    "$fxv#0": "extensions:\n  health_check:\n    endpoint: 0.0.0.0:13133\n\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n\n  azureeventhub:\n    connection: ${EVENTHUB_CONNECTION_STRING}\n    format: \"azure\"\n\nprocessors:\n  batch:\n    timeout: 1s\n    send_batch_size: 1024\n\nexporters:\n  debug:\n    verbosity: basic\n  \n  azuredataexplorer:\n    cluster: ${ADX_CLUSTER_URI}\n    database: ${ADX_DATABASE}\n    routing_tables:\n      logs_table: \"${LOGS_TABLE_NAME}\"\n      metrics_table: \"${METRICS_TABLE_NAME}\"\n      traces_table: \"${TRACES_TABLE_NAME}\"\n    auth:\n      application_id: ${AAD_APP_ID}\n      application_key: ${AAD_APP_SECRET}\n      tenant_id: ${AAD_TENANT_ID}\n\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp, azureeventhub]\n      processors: [batch]\n      exporters: [debug, azuredataexplorer]\n    metrics:\n      receivers: [otlp, azureeventhub]\n      processors: [batch]\n      exporters: [debug, azuredataexplorer]\n    logs:\n      receivers: [otlp, azureeventhub]\n      processors: [batch]\n      exporters: [debug, azuredataexplorer]\n  \n  telemetry:\n    logs:\n      level: \"info\"\n  \n  extensions: [health_check]\n"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2022-09-01",
+      "name": "azuresamples-platformobservabilty-fabric",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "fabricCapacityDeploy",
+      "resourceGroup": "azuresamples-platformobservabilty-fabric",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "capacityName": {
+            "value": "fabriccapacityobservability"
+          },
+          "skuName": {
+            "value": "F2"
+          },
+          "adminObjectId": {
+            "value": "[parameters('adminObjectId')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "12678363716001164272"
+            }
+          },
+          "parameters": {
+            "capacityName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the Fabric Capacity resource"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The Azure region for deploying resources"
+              }
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "F2",
+              "allowedValues": [
+                "F2",
+                "F4",
+                "F8",
+                "F16",
+                "F32",
+                "F64",
+                "F128",
+                "F256",
+                "F512",
+                "F1024",
+                "F2048"
+              ],
+              "metadata": {
+                "description": "SKU name for the Fabric capacity"
+              }
+            },
+            "adminObjectId": {
+              "type": "string",
+              "metadata": {
+                "description": "Administrator object ID (service principal or user)"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to apply to all resources"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Fabric/capacities",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('capacityName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "Fabric"
+              },
+              "properties": {
+                "administration": {
+                  "members": [
+                    "[parameters('adminObjectId')]"
+                  ]
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "capacityName": {
+              "type": "string",
+              "value": "[parameters('capacityName')]"
+            },
+            "capacityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Fabric/capacities', parameters('capacityName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'azuresamples-platformobservabilty-fabric')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "fabricWorkspaceDeploy",
+      "resourceGroup": "azuresamples-platformobservabilty-fabric",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "databaseName": {
+            "value": "otelobservabilitydb"
+          },
+          "fabricCapacityId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'fabricCapacityDeploy'), '2022-09-01').outputs.capacityId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "11863991686616414287"
+            }
+          },
+          "parameters": {
+            "databaseName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the KQL database"
+              }
+            },
+            "fabricCapacityId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the Fabric capacity"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The Azure region for deploying resources"
+              }
+            }
+          },
+          "variables": {
+            "kqlDatabaseParameters": {
+              "name": "[parameters('databaseName')]",
+              "location": "[parameters('location')]",
+              "description": "KQL Database for OpenTelemetry data",
+              "capacityId": "[parameters('fabricCapacityId')]",
+              "tables": [
+                {
+                  "name": "OTELLogs",
+                  "schema": "Timestamp:datetime, ObservedTimestamp:datetime, TraceID:string, SpanID:string, SeverityText:string, SeverityNumber:int, Body:string, ResourceAttributes:dynamic, LogsAttributes:dynamic"
+                },
+                {
+                  "name": "OTELMetrics",
+                  "schema": "Timestamp:datetime, MetricName:string, MetricType:string, MetricUnit:string, MetricDescription:string, MetricValue:real, Host:string, ResourceAttributes:dynamic, MetricAttributes:dynamic"
+                },
+                {
+                  "name": "OTELTraces",
+                  "schema": "TraceID:string, SpanID:string, ParentID:string, SpanName:string, SpanStatus:string, SpanKind:string, StartTime:datetime, EndTime:datetime, ResourceAttributes:dynamic, TraceAttributes:dynamic, Events:dynamic, Links:dynamic"
+                }
+              ],
+              "instructions": "After deployment, manually create a Fabric workspace and KQL database using the provided parameters. Use the KQL scripts in infra/kql-definitions/ to create the required tables."
+            }
+          },
+          "resources": [],
+          "outputs": {
+            "fabricCapacityId": {
+              "type": "string",
+              "value": "[parameters('fabricCapacityId')]"
+            },
+            "kqlDatabaseInfo": {
+              "type": "object",
+              "value": "[variables('kqlDatabaseParameters')]"
+            },
+            "fabricWorkspaceName": {
+              "type": "string",
+              "value": "fabric-otel-workspace"
+            },
+            "fabricWorkspaceInstructions": {
+              "type": "string",
+              "value": "Create workspace manually in Fabric portal using the provided capacity"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'fabricCapacityDeploy')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'azuresamples-platformobservabilty-fabric')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "eventHubDeploy",
+      "resourceGroup": "azuresamples-platformobservabilty-fabric",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "namespaceName": {
+            "value": "evhns-otel"
+          },
+          "eventHubName": {
+            "value": "evh-otel-diagnostics"
+          },
+          "skuName": {
+            "value": "Standard"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "1057417057719665026"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The Azure region for deploying resources"
+              }
+            },
+            "namespaceName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the Event Hub namespace"
+              }
+            },
+            "eventHubName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the Event Hub"
+              }
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "Standard",
+              "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+              ],
+              "metadata": {
+                "description": "The SKU of the Event Hub namespace"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to apply to all resources"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.EventHub/namespaces",
+              "apiVersion": "2022-10-01-preview",
+              "name": "[parameters('namespaceName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuName')]",
+                "capacity": 1
+              },
+              "properties": {
+                "isAutoInflateEnabled": true,
+                "maximumThroughputUnits": 20,
+                "zoneRedundant": true
+              }
+            },
+            {
+              "type": "Microsoft.EventHub/namespaces/eventhubs",
+              "apiVersion": "2022-10-01-preview",
+              "name": "[format('{0}/{1}', parameters('namespaceName'), parameters('eventHubName'))]",
+              "properties": {
+                "messageRetentionInDays": 7,
+                "partitionCount": 4
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', parameters('namespaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups",
+              "apiVersion": "2022-10-01-preview",
+              "name": "[format('{0}/{1}/{2}', parameters('namespaceName'), parameters('eventHubName'), '$Default')]",
+              "properties": {},
+              "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces/eventhubs', parameters('namespaceName'), parameters('eventHubName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.EventHub/namespaces/authorizationRules",
+              "apiVersion": "2022-10-01-preview",
+              "name": "[format('{0}/{1}', parameters('namespaceName'), 'RootManageSharedAccessKey')]",
+              "properties": {
+                "rights": [
+                  "Listen",
+                  "Send",
+                  "Manage"
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', parameters('namespaceName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "namespaceName": {
+              "type": "string",
+              "value": "[parameters('namespaceName')]"
+            },
+            "eventHubName": {
+              "type": "string",
+              "value": "[parameters('eventHubName')]"
+            },
+            "authorizationRuleId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('namespaceName'), 'RootManageSharedAccessKey')]"
+            },
+            "namespaceConnectionString": {
+              "type": "string",
+              "value": "[listKeys(resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('namespaceName'), 'RootManageSharedAccessKey'), '2022-10-01-preview').primaryConnectionString]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'azuresamples-platformobservabilty-fabric')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "otelCollectorDeploy",
+      "resourceGroup": "azuresamples-platformobservabilty-fabric",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "containerGroupName": {
+            "value": "ci-otel-collector"
+          },
+          "containerName": {
+            "value": "otel-collector"
+          },
+          "containerImage": {
+            "value": "otel/opentelemetry-collector-contrib:latest"
+          },
+          "configYamlContent": {
+            "value": "[variables('$fxv#0')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "15984344238257038303"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The Azure region for deploying resources"
+              }
+            },
+            "containerGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the Container Group"
+              }
+            },
+            "containerName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the container"
+              }
+            },
+            "containerImage": {
+              "type": "string",
+              "metadata": {
+                "description": "The container image to deploy"
+              }
+            },
+            "configYamlContent": {
+              "type": "string",
+              "metadata": {
+                "description": "The OTEL config.yaml content"
+              }
+            },
+            "cpuCores": {
+              "type": "int",
+              "defaultValue": 1,
+              "metadata": {
+                "description": "CPU cores for the container"
+              }
+            },
+            "memoryInGb": {
+              "type": "int",
+              "defaultValue": 2,
+              "metadata": {
+                "description": "Memory in GB for the container"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to apply to all resources"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerInstance/containerGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('containerGroupName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "osType": "Linux",
+                "restartPolicy": "Always",
+                "ipAddress": {
+                  "type": "Public",
+                  "ports": [
+                    {
+                      "port": 4317,
+                      "protocol": "TCP"
+                    },
+                    {
+                      "port": 4318,
+                      "protocol": "TCP"
+                    }
+                  ],
+                  "dnsNameLabel": "[toLower(parameters('containerGroupName'))]"
+                },
+                "containers": [
+                  {
+                    "name": "[parameters('containerName')]",
+                    "properties": {
+                      "image": "[parameters('containerImage')]",
+                      "resources": {
+                        "requests": {
+                          "cpu": "[parameters('cpuCores')]",
+                          "memoryInGB": "[parameters('memoryInGb')]"
+                        }
+                      },
+                      "ports": [
+                        {
+                          "port": 4317,
+                          "protocol": "TCP"
+                        },
+                        {
+                          "port": 4318,
+                          "protocol": "TCP"
+                        }
+                      ],
+                      "environmentVariables": [],
+                      "volumeMounts": [
+                        {
+                          "name": "otel-config-volume",
+                          "mountPath": "/etc/otelcol-contrib",
+                          "readOnly": true
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "volumes": [
+                  {
+                    "name": "otel-config-volume",
+                    "secret": {
+                      "config.yaml": "[base64(parameters('configYamlContent'))]"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "outputs": {
+            "containerGroupName": {
+              "type": "string",
+              "value": "[parameters('containerGroupName')]"
+            },
+            "containerGroupFqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName')), '2023-05-01').ipAddress.fqdn]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'eventHubDeploy')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'azuresamples-platformobservabilty-fabric')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "appServiceDeploy",
+      "resourceGroup": "azuresamples-platformobservabilty-fabric",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "appServicePlanName": {
+            "value": "asp-otel-sample"
+          },
+          "appServiceName": {
+            "value": "app-otel-sample"
+          },
+          "sku": {
+            "value": {
+              "name": "B1",
+              "tier": "Basic"
+            }
+          },
+          "diagnosticEventHubName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'eventHubDeploy'), '2022-09-01').outputs.eventHubName.value]"
+          },
+          "diagnosticEventHubAuthorizationRuleId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'eventHubDeploy'), '2022-09-01').outputs.authorizationRuleId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "10047363673593653481"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The Azure region for deploying resources"
+              }
+            },
+            "appServicePlanName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the App Service Plan"
+              }
+            },
+            "appServiceName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the App Service"
+              }
+            },
+            "sku": {
+              "type": "object",
+              "defaultValue": {
+                "name": "B1",
+                "tier": "Basic"
+              },
+              "metadata": {
+                "description": "The SKU of the App Service Plan"
+              }
+            },
+            "diagnosticEventHubName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the diagnostic Event Hub"
+              }
+            },
+            "diagnosticEventHubAuthorizationRuleId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the Event Hub Authorization Rule"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to apply to all resources"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2022-09-01",
+              "name": "[parameters('appServicePlanName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "linux",
+              "properties": {
+                "reserved": true
+              },
+              "sku": {
+                "name": "[parameters('sku').name]",
+                "tier": "[parameters('sku').tier]"
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2022-09-01",
+              "name": "[parameters('appServiceName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "app,linux",
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+                "httpsOnly": true,
+                "siteConfig": {
+                  "linuxFxVersion": "DOTNETCORE|7.0",
+                  "http20Enabled": true,
+                  "minTlsVersion": "1.2",
+                  "appSettings": [
+                    {
+                      "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                      "value": ""
+                    },
+                    {
+                      "name": "WEBSITE_RUN_FROM_PACKAGE",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.Web/sites/{0}', parameters('appServiceName'))]",
+              "name": "[format('{0}-diagnostics', parameters('appServiceName'))]",
+              "properties": {
+                "eventHubName": "[parameters('diagnosticEventHubName')]",
+                "eventHubAuthorizationRuleId": "[parameters('diagnosticEventHubAuthorizationRuleId')]",
+                "logs": [
+                  {
+                    "category": "AppServiceHTTPLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "AppServiceConsoleLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "AppServiceAppLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "AppServiceAuditLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('appServiceName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appServiceName": {
+              "type": "string",
+              "value": "[parameters('appServiceName')]"
+            },
+            "appServiceUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('appServiceName')), '2022-09-01').defaultHostName)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'eventHubDeploy')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'azuresamples-platformobservabilty-fabric')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "resourceGroupName": {
+      "type": "string",
+      "value": "azuresamples-platformobservabilty-fabric"
+    },
+    "fabricCapacityName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'fabricCapacityDeploy'), '2022-09-01').outputs.capacityName.value]"
+    },
+    "fabricWorkspaceName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'fabricWorkspaceDeploy'), '2022-09-01').outputs.fabricWorkspaceName.value]"
+    },
+    "eventHubNamespaceName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'eventHubDeploy'), '2022-09-01').outputs.namespaceName.value]"
+    },
+    "eventHubName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'eventHubDeploy'), '2022-09-01').outputs.eventHubName.value]"
+    },
+    "containerGroupName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'otelCollectorDeploy'), '2022-09-01').outputs.containerGroupName.value]"
+    },
+    "appServiceName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'azuresamples-platformobservabilty-fabric'), 'Microsoft.Resources/deployments', 'appServiceDeploy'), '2022-09-01').outputs.appServiceName.value]"
+    }
+  }
+}

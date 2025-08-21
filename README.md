@@ -64,7 +64,7 @@ cd infra/Bicep
 
 # Deploy Fabric artifacts
 cd ../
-./deploy-fabric-artifacts.sh        # Linux/macOS
+.\Deploy-FabricArtifacts.ps1        # PowerShell (Cross-platform)
 # or
 ./Deploy-FabricArtifacts.ps1        # PowerShell/Windows
 ```
@@ -72,7 +72,7 @@ cd ../
 #### Validation
 ```bash
 # Test deployment
-./infra/test-fabric-deployment.sh
+.\tests\Test-FabricIntegration.ps1
 ```
 
 📚 **Detailed Documentation**: See [Fabric CLI Deployment Guide](docs/FABRIC_CLI_DEPLOYMENT.md)

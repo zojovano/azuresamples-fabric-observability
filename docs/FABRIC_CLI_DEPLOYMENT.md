@@ -30,14 +30,9 @@ The service principal or user account needs:
 
 ## Deployment Scripts
 
-### Bash Script (Linux/macOS/GitHub Actions)
-```bash
-./infra/deploy-fabric-artifacts.sh
-```
-
-### PowerShell Script (Windows/Cross-platform)
+### PowerShell Script (Cross-platform)
 ```powershell
-./infra/Deploy-FabricArtifacts.ps1
+.\infra\Deploy-FabricArtifacts.ps1
 ```
 
 ## Configuration
@@ -110,7 +105,8 @@ deploy-fabric-artifacts:
   steps:
     # ... Azure login and setup
     - name: Deploy Fabric Artifacts
-      run: ./infra/deploy-fabric-artifacts.sh
+      shell: pwsh
+      run: .\infra\Deploy-FabricArtifacts.ps1
 ```
 
 ### Workflow Triggers
@@ -177,13 +173,13 @@ OTELTraces | count
 ## Local Development
 
 ### Manual Deployment
-```bash
+```powershell
 # Set environment variables
-export FABRIC_WORKSPACE_NAME="dev-workspace"
-export FABRIC_DATABASE_NAME="devdb"
+$env:FABRIC_WORKSPACE_NAME = "dev-workspace"
+$env:FABRIC_DATABASE_NAME = "devdb"
 
 # Run deployment
-./infra/deploy-fabric-artifacts.sh
+.\infra\Deploy-FabricArtifacts.ps1
 ```
 
 ### Testing Scripts

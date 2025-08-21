@@ -1,4 +1,5 @@
-# ✅ Test Automation Implementation Complete
+# ✅ Test Au4. **`tests/README.md`** - Comprehensive documentation
+5. **Updated `.github/workflows/ci-cd-pipeline.yml`** - Added test automation jobmation Implementation Complete
 
 ## 🎯 Summary of Deliverables
 
@@ -6,10 +7,9 @@ I've successfully implemented comprehensive test automation for your Microsoft F
 
 ### 📂 Created Files
 
-1. **`tests/fabric-integration-tests.sh`** - Main Bash test suite
-2. **`tests/Test-FabricIntegration.ps1`** - PowerShell cross-platform version  
-3. **`tests/generate-test-data.sh`** - Realistic OTEL data generator (Bash)
-4. **`tests/Generate-TestData.ps1`** - Test data generator (PowerShell)
+1. **`tests/Test-FabricIntegration.ps1`** - Main PowerShell test suite
+2. **`tests/Generate-TestData.ps1`** - Realistic OTEL data generator (PowerShell)  
+3. **`tests/README.md`** - Comprehensive documentation
 5. **`tests/README.md`** - Comprehensive documentation
 6. **Updated `.github/workflows/deploy-infra.yml`** - Added test automation job
 
@@ -37,8 +37,7 @@ I've successfully implemented comprehensive test automation for your Microsoft F
 - **Status Badges**: Green/red indicators in commits and PRs
 
 #### ✅ Cross-Platform Support
-- **Bash Scripts**: For Linux/macOS environments
-- **PowerShell Scripts**: For Windows and cross-platform compatibility
+- **PowerShell Scripts**: Cross-platform compatibility for Windows, Linux, and macOS
 - **Dev Container Ready**: Works in GitHub Codespaces and VS Code dev containers
 - **CI/CD Compatible**: Runs in GitHub Actions, Azure DevOps, and other platforms
 
@@ -69,26 +68,22 @@ Your test results will be displayed using these GitHub features:
 ### 🔧 Usage Examples
 
 **Run full test suite:**
-```bash
-# Bash version
-./tests/fabric-integration-tests.sh
-
-# PowerShell version  
-pwsh ./tests/Test-FabricIntegration.ps1
+```powershell
+.\tests\Test-FabricIntegration.ps1
 ```
 
 **Generate test data:**
 ```bash
 # Generate 100 records of each type (logs, metrics, traces)
-export DATA_COUNT=100
-./tests/generate-test-data.sh
+$env:DATA_COUNT = 100
+.\tests\Generate-TestData.ps1
 ```
 
 **Customize for your environment:**
-```bash
-export RESOURCE_GROUP_NAME="your-resource-group"
-export PERFORMANCE_THRESHOLD_MS="3000"
-./tests/fabric-integration-tests.sh
+```powershell
+$env:RESOURCE_GROUP_NAME = "your-resource-group"
+$env:PERFORMANCE_THRESHOLD_MS = "3000"
+.\tests\Test-FabricIntegration.ps1
 ```
 
 ### 🤖 GitHub Actions Workflow
@@ -102,7 +97,8 @@ test-fabric-deployment:
   needs: [deploy-infrastructure, deploy-fabric-artifacts]
   steps:
     - name: Run Fabric Integration Tests
-      run: ./tests/fabric-integration-tests.sh
+      shell: pwsh
+      run: .\tests\Test-FabricIntegration.ps1
     
     - name: Publish Test Report
       uses: dorny/test-reporter@v1

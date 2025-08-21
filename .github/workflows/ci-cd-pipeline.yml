@@ -182,43 +182,44 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Setup PowerShell
+        uses: actions/setup-dotnet@v4
         with:
-          python-version: '3.11'
+          dotnet-version: '8.0'
 
-      - name: Install Microsoft Fabric CLI
+      - name: Install Microsoft Fabric CLI (PowerShell)
+        shell: pwsh
         run: |
-          echo "Installing Microsoft Fabric CLI..."
+          Write-Host "Installing Microsoft Fabric CLI..."
           pip install ms-fabric-cli
           fab --version
 
-      - name: Deploy Fabric Artifacts
+      - name: Deploy Fabric Artifacts (PowerShell)
+        shell: pwsh
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         run: |
-          echo "Deploying Fabric artifacts using Fabric CLI..."
+          Write-Host "Deploying Fabric artifacts using PowerShell script..."
           
           # Set environment variables for the deployment script
-          export FABRIC_WORKSPACE_NAME="fabric-otel-workspace"
-          export FABRIC_DATABASE_NAME="otelobservabilitydb"
-          export RESOURCE_GROUP_NAME="${{ env.RESOURCE_GROUP_NAME }}"
-          export LOCATION="${{ env.LOCATION }}"
+          $env:FABRIC_WORKSPACE_NAME = "fabric-otel-workspace"
+          $env:FABRIC_DATABASE_NAME = "otelobservabilitydb"
+          $env:RESOURCE_GROUP_NAME = "${{ env.RESOURCE_GROUP_NAME }}"
+          $env:LOCATION = "${{ env.LOCATION }}"
           
           # Export Azure credentials for service principal authentication
-          export AZURE_CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
-          export AZURE_CLIENT_SECRET="${{ secrets.AZURE_CLIENT_SECRET }}"
-          export AZURE_TENANT_ID="${{ secrets.AZURE_TENANT_ID }}"
+          $env:AZURE_CLIENT_ID = "${{ secrets.AZURE_CLIENT_ID }}"
+          $env:AZURE_CLIENT_SECRET = "${{ secrets.AZURE_CLIENT_SECRET }}"
+          $env:AZURE_TENANT_ID = "${{ secrets.AZURE_TENANT_ID }}"
           
-          # Make script executable and run the ORIGINAL shell script
-          chmod +x ./infra/deploy-fabric-artifacts.sh
-          ./infra/deploy-fabric-artifacts.sh
+          # Run the PowerShell deployment script
+          .\infra\Deploy-FabricArtifacts.ps1
 
-  # ORIGINAL: Test using the original shell script (fabric-integration-tests.sh)
+  # ORIGINAL: Test using PowerShell script (Test-FabricIntegration.ps1)
   test-fabric-deployment:
-    name: Test Fabric Deployment (Shell Scripts)
+    name: Test Fabric Deployment (PowerShell Scripts)
     needs: [unit-tests, deploy-fabric-artifacts]
     runs-on: ubuntu-latest
     if: github.event.inputs.skip_deployment != 'true'
@@ -234,55 +235,52 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Setup PowerShell
+        uses: actions/setup-dotnet@v4
         with:
-          python-version: '3.11'
+          dotnet-version: '8.0'
 
-      - name: Install dependencies
+      - name: Install dependencies (PowerShell)
+        shell: pwsh
         run: |
-          echo "Installing required tools..."
+          Write-Host "Installing required tools..."
           pip install ms-fabric-cli
-          
-          # Install jq for JSON processing
-          sudo apt-get update
-          sudo apt-get install -y jq bc
           
           # Verify installations
           fab --version
           az --version
-          jq --version
+          pwsh --version
 
-      - name: Run Fabric Integration Tests
+      - name: Run Fabric Integration Tests (PowerShell)
+        shell: pwsh
         run: |
-          echo "Running original Fabric integration tests..."
+          Write-Host "Running PowerShell Fabric integration tests..."
           
           # Set environment variables
-          export FABRIC_WORKSPACE_NAME="fabric-otel-workspace"
-          export FABRIC_DATABASE_NAME="otelobservabilitydb"
-          export RESOURCE_GROUP_NAME="${{ env.RESOURCE_GROUP_NAME }}"
-          export LOCATION="${{ env.LOCATION }}"
+          $env:FABRIC_WORKSPACE_NAME = "fabric-otel-workspace"
+          $env:FABRIC_DATABASE_NAME = "otelobservabilitydb"
+          $env:RESOURCE_GROUP_NAME = "${{ env.RESOURCE_GROUP_NAME }}"
+          $env:LOCATION = "${{ env.LOCATION }}"
           
           # Create test results directory
-          mkdir -p test-results
+          New-Item -ItemType Directory -Force -Path "test-results"
           
-          # Run the ORIGINAL comprehensive test suite
-          chmod +x ./tests/fabric-integration-tests.sh
-          ./tests/fabric-integration-tests.sh
+          # Run the PowerShell comprehensive test suite
+          .\tests\Test-FabricIntegration.ps1
 
-      - name: Upload Shell Test Results
+      - name: Upload PowerShell Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: fabric-shell-test-results
+          name: fabric-powershell-test-results
           path: test-results/
           retention-days: 30
 
-      - name: Publish Shell Test Results
+      - name: Publish PowerShell Test Results
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          name: Fabric Integration Tests (Shell)
+          name: Fabric Integration Tests (PowerShell)
           path: test-results/junit.xml
           reporter: java-junit
           fail-on-error: false
@@ -445,7 +443,7 @@ jobs:
           echo "| Bicep Validation | ${{ needs.validate.result == 'success' && '✅ Passed' || (needs.validate.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Infrastructure Template Validation |" >> $GITHUB_STEP_SUMMARY
           echo "| Infrastructure Deployment | ${{ needs.deploy-infra.result == 'success' && '✅ Deployed' || (needs.deploy-infra.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Azure Resources via Bicep |" >> $GITHUB_STEP_SUMMARY
           echo "| Fabric Artifacts Deployment | ${{ needs.deploy-fabric-artifacts.result == 'success' && '✅ Deployed' || (needs.deploy-fabric-artifacts.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | KQL Tables via Fabric CLI |" >> $GITHUB_STEP_SUMMARY
-          echo "| Shell Integration Tests | ${{ needs.test-fabric-deployment.result == 'success' && '✅ Passed' || (needs.test-fabric-deployment.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Original Shell Scripts |" >> $GITHUB_STEP_SUMMARY
+          echo "| Shell Integration Tests | ${{ needs.test-fabric-deployment.result == 'success' && '✅ Passed' || (needs.test-fabric-deployment.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | PowerShell Scripts |" >> $GITHUB_STEP_SUMMARY
           echo "| .NET Integration Tests | ${{ needs.test-dotnet-integration.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Tests |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
@@ -472,7 +470,7 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ **BUILD**: Professional .NET testing framework" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ **DEPLOY**: Bicep infrastructure deployment" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ **TEST**: Professional testing suite validated" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **TEST**: PowerShell scripts AND .NET xUnit integration tests" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ **VALIDATION**: Template validation + comprehensive testing" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             

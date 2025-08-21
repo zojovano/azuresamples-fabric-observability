@@ -38,14 +38,9 @@ export PERFORMANCE_THRESHOLD_MS="5000"    # Query performance threshold
 
 ### 1. Integration Tests
 
-**Bash Version** (Linux/macOS):
-```bash
-./tests/fabric-integration-tests.sh
-```
-
 **PowerShell Version** (Cross-platform):
-```bash
-pwsh ./tests/Test-FabricIntegration.ps1
+```powershell
+.\tests\Test-FabricIntegration.ps1
 ```
 
 Both scripts provide:
@@ -56,14 +51,9 @@ Both scripts provide:
 
 ### 2. Test Data Generator
 
-**Bash Version**:
-```bash
-./tests/generate-test-data.sh
-```
-
 **PowerShell Version**:
-```bash
-pwsh ./tests/Generate-TestData.ps1
+```powershell
+.\tests\Generate-TestData.ps1
 ```
 
 Generates realistic OTEL data:
@@ -127,9 +117,8 @@ Tests are automatically executed in GitHub Actions workflows with:
 ### Workflow Integration
 ```yaml
 - name: Run Fabric Integration Tests
-  run: |
-    chmod +x ./tests/fabric-integration-tests.sh
-    ./tests/fabric-integration-tests.sh
+  shell: pwsh
+  run: .\tests\Test-FabricIntegration.ps1
 
 - name: Upload Test Results
   uses: actions/upload-artifact@v4
@@ -197,9 +186,9 @@ Tests generate standard JUnit XML format for integration with:
 ### Test Debugging
 
 Enable verbose output:
-```bash
-export TEST_DEBUG="true"
-./tests/fabric-integration-tests.sh
+```powershell
+$env:TEST_DEBUG = "true"
+.\tests\Test-FabricIntegration.ps1
 ```
 
 Check test logs:

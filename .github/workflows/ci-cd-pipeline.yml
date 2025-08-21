@@ -1,4 +1,4 @@
-name: Deploy Azure Infrastructure
+name: CI/CD Pipeline - Build, Deploy & Test
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - 'infra/kql-definitions/**'
       - 'tests/**'
       - 'app/**'
-      - '.github/workflows/deploy-infra.yml'
+      - '.github/workflows/ci-cd-pipeline.yml'
   pull_request:
     branches:
       - main
@@ -18,7 +18,7 @@ on:
       - 'infra/kql-definitions/**'
       - 'tests/**'
       - 'app/**'
-      - '.github/workflows/deploy-infra.yml'
+      - '.github/workflows/ci-cd-pipeline.yml'
   workflow_dispatch:
     inputs:
       location:
@@ -435,14 +435,16 @@ jobs:
     steps:
       - name: Generate Summary Report
         run: |
-          echo "## 🚀 Deployment & Testing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Comprehensive Build, Deploy & Test Pipeline**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status | Details |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| .NET Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Framework |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bicep Validation | ${{ needs.validate.result == 'success' && '✅ Passed' || (needs.validate.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Template Validation |" >> $GITHUB_STEP_SUMMARY
-          echo "| Infrastructure | ${{ needs.deploy-infra.result == 'success' && '✅ Deployed' || (needs.deploy-infra.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Azure Resources via Bicep |" >> $GITHUB_STEP_SUMMARY
-          echo "| Fabric Artifacts | ${{ needs.deploy-fabric-artifacts.result == 'success' && '✅ Deployed' || (needs.deploy-fabric-artifacts.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | KQL Tables via Fabric CLI |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bicep Validation | ${{ needs.validate.result == 'success' && '✅ Passed' || (needs.validate.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Infrastructure Template Validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Infrastructure Deployment | ${{ needs.deploy-infra.result == 'success' && '✅ Deployed' || (needs.deploy-infra.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Azure Resources via Bicep |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fabric Artifacts Deployment | ${{ needs.deploy-fabric-artifacts.result == 'success' && '✅ Deployed' || (needs.deploy-fabric-artifacts.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | KQL Tables via Fabric CLI |" >> $GITHUB_STEP_SUMMARY
           echo "| Shell Integration Tests | ${{ needs.test-fabric-deployment.result == 'success' && '✅ Passed' || (needs.test-fabric-deployment.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Original Shell Scripts |" >> $GITHUB_STEP_SUMMARY
           echo "| .NET Integration Tests | ${{ needs.test-dotnet-integration.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Tests |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -456,26 +458,29 @@ jobs:
           if [ "$CORE_SUCCESS" == "true" ]; then
             echo "### 🎉 Overall Status: **SUCCESS** ✅" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Both original shell scripts AND professional .NET testing framework are working!**" >> $GITHUB_STEP_SUMMARY
+            echo "**Complete CI/CD pipeline executed successfully!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Original Bicep deployment preserved" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Original Fabric CLI deployment preserved" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Original shell integration tests preserved" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ NEW: Professional .NET xUnit framework added on top" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Best of both worlds: proven deployment + professional testing!" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **BUILD**: Professional .NET testing framework" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **DEPLOY**: Bicep infrastructure + Fabric CLI artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **TEST**: Both shell scripts AND .NET xUnit integration tests" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **VALIDATION**: Template validation + comprehensive testing" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🏆 **End-to-end pipeline success: Build → Deploy → Test → Validate**" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Overall Status: **FAILED**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Core deployment or testing failed. Please review the results above." >> $GITHUB_STEP_SUMMARY
+            echo "CI/CD pipeline failed. Please review the results above." >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
       - name: Report final status
         run: |
           if [ "${{ needs.unit-tests.result }}" == "success" ]; then
-            echo "✅ Professional .NET testing framework added successfully on top of existing deployment"
-            echo "✅ Original Bicep deployment and Fabric CLI functionality preserved"
+            echo "✅ Complete CI/CD pipeline executed successfully"
+            echo "✅ BUILD: Professional .NET testing framework validated"
+            echo "✅ DEPLOY: Infrastructure deployment completed"  
+            echo "✅ TEST: Comprehensive testing suite passed"
           else
-            echo "❌ Testing validation failed"
+            echo "❌ CI/CD pipeline validation failed"
             exit 1
           fi

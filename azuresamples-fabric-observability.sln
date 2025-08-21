@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "app", "app", "{F95F473B-E98A-ACD6-1986-755F447BE36F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELCollector", "app\otel-eh-receiver\OTELCollector.csproj", "{3385B106-89AB-9601-52FA-2AE85C3CCE05}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FabricObservability.IntegrationTests", "tests\FabricObservability.IntegrationTests\FabricObservability.IntegrationTests.csproj", "{D9D395C3-D66B-61B5-53E5-A794A8407712}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet-client", "dotnet-client", "{5FF36E0E-33E0-3D0D-9B9E-A1DB12A99795}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTELWorker", "app\dotnet-client\OTELWorker\OTELWorker.csproj", "{32A71329-E4D3-2558-E90D-DC84FD27BB44}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3385B106-89AB-9601-52FA-2AE85C3CCE05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3385B106-89AB-9601-52FA-2AE85C3CCE05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3385B106-89AB-9601-52FA-2AE85C3CCE05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3385B106-89AB-9601-52FA-2AE85C3CCE05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9D395C3-D66B-61B5-53E5-A794A8407712}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9D395C3-D66B-61B5-53E5-A794A8407712}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9D395C3-D66B-61B5-53E5-A794A8407712}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9D395C3-D66B-61B5-53E5-A794A8407712}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32A71329-E4D3-2558-E90D-DC84FD27BB44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32A71329-E4D3-2558-E90D-DC84FD27BB44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32A71329-E4D3-2558-E90D-DC84FD27BB44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32A71329-E4D3-2558-E90D-DC84FD27BB44}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3385B106-89AB-9601-52FA-2AE85C3CCE05} = {F95F473B-E98A-ACD6-1986-755F447BE36F}
+		{D9D395C3-D66B-61B5-53E5-A794A8407712} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{5FF36E0E-33E0-3D0D-9B9E-A1DB12A99795} = {F95F473B-E98A-ACD6-1986-755F447BE36F}
+		{32A71329-E4D3-2558-E90D-DC84FD27BB44} = {5FF36E0E-33E0-3D0D-9B9E-A1DB12A99795}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1F528A4F-51CD-4686-B8C6-593E7A6F27B1}
+	EndGlobalSection
+EndGlobal

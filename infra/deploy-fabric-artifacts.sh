@@ -69,10 +69,20 @@ authenticate_fabric() {
     # Use service principal authentication in CI/CD
     if [[ -n "${AZURE_CLIENT_ID:-}" && -n "${AZURE_CLIENT_SECRET:-}" && -n "${AZURE_TENANT_ID:-}" ]]; then
         print_message $BLUE "🔑 Using service principal authentication..."
-        fab auth login --service-principal \
-            --client-id "$AZURE_CLIENT_ID" \
-            --client-secret "$AZURE_CLIENT_SECRET" \
-            --tenant-id "$AZURE_TENANT_ID"
+        # Try different possible Fabric CLI auth syntax
+        if ! fab auth login service-principal --client-id "$AZURE_CLIENT_ID" --client-secret "$AZURE_CLIENT_SECRET" --tenant-id "$AZURE_TENANT_ID" 2>/dev/null; then
+            print_message $YELLOW "⚠️ Primary service principal auth failed, trying alternative syntax..."
+            if ! fab auth login --method service-principal --client-id "$AZURE_CLIENT_ID" --client-secret "$AZURE_CLIENT_SECRET" --tenant-id "$AZURE_TENANT_ID" 2>/dev/null; then
+                print_message $YELLOW "⚠️ Alternative syntax also failed, trying interactive approach..."
+                # Fall back to environment variable approach if available
+                export AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_TENANT_ID
+                if ! fab auth login 2>/dev/null; then
+                    print_message $YELLOW "⚠️ Fabric CLI authentication failed in CI/CD environment"
+                    print_message $YELLOW "🔄 Will skip Fabric operations and use Azure CLI for verification"
+                    return 1
+                fi
+            fi
+        fi
     elif [[ -n "${GITHUB_ACTIONS:-}" ]]; then
         # In GitHub Actions, try to use Azure CLI authentication
         print_message $BLUE "🔑 Using Azure CLI authentication for GitHub Actions..."

@@ -450,6 +450,14 @@ logs/
 appsettings.Production.json
 *secrets.json
 
+# User secrets (stored outside repository)
+secrets.json
+user-secrets.json
+
+# Temporary environment scripts
+fabric-test-env.ps1
+*-env.ps1
+
 # Deployment artifacts
 publish/
 dist/

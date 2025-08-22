@@ -165,6 +165,26 @@ function Connect-Fabric {
             if ($accountLine) {
                 Write-ColorOutput "Auth Info: $accountLine" $ColorInfo "👤"
             }
+            
+            # Test a simple Fabric CLI command to ensure permissions work
+            Write-ColorOutput "Testing basic Fabric CLI permissions..." $ColorInfo "🧪"
+            $testOutput = fab workspace list --output json 2>&1
+            $testExitCode = $LASTEXITCODE
+            
+            if ($testExitCode -eq 0) {
+                # Try to parse as JSON to make sure it's valid
+                try {
+                    $testOutput | ConvertFrom-Json -ErrorAction Stop | Out-Null
+                    Write-ColorOutput "Basic Fabric CLI permissions verified" $ColorSuccess "✅"
+                } catch {
+                    Write-ColorOutput "Fabric CLI responding but with invalid JSON - possible permission issue" $ColorWarning "⚠️"
+                    Write-ColorOutput "Test output: $testOutput" $ColorWarning
+                }
+            } else {
+                Write-ColorOutput "Basic Fabric CLI test failed (exit code: $testExitCode)" $ColorWarning "⚠️"
+                Write-ColorOutput "Test output: $testOutput" $ColorWarning
+                Write-ColorOutput "This may indicate limited permissions or Fabric capacity issues" $ColorWarning
+            }
         } else {
             Write-ColorOutput "Authentication verification failed. Exit code: $authExitCode" $ColorError "❌"
             Write-ColorOutput "Auth Status Output:" $ColorWarning "🔍"
@@ -225,8 +245,41 @@ function New-OrGetWorkspace {
     Write-ColorOutput "Creating or getting Fabric workspace..." $ColorInfo "🏗️"
     
     try {
-        # Check if workspace exists
-        $workspaces = fab workspace list --output json 2>$null | ConvertFrom-Json
+        # Check if workspace exists - capture both stdout and stderr
+        Write-ColorOutput "Checking existing workspaces..." $ColorInfo "🔍"
+        $workspaceOutput = fab workspace list --output json 2>&1
+        $listExitCode = $LASTEXITCODE
+        
+        Write-ColorOutput "Workspace list exit code: $listExitCode" $ColorInfo "🔧"
+        
+        if ($listExitCode -ne 0) {
+            Write-ColorOutput "Failed to list workspaces (exit code: $listExitCode)" $ColorError "❌"
+            Write-ColorOutput "Workspace list output:" $ColorWarning "🔍"
+            $workspaceOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+            throw "Unable to list workspaces - check Fabric CLI authentication and permissions"
+        }
+        
+        # Check if output is valid JSON
+        try {
+            $workspaces = $workspaceOutput | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            Write-ColorOutput "Invalid JSON response from workspace list:" $ColorError "❌"
+            Write-ColorOutput "Raw output:" $ColorWarning "🔍"
+            $workspaceOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+            
+            # Check for common error patterns
+            if ($workspaceOutput -match "!" -or $workspaceOutput -match "Error" -or $workspaceOutput -match "Failed") {
+                Write-ColorOutput "Fabric CLI returned an error instead of JSON" $ColorError "❌"
+                Write-ColorOutput "This usually indicates authentication or permission issues" $ColorWarning "💡"
+                Write-ColorOutput "Troubleshooting suggestions:" $ColorWarning "💡"
+                Write-ColorOutput "1. Verify you're authenticated with 'fab auth status'" $ColorWarning
+                Write-ColorOutput "2. Check service principal has proper Fabric permissions" $ColorWarning
+                Write-ColorOutput "3. Ensure the Fabric capacity is available and accessible" $ColorWarning
+            }
+            
+            throw "Invalid JSON response from Fabric CLI workspace list"
+        }
+        
         $existingWorkspace = $workspaces | Where-Object { $_.displayName -eq $WorkspaceName }
         
         if ($existingWorkspace) {
@@ -236,11 +289,15 @@ function New-OrGetWorkspace {
         
         # Create new workspace
         Write-ColorOutput "Creating new workspace: $WorkspaceName" $ColorInfo "🆕"
-        fab workspace create --display-name $WorkspaceName --description "Workspace for OpenTelemetry observability data" --capacity-id $script:CapacityName
+        $createOutput = fab workspace create --display-name $WorkspaceName --description "Workspace for OpenTelemetry observability data" --capacity-id $script:CapacityName 2>&1
+        $createExitCode = $LASTEXITCODE
         
-        if ($LASTEXITCODE -eq 0) {
+        if ($createExitCode -eq 0) {
             Write-ColorOutput "Successfully created workspace: $WorkspaceName" $ColorSuccess "✅"
         } else {
+            Write-ColorOutput "Workspace creation failed (exit code: $createExitCode)" $ColorError "❌"
+            Write-ColorOutput "Create output:" $ColorWarning "🔍"
+            $createOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
             throw "Workspace creation failed"
         }
         
@@ -255,10 +312,41 @@ function New-KqlDatabase {
     
     try {
         # Set workspace context
-        fab workspace use --name $WorkspaceName
+        Write-ColorOutput "Setting workspace context to: $WorkspaceName" $ColorInfo "🔗"
+        $useWorkspaceOutput = fab workspace use --name $WorkspaceName 2>&1
+        $useExitCode = $LASTEXITCODE
         
-        # Check if database exists
-        $databases = fab kqldatabase list --output json 2>$null | ConvertFrom-Json
+        if ($useExitCode -ne 0) {
+            Write-ColorOutput "Failed to set workspace context (exit code: $useExitCode)" $ColorError "❌"
+            Write-ColorOutput "Use workspace output:" $ColorWarning "🔍"
+            $useWorkspaceOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+            throw "Unable to set workspace context"
+        }
+        
+        # Check if database exists - capture both stdout and stderr
+        Write-ColorOutput "Checking existing databases..." $ColorInfo "🔍"
+        $databaseOutput = fab kqldatabase list --output json 2>&1
+        $listExitCode = $LASTEXITCODE
+        
+        Write-ColorOutput "Database list exit code: $listExitCode" $ColorInfo "🔧"
+        
+        if ($listExitCode -ne 0) {
+            Write-ColorOutput "Failed to list databases (exit code: $listExitCode)" $ColorError "❌"
+            Write-ColorOutput "Database list output:" $ColorWarning "🔍"
+            $databaseOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+            throw "Unable to list databases - check workspace access and permissions"
+        }
+        
+        # Check if output is valid JSON
+        try {
+            $databases = $databaseOutput | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            Write-ColorOutput "Invalid JSON response from database list:" $ColorError "❌"
+            Write-ColorOutput "Raw output:" $ColorWarning "🔍"
+            $databaseOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+            throw "Invalid JSON response from Fabric CLI database list"
+        }
+        
         $existingDatabase = $databases | Where-Object { $_.displayName -eq $DatabaseName }
         
         if ($existingDatabase) {
@@ -268,11 +356,15 @@ function New-KqlDatabase {
         
         # Create KQL database
         Write-ColorOutput "Creating KQL database: $DatabaseName" $ColorInfo "🆕"
-        fab kqldatabase create --display-name $DatabaseName --description "KQL Database for OpenTelemetry observability data"
+        $createOutput = fab kqldatabase create --display-name $DatabaseName --description "KQL Database for OpenTelemetry observability data" 2>&1
+        $createExitCode = $LASTEXITCODE
         
-        if ($LASTEXITCODE -eq 0) {
+        if ($createExitCode -eq 0) {
             Write-ColorOutput "Successfully created KQL database: $DatabaseName" $ColorSuccess "✅"
         } else {
+            Write-ColorOutput "Database creation failed (exit code: $createExitCode)" $ColorError "❌"
+            Write-ColorOutput "Create output:" $ColorWarning "🔍"
+            $createOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
             throw "Database creation failed"
         }
         

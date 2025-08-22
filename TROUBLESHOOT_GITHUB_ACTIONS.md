@@ -59,6 +59,7 @@ az ad user show --id "user@domain.com" --query id --output tsv
 
 **Symptoms:**
 - "execution of scripts is disabled on this system"
+- "Operation is not supported on this platform" (Set-ExecutionPolicy)
 - PowerShell script syntax errors
 - Path resolution issues
 
@@ -68,8 +69,8 @@ az ad user show --id "user@domain.com" --query id --output tsv
 - name: Deploy Fabric Artifacts (PowerShell)
   shell: pwsh
   run: |
-    # Set execution policy for GitHub Actions
-    Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+    # Note: Do NOT use Set-ExecutionPolicy on Linux runners - it's not supported
+    # PowerShell Core on Linux doesn't have execution policy restrictions
     
     # Use absolute paths
     $scriptPath = Join-Path $env:GITHUB_WORKSPACE "infra" "Deploy-FabricArtifacts.ps1"

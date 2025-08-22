@@ -220,9 +220,6 @@ jobs:
         run: |
           Write-Host "Deploying Fabric artifacts using PowerShell script..."
           
-          # Set execution policy for GitHub Actions
-          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-          
           # Set environment variables for the deployment script
           $env:FABRIC_WORKSPACE_NAME = "fabric-otel-workspace"
           $env:FABRIC_DATABASE_NAME = "otelobservabilitydb"

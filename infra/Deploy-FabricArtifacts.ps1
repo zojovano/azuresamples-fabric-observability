@@ -168,18 +168,13 @@ function Connect-Fabric {
             
             # Test a simple Fabric CLI command to ensure permissions work
             Write-ColorOutput "Testing basic Fabric CLI permissions..." $ColorInfo "🧪"
-            $testOutput = fab workspace list --output json 2>&1
+            $testOutput = fab ls 2>&1
             $testExitCode = $LASTEXITCODE
             
             if ($testExitCode -eq 0) {
-                # Try to parse as JSON to make sure it's valid
-                try {
-                    $testOutput | ConvertFrom-Json -ErrorAction Stop | Out-Null
-                    Write-ColorOutput "Basic Fabric CLI permissions verified" $ColorSuccess "✅"
-                } catch {
-                    Write-ColorOutput "Fabric CLI responding but with invalid JSON - possible permission issue" $ColorWarning "⚠️"
-                    Write-ColorOutput "Test output: $testOutput" $ColorWarning
-                }
+                Write-ColorOutput "Basic Fabric CLI permissions verified" $ColorSuccess "✅"
+                Write-ColorOutput "Available workspaces/items:" $ColorInfo "📋"
+                $testOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorInfo }
             } else {
                 Write-ColorOutput "Basic Fabric CLI test failed (exit code: $testExitCode)" $ColorWarning "⚠️"
                 Write-ColorOutput "Test output: $testOutput" $ColorWarning
@@ -245,9 +240,9 @@ function New-OrGetWorkspace {
     Write-ColorOutput "Creating or getting Fabric workspace..." $ColorInfo "🏗️"
     
     try {
-        # Check if workspace exists - capture both stdout and stderr
+        # List all available workspaces using fab ls (file-system style)
         Write-ColorOutput "Checking existing workspaces..." $ColorInfo "🔍"
-        $workspaceOutput = fab workspace list --output json 2>&1
+        $workspaceOutput = fab ls 2>&1
         $listExitCode = $LASTEXITCODE
         
         Write-ColorOutput "Workspace list exit code: $listExitCode" $ColorInfo "🔧"
@@ -259,37 +254,17 @@ function New-OrGetWorkspace {
             throw "Unable to list workspaces - check Fabric CLI authentication and permissions"
         }
         
-        # Check if output is valid JSON
-        try {
-            $workspaces = $workspaceOutput | ConvertFrom-Json -ErrorAction Stop
-        } catch {
-            Write-ColorOutput "Invalid JSON response from workspace list:" $ColorError "❌"
-            Write-ColorOutput "Raw output:" $ColorWarning "🔍"
-            $workspaceOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
-            
-            # Check for common error patterns
-            if ($workspaceOutput -match "!" -or $workspaceOutput -match "Error" -or $workspaceOutput -match "Failed") {
-                Write-ColorOutput "Fabric CLI returned an error instead of JSON" $ColorError "❌"
-                Write-ColorOutput "This usually indicates authentication or permission issues" $ColorWarning "💡"
-                Write-ColorOutput "Troubleshooting suggestions:" $ColorWarning "💡"
-                Write-ColorOutput "1. Verify you're authenticated with 'fab auth status'" $ColorWarning
-                Write-ColorOutput "2. Check service principal has proper Fabric permissions" $ColorWarning
-                Write-ColorOutput "3. Ensure the Fabric capacity is available and accessible" $ColorWarning
-            }
-            
-            throw "Invalid JSON response from Fabric CLI workspace list"
-        }
+        # Check if our target workspace exists in the output
+        $workspaceExists = $workspaceOutput | Select-String "$WorkspaceName.Workspace" -Quiet
         
-        $existingWorkspace = $workspaces | Where-Object { $_.displayName -eq $WorkspaceName }
-        
-        if ($existingWorkspace) {
+        if ($workspaceExists) {
             Write-ColorOutput "Workspace '$WorkspaceName' already exists" $ColorSuccess "✅"
             return
         }
         
-        # Create new workspace
+        # Create new workspace using file-system style command
         Write-ColorOutput "Creating new workspace: $WorkspaceName" $ColorInfo "🆕"
-        $createOutput = fab workspace create --display-name $WorkspaceName --description "Workspace for OpenTelemetry observability data" --capacity-id $script:CapacityName 2>&1
+        $createOutput = fab create "$WorkspaceName.Workspace" --capacity-id $script:CapacityName --description "Workspace for OpenTelemetry observability data" 2>&1
         $createExitCode = $LASTEXITCODE
         
         if ($createExitCode -eq 0) {
@@ -311,52 +286,44 @@ function New-KqlDatabase {
     Write-ColorOutput "Creating KQL database..." $ColorInfo "🗄️"
     
     try {
-        # Set workspace context
-        Write-ColorOutput "Setting workspace context to: $WorkspaceName" $ColorInfo "🔗"
-        $useWorkspaceOutput = fab workspace use --name $WorkspaceName 2>&1
-        $useExitCode = $LASTEXITCODE
+        # Navigate to workspace using file-system style command
+        Write-ColorOutput "Navigating to workspace: $WorkspaceName" $ColorInfo "🔗"
+        $cdOutput = fab cd "$WorkspaceName.Workspace" 2>&1
+        $cdExitCode = $LASTEXITCODE
         
-        if ($useExitCode -ne 0) {
-            Write-ColorOutput "Failed to set workspace context (exit code: $useExitCode)" $ColorError "❌"
-            Write-ColorOutput "Use workspace output:" $ColorWarning "🔍"
-            $useWorkspaceOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
-            throw "Unable to set workspace context"
+        if ($cdExitCode -ne 0) {
+            Write-ColorOutput "Failed to navigate to workspace (exit code: $cdExitCode)" $ColorError "❌"
+            Write-ColorOutput "CD output:" $ColorWarning "🔍"
+            $cdOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+            throw "Unable to navigate to workspace"
         }
         
-        # Check if database exists - capture both stdout and stderr
-        Write-ColorOutput "Checking existing databases..." $ColorInfo "🔍"
-        $databaseOutput = fab kqldatabase list --output json 2>&1
+        # List contents of workspace to check if database exists
+        Write-ColorOutput "Checking existing databases in workspace..." $ColorInfo "🔍"
+        $databaseOutput = fab ls 2>&1
         $listExitCode = $LASTEXITCODE
         
         Write-ColorOutput "Database list exit code: $listExitCode" $ColorInfo "🔧"
         
         if ($listExitCode -ne 0) {
-            Write-ColorOutput "Failed to list databases (exit code: $listExitCode)" $ColorError "❌"
+            Write-ColorOutput "Failed to list workspace contents (exit code: $listExitCode)" $ColorError "❌"
             Write-ColorOutput "Database list output:" $ColorWarning "🔍"
             $databaseOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
-            throw "Unable to list databases - check workspace access and permissions"
+            throw "Unable to list workspace contents - check workspace access and permissions"
         }
         
-        # Check if output is valid JSON
-        try {
-            $databases = $databaseOutput | ConvertFrom-Json -ErrorAction Stop
-        } catch {
-            Write-ColorOutput "Invalid JSON response from database list:" $ColorError "❌"
-            Write-ColorOutput "Raw output:" $ColorWarning "🔍"
-            $databaseOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
-            throw "Invalid JSON response from Fabric CLI database list"
-        }
+        # Check if our target KQL database exists
+        # For KQL databases, we need to look for .KQLDatabase extension
+        $databaseExists = $databaseOutput | Select-String "$DatabaseName.KQLDatabase" -Quiet
         
-        $existingDatabase = $databases | Where-Object { $_.displayName -eq $DatabaseName }
-        
-        if ($existingDatabase) {
+        if ($databaseExists) {
             Write-ColorOutput "KQL database '$DatabaseName' already exists" $ColorSuccess "✅"
             return
         }
         
-        # Create KQL database
+        # Create KQL database using file-system style command
         Write-ColorOutput "Creating KQL database: $DatabaseName" $ColorInfo "🆕"
-        $createOutput = fab kqldatabase create --display-name $DatabaseName --description "KQL Database for OpenTelemetry observability data" 2>&1
+        $createOutput = fab create "$DatabaseName.KQLDatabase" --description "KQL Database for OpenTelemetry observability data" 2>&1
         $createExitCode = $LASTEXITCODE
         
         if ($createExitCode -eq 0) {
@@ -378,8 +345,17 @@ function Deploy-KqlTables {
     Write-ColorOutput "Deploying KQL tables..." $ColorInfo "📊"
     
     try {
-        # Set database context
-        fab kqldatabase use --name $DatabaseName
+        # Navigate to the KQL database using file-system style command
+        Write-ColorOutput "Navigating to KQL database: $DatabaseName" $ColorInfo "🔗"
+        $cdOutput = fab cd "$WorkspaceName.Workspace/$DatabaseName.KQLDatabase" 2>&1
+        $cdExitCode = $LASTEXITCODE
+        
+        if ($cdExitCode -ne 0) {
+            Write-ColorOutput "Failed to navigate to KQL database (exit code: $cdExitCode)" $ColorError "❌"
+            Write-ColorOutput "CD output:" $ColorWarning "🔍"
+            $cdOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+            throw "Unable to navigate to KQL database"
+        }
         
         # Determine KQL directory path
         $kqlDir = if ($env:GITHUB_WORKSPACE) {
@@ -393,7 +369,7 @@ function Deploy-KqlTables {
             exit 1
         }
         
-        # Deploy each KQL table
+        # Deploy each KQL table using appropriate commands
         $kqlFiles = Get-ChildItem -Path $kqlDir -Filter "*.kql"
         
         foreach ($kqlFile in $kqlFiles) {
@@ -401,12 +377,21 @@ function Deploy-KqlTables {
             Write-ColorOutput "Deploying table: $tableName" $ColorInfo "📋"
             
             try {
-                fab kql execute --file $kqlFile.FullName
+                # Read KQL commands from file and execute them
+                $kqlContent = Get-Content $kqlFile.FullName -Raw
+                Write-ColorOutput "Executing KQL commands for $tableName" $ColorInfo "🔧"
                 
-                if ($LASTEXITCODE -eq 0) {
+                # Use a query command or direct execution depending on Fabric CLI version
+                # First try to execute the KQL content directly
+                $executeOutput = $kqlContent | fab query 2>&1
+                $executeExitCode = $LASTEXITCODE
+                
+                if ($executeExitCode -eq 0) {
                     Write-ColorOutput "Successfully deployed table: $tableName" $ColorSuccess "✅"
                 } else {
                     Write-ColorOutput "Table deployment may have failed for: $tableName (table might already exist)" $ColorWarning "⚠️"
+                    Write-ColorOutput "Execute output:" $ColorWarning "🔍"
+                    $executeOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
                 }
             } catch {
                 Write-ColorOutput "Failed to deploy table $tableName : $_" $ColorWarning "⚠️"
@@ -423,19 +408,23 @@ function Test-Deployment {
     Write-ColorOutput "Verifying deployment..." $ColorInfo "🔍"
     
     try {
-        # List workspaces
+        # List all workspaces
         Write-ColorOutput "Available workspaces:" $ColorInfo "📋"
-        fab workspace list --output table
+        fab ls
         
-        # List databases in workspace
-        Write-ColorOutput "Databases in workspace '$WorkspaceName':" $ColorInfo "📋"
-        fab workspace use --name $WorkspaceName
-        fab kqldatabase list --output table
+        # Navigate to workspace and list contents
+        Write-ColorOutput "Contents of workspace '$WorkspaceName':" $ColorInfo "📋"
+        fab cd "$WorkspaceName.Workspace"
+        fab ls
         
-        # List tables in database
-        Write-ColorOutput "Tables in database '$DatabaseName':" $ColorInfo "📋"
-        fab kqldatabase use --name $DatabaseName
-        fab kql execute --query ".show tables"
+        # Navigate to database and list tables
+        Write-ColorOutput "Contents of database '$DatabaseName':" $ColorInfo "📋"
+        fab cd "$DatabaseName.KQLDatabase"
+        fab ls
+        
+        # Try to query tables using KQL
+        Write-ColorOutput "Listing tables using KQL:" $ColorInfo "📋"
+        Write-Output ".show tables" | fab query
         
         Write-ColorOutput "Verification completed" $ColorSuccess "✅"
         

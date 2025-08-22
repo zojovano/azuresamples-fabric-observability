@@ -109,8 +109,8 @@ function Connect-Fabric {
     
     # Check if already authenticated
     try {
-        $currentUser = fab auth whoami 2>$null
-        if ($LASTEXITCODE -eq 0 -and $currentUser) {
+        $authStatus = fab auth status 2>$null
+        if ($LASTEXITCODE -eq 0 -and $authStatus -and $authStatus -notmatch "Not logged in") {
             Write-ColorOutput "Already authenticated with Fabric" $ColorSuccess "✅"
             return
         }
@@ -130,8 +130,17 @@ function Connect-Fabric {
         Write-ColorOutput "Configuring Fabric CLI for CI/CD environment..." $ColorInfo "⚙️"
         fab config set encryption_fallback_enabled true
         
+        # Clear any cached authentication state first
+        fab config clear-cache
+        
         # Attempt authentication with service principal
         fab auth login -u $clientId -p $clientSecret -t $tenantId
+        
+        # Check if login command succeeded
+        if ($LASTEXITCODE -ne 0) {
+            throw "Fabric authentication login failed with exit code: $LASTEXITCODE"
+        }
+        
     } else {
         Write-ColorOutput "Using interactive authentication..." $ColorInfo "🌐"
         fab auth login
@@ -140,23 +149,53 @@ function Connect-Fabric {
     # Verify authentication
     try {
         Write-ColorOutput "Verifying authentication..." $ColorInfo "🔍"
-        $currentUser = fab auth whoami 2>$null
         
-        if ($LASTEXITCODE -eq 0 -and $currentUser) {
+        # Give a moment for authentication to settle
+        Start-Sleep -Seconds 2
+        
+        $authStatus = fab auth status 2>&1
+        $authExitCode = $LASTEXITCODE
+        
+        Write-ColorOutput "Auth status exit code: $authExitCode" $ColorInfo "🔧"
+        
+        if ($authExitCode -eq 0 -and $authStatus -and $authStatus -notmatch "Not logged in") {
             Write-ColorOutput "Successfully authenticated with Fabric" $ColorSuccess "✅"
-            Write-ColorOutput "Authenticated as: $currentUser" $ColorInfo "👤"
+            # Extract account info from status output
+            $accountLine = $authStatus | Select-String "Account:" | ForEach-Object { $_.Line }
+            if ($accountLine) {
+                Write-ColorOutput "Auth Info: $accountLine" $ColorInfo "👤"
+            }
         } else {
-            Write-ColorOutput "Authentication verification failed. Exit code: $LASTEXITCODE" $ColorError "❌"
-            Write-ColorOutput "Trying to get more authentication details..." $ColorWarning "🔍"
+            Write-ColorOutput "Authentication verification failed. Exit code: $authExitCode" $ColorError "❌"
+            Write-ColorOutput "Auth Status Output:" $ColorWarning "🔍"
+            $authStatus | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
             
-            # Try to get more details about the authentication state
-            fab auth whoami
+            # If auth status fails, it might be due to bad stored credentials
+            if ($authExitCode -ne 0) {
+                Write-ColorOutput "Clearing cached auth state and retrying..." $ColorWarning "🔄"
+                fab config clear-cache
+                fab auth logout 2>$null | Out-Null
+                
+                # Try status again after cleanup
+                $authStatusRetry = fab auth status 2>&1
+                $retryExitCode = $LASTEXITCODE
+                
+                if ($retryExitCode -eq 0 -and $authStatusRetry -match "Not logged in") {
+                    Write-ColorOutput "Authentication state cleaned, but still not logged in" $ColorError "❌"
+                } else {
+                    Write-ColorOutput "Auth status still failing after cleanup: $authStatusRetry" $ColorError "❌"
+                }
+            }
             
-            throw "Authentication verification failed (exit code: $LASTEXITCODE)"
+            throw "Authentication verification failed (exit code: $authExitCode)"
         }
     } catch {
         Write-ColorOutput "Failed to authenticate with Fabric: $_" $ColorError "❌"
-        Write-ColorOutput "Suggestion: Check that the service principal has proper permissions for Microsoft Fabric" $ColorWarning "💡"
+        Write-ColorOutput "Troubleshooting suggestions:" $ColorWarning "💡"
+        Write-ColorOutput "1. Verify service principal has 'Fabric APIs' permission enabled" $ColorWarning
+        Write-ColorOutput "2. Check that AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID are correct" $ColorWarning
+        Write-ColorOutput "3. Ensure service principal has access to Microsoft Fabric" $ColorWarning
+        Write-ColorOutput "4. Check Azure AD tenant settings allow service principals" $ColorWarning
         exit 1
     }
 }

@@ -133,8 +133,12 @@ function Connect-Fabric {
         # Clear any cached authentication state first
         fab config clear-cache
         
-        # Attempt authentication with service principal
-        fab auth login -u $clientId -p $clientSecret -t $tenantId
+        # Attempt authentication with service principal using explicit parameters
+        Write-ColorOutput "Authenticating with service principal..." $ColorInfo "🔐"
+        
+        # Method 1: Try with --service-principal flag and explicit parameters  
+        $authOutput = fab auth login --service-principal --client-id $clientId --client-secret $clientSecret --tenant-id $tenantId 2>&1
+        $authExitCode = $LASTEXITCODE
         
         # Check if login command succeeded
         if ($LASTEXITCODE -ne 0) {

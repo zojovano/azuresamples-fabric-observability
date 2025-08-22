@@ -4,21 +4,9 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'infra/Bicep/**'
-      - 'infra/kql-definitions/**'
-      - 'tests/**'
-      - 'app/**'
-      - '.github/workflows/ci-cd-pipeline.yml'
   pull_request:
     branches:
       - main
-    paths:
-      - 'infra/Bicep/**'
-      - 'infra/kql-definitions/**'
-      - 'tests/**'
-      - 'app/**'
-      - '.github/workflows/ci-cd-pipeline.yml'
   workflow_dispatch:
     inputs:
       location:

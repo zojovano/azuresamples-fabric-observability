@@ -79,6 +79,11 @@ function Test-Prerequisites {
             if (-not (Test-CommandExists "fab")) {
                 throw "Fabric CLI installation failed"
             }
+            
+            # Configure Fabric CLI for CI/CD environment after installation
+            Write-ColorOutput "Configuring Fabric CLI for CI/CD environment..." $ColorInfo "⚙️"
+            fab config set encryption_fallback_enabled true
+            
         } catch {
             Write-ColorOutput "Failed to install Fabric CLI: $_" $ColorError "❌"
             exit 1
@@ -120,6 +125,12 @@ function Connect-Fabric {
     
     if ($clientId -and $clientSecret -and $tenantId) {
         Write-ColorOutput "Using service principal authentication..." $ColorInfo "🔑"
+        
+        # Enable plaintext auth token fallback to avoid encryption issues in CI/CD
+        Write-ColorOutput "Configuring Fabric CLI for CI/CD environment..." $ColorInfo "⚙️"
+        fab config set encryption_fallback_enabled true
+        
+        # Attempt authentication with service principal
         fab auth login -u $clientId -p $clientSecret -t $tenantId
     } else {
         Write-ColorOutput "Using interactive authentication..." $ColorInfo "🌐"
@@ -128,14 +139,24 @@ function Connect-Fabric {
     
     # Verify authentication
     try {
+        Write-ColorOutput "Verifying authentication..." $ColorInfo "🔍"
         $currentUser = fab auth whoami 2>$null
+        
         if ($LASTEXITCODE -eq 0 -and $currentUser) {
             Write-ColorOutput "Successfully authenticated with Fabric" $ColorSuccess "✅"
+            Write-ColorOutput "Authenticated as: $currentUser" $ColorInfo "👤"
         } else {
-            throw "Authentication verification failed"
+            Write-ColorOutput "Authentication verification failed. Exit code: $LASTEXITCODE" $ColorError "❌"
+            Write-ColorOutput "Trying to get more authentication details..." $ColorWarning "🔍"
+            
+            # Try to get more details about the authentication state
+            fab auth whoami
+            
+            throw "Authentication verification failed (exit code: $LASTEXITCODE)"
         }
     } catch {
         Write-ColorOutput "Failed to authenticate with Fabric: $_" $ColorError "❌"
+        Write-ColorOutput "Suggestion: Check that the service principal has proper permissions for Microsoft Fabric" $ColorWarning "💡"
         exit 1
     }
 }

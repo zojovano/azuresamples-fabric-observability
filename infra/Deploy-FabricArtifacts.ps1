@@ -137,12 +137,44 @@ function Connect-Fabric {
         Write-ColorOutput "Authenticating with service principal..." $ColorInfo "🔐"
         
         # Method 1: Try with --service-principal flag and explicit parameters  
-        $authOutput = fab auth login --service-principal --client-id $clientId --client-secret $clientSecret --tenant-id $tenantId 2>&1
-        $authExitCode = $LASTEXITCODE
-        
-        # Check if login command succeeded
-        if ($LASTEXITCODE -ne 0) {
-            throw "Fabric authentication login failed with exit code: $LASTEXITCODE"
+        try {
+            $authOutput = fab auth login --service-principal --client-id $clientId --client-secret $clientSecret --tenant-id $tenantId 2>&1
+            $authExitCode = $LASTEXITCODE
+            
+            Write-ColorOutput "Auth login output: $authOutput" $ColorInfo "📋"
+            Write-ColorOutput "Auth login exit code: $authExitCode" $ColorInfo "🔧"
+            
+            # Check if login command succeeded
+            if ($authExitCode -ne 0) {
+                Write-ColorOutput "Fabric authentication login failed with exit code: $authExitCode" $ColorError "❌"
+                Write-ColorOutput "Auth output: $authOutput" $ColorError "📋"
+                
+                # Try alternative authentication method - Azure CLI token
+                Write-ColorOutput "Trying Azure CLI token authentication..." $ColorWarning "🔄"
+                
+                # First ensure Azure CLI is authenticated
+                $azAccount = az account show --query "user.name" -o tsv 2>$null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput "Logging in to Azure CLI first..." $ColorInfo "🔐"
+                    az login --service-principal -u $clientId -p $clientSecret --tenant $tenantId
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Azure CLI authentication failed"
+                    }
+                } else {
+                    Write-ColorOutput "Azure CLI already authenticated as: $azAccount" $ColorInfo "👤"
+                }
+                
+                # Try Fabric login with Azure CLI token
+                $authOutput = fab auth login --azure-cli 2>&1
+                $authExitCode = $LASTEXITCODE
+                
+                if ($authExitCode -ne 0) {
+                    throw "Both Fabric service principal and Azure CLI token authentication failed"
+                }
+            }
+        } catch {
+            Write-ColorOutput "Authentication error: $_" $ColorError "❌"
+            throw "Fabric authentication failed: $_"
         }
         
     } else {
@@ -255,7 +287,55 @@ function New-OrGetWorkspace {
             Write-ColorOutput "Failed to list workspaces (exit code: $listExitCode)" $ColorError "❌"
             Write-ColorOutput "Workspace list output:" $ColorWarning "🔍"
             $workspaceOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
-            throw "Unable to list workspaces - check Fabric CLI authentication and permissions"
+            
+            # Check if it's an authentication token issue
+            if ($workspaceOutput -match "Failed to get access token|AuthenticationFailed") {
+                Write-ColorOutput "Token access issue detected. Attempting to refresh authentication..." $ColorWarning "🔄"
+                
+                # Try to refresh the token
+                try {
+                    # Clear any cached tokens
+                    fab config clear-cache
+                    
+                    # Re-authenticate
+                    $clientId = $env:AZURE_CLIENT_ID
+                    $clientSecret = $env:AZURE_CLIENT_SECRET  
+                    $tenantId = $env:AZURE_TENANT_ID
+                    
+                    if ($clientId -and $clientSecret -and $tenantId) {
+                        Write-ColorOutput "Re-authenticating with service principal..." $ColorInfo "🔐"
+                        
+                        # Try Azure CLI method first as it might have better token handling
+                        az login --service-principal -u $clientId -p $clientSecret --tenant $tenantId --output none
+                        if ($LASTEXITCODE -eq 0) {
+                            $authOutput = fab auth login --azure-cli 2>&1
+                            if ($LASTEXITCODE -eq 0) {
+                                Write-ColorOutput "Token refreshed successfully" $ColorSuccess "✅"
+                                Write-ColorOutput "Fabric auth output: $authOutput" $ColorInfo "📋"
+                                
+                                # Retry the workspace listing
+                                $workspaceOutput = fab ls 2>&1
+                                $listExitCode = $LASTEXITCODE
+                                
+                                if ($listExitCode -ne 0) {
+                                    throw "Workspace listing still failed after token refresh"
+                                }
+                            } else {
+                                throw "Fabric CLI authentication failed after Azure CLI login"
+                            }
+                        } else {
+                            throw "Azure CLI re-authentication failed"
+                        }
+                    } else {
+                        throw "Service principal credentials not available for token refresh"
+                    }
+                } catch {
+                    Write-ColorOutput "Token refresh failed: $_" $ColorError "❌"
+                    throw "Unable to refresh authentication token: $_"
+                }
+            } else {
+                throw "Unable to list workspaces - check Fabric CLI authentication and permissions"
+            }
         }
         
         # Check if our target workspace exists in the output

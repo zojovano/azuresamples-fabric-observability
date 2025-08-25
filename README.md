@@ -517,28 +517,35 @@ This repository includes a GitHub Actions workflow that automates the deployment
 
 ### 🔒 Enhanced Security with Azure Key Vault
 
-The workflow now supports **Azure Key Vault integration** for secure secret management:
+The infrastructure deployment now includes **integrated Key Vault management** for secure secret storage:
 
-- **✅ Centralized Secret Management**: All secrets stored in Azure Key Vault
-- **✅ Audit Logging**: Track who accessed which secrets when
-- **✅ Fine-grained Access Control**: Azure RBAC for secret permissions
-- **✅ Secret Rotation**: Easy to update without touching GitHub
-- **✅ Compliance**: Enterprise-grade security standards
+- **✅ Infrastructure as Code**: Key Vault managed via Bicep templates
+- **✅ Automated Secret Population**: Secrets created during infrastructure deployment  
+- **✅ Service Principal Integration**: Automated creation and access policy configuration
+- **✅ Single Deployment Command**: Consolidated infrastructure and security setup
+- **✅ GitHub Actions Ready**: Minimal repository secrets required
 
 ### Quick Setup Options
 
-#### Option 1: Automated Key Vault Setup (Recommended)
+#### Option 1: Consolidated Deployment (Recommended)
 ```powershell
-# Clone the repository
+# Clone and deploy everything at once
 git clone https://github.com/zojovano/azuresamples-fabric-observability.git
-cd azuresamples-fabric-observability
+cd azuresamples-fabric-observability/infra/Bicep
 
-# Run automated setup
-pwsh Setup-KeyVault.ps1 -AdminUserEmail "admin@yourcompany.com"
+# Deploy infrastructure with integrated Key Vault
+.\deploy-with-keyvault.ps1 -AdminUserEmail "admin@yourcompany.com"
 ```
 
-#### Option 2: Manual Setup
-See detailed instructions in [`GITHUB_ACTIONS_KEYVAULT_SETUP.md`](GITHUB_ACTIONS_KEYVAULT_SETUP.md)
+#### Option 2: Existing Bicep Deployment  
+```powershell
+# Use existing deployment script (enhanced with Key Vault)
+cd infra/Bicep
+.\deploy.ps1
+```
+
+#### Option 3: Manual Configuration
+See detailed instructions in [`infra/CONSOLIDATED_DEPLOYMENT.md`](infra/CONSOLIDATED_DEPLOYMENT.md)
 
 ### Setup Prerequisites
 

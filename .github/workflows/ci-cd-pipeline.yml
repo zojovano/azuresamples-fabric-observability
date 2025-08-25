@@ -210,6 +210,11 @@ jobs:
           parameters: >
             location=${{ env.LOCATION }}
             adminObjectId=${{ needs.fetch-secrets.outputs.admin-object-id }}
+            githubServicePrincipalObjectId="${{ secrets.GITHUB_SP_OBJECT_ID }}"
+            appServicePrincipalClientId="${{ needs.fetch-secrets.outputs.azure-client-id }}"
+            appServicePrincipalObjectId="${{ secrets.APP_SP_OBJECT_ID }}"
+            appServicePrincipalClientSecret="${{ needs.fetch-secrets.outputs.azure-client-secret }}"
+            keyVaultName="${{ env.KEY_VAULT_NAME }}"
           deploymentName: 'github-${{ github.run_number }}'
           scope: subscription
           region: ${{ env.LOCATION }}

@@ -6,6 +6,22 @@ param location string = 'swedencentral'
 @description('Administrator object ID for Fabric capacity (service principal or user)')
 param adminObjectId string
 
+@description('GitHub Actions service principal object ID for Key Vault access')
+param githubServicePrincipalObjectId string
+
+@description('Application service principal client ID')
+param appServicePrincipalClientId string
+
+@description('Application service principal object ID for Key Vault access')
+param appServicePrincipalObjectId string
+
+@description('Application service principal client secret')
+@secure()
+param appServicePrincipalClientSecret string
+
+@description('Key Vault name (must be globally unique)')
+param keyVaultName string = 'fabric-otel-kv-${uniqueString(subscription().subscriptionId)}'
+
 @description('Tags to apply to all resources')
 param tags object = {
   environment: 'prod'
@@ -17,6 +33,24 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: 'azuresamples-platformobservabilty-fabric'
   location: location
   tags: tags
+}
+
+// Deploy Key Vault for secure secret management
+module keyVault './modules/keyvault.bicep' = {
+  name: 'keyVaultDeploy'
+  scope: resourceGroup
+  params: {
+    location: location
+    keyVaultName: keyVaultName
+    githubServicePrincipalObjectId: githubServicePrincipalObjectId
+    appServicePrincipalObjectId: appServicePrincipalObjectId
+    adminObjectId: adminObjectId
+    tenantId: subscription().tenantId
+    subscriptionId: subscription().subscriptionId
+    appClientId: appServicePrincipalClientId
+    appClientSecret: appServicePrincipalClientSecret
+    tags: tags
+  }
 }
 
 // Deploy Fabric Capacity
@@ -98,6 +132,9 @@ module appService './modules/appservice.bicep' = {
 
 // Outputs
 output resourceGroupName string = resourceGroup.name
+output keyVaultName string = keyVault.outputs.keyVaultName
+output keyVaultUri string = keyVault.outputs.keyVaultUri
+output githubSecretsRequired object = keyVault.outputs.githubSecretsRequired
 output fabricCapacityName string = fabricCapacity.outputs.capacityName
 output fabricWorkspaceName string = fabricWorkspace.outputs.fabricWorkspaceName
 output eventHubNamespaceName string = eventHubNamespace.outputs.namespaceName

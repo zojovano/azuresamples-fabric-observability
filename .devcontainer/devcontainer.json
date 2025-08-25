@@ -1,7 +1,7 @@
 {
     "name": "Azure Fabric Observability DevContainer",
     "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
-    
+
     "features": {
         "ghcr.io/devcontainers/features/azure-cli:1": {
             "version": "latest"
@@ -25,32 +25,32 @@
                 "ms-azuretools.vscode-azurefunctions",
                 "ms-azuretools.vscode-azureresourcegroups",
                 "ms-azuretools.vscode-bicep",
-                
+
                 // Docker and Kubernetes
                 "ms-azuretools.vscode-docker",
                 "ms-kubernetes-tools.vscode-kubernetes-tools",
-                
+
                 // .NET development
                 "ms-dotnettools.csharp",
                 "ms-dotnettools.csdevkit",
-                
+
                 // Python development
                 "ms-python.python",
                 "ms-python.pylint",
                 "ms-python.flake8",
-                
+
                 // PowerShell
                 "ms-vscode.powershell",
-                
+
                 // YAML and JSON
                 "redhat.vscode-yaml",
                 "ms-vscode.vscode-json",
-                
+
                 // Git and GitHub
                 "github.vscode-pull-request-github",
                 "github.copilot",
                 "github.copilot-chat",
-                
+
                 // Other useful extensions
                 "ms-vscode.vscode-markdown",
                 "streetsidesoftware.code-spell-checker",
@@ -79,45 +79,20 @@
     // Use 'postCreateCommand' to run commands after the container is created
     "postCreateCommand": ".devcontainer/post-create.sh",
 
-    // Configure user and security - Optimized for Podman WSL
+    // Configure user and security
     "remoteUser": "vscode",
     "containerUser": "vscode",
-    
-    // Mount additional volumes - Optimized for Podman WSL compatibility  
-    "mounts": [
-        // Source bind mount for better performance in WSL
-        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
-    ],
-    
-    // Optimized run arguments for Podman in WSL
-    "runArgs": [
-        "--userns=keep-id",
-        "--security-opt=label=disable",
-        "--cap-add=SYS_PTRACE",
-        "--init"
-    ],
-    
-    // Environment variables - Enhanced for Podman WSL
+
+    // Mount additional volumes - Simplified for WSL compatibility
+    "mounts": [],
+
+    // Simplified run arguments for better compatibility
+    "runArgs": [],
+
+    // Environment variables
     "containerEnv": {
         "PYTHONPATH": "${containerWorkspaceFolder}",
         "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}",
-        "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}",
-        // WSL specific environment variables
-        "DISPLAY": "${localEnv:DISPLAY}",
-        "WSL_DISTRO_NAME": "${localEnv:WSL_DISTRO_NAME}",
-        // Podman specific optimizations
-        "BUILDAH_ISOLATION": "chroot",
-        "CONTAINER_HOST": "unix:///run/user/1000/podman/podman.sock"
-    },
-    
-    // Additional DevContainer settings for Podman WSL
-    "workspaceFolder": "/workspace",
-    "shutdownAction": "stopContainer",
-    
-    // Podman-specific overrides
-    "overrideCommand": false,
-    "privileged": false,
-    
-    // Init process for better signal handling in Podman
-    "init": true
+        "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}"
+    }
 }

@@ -27,28 +27,62 @@ Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container 
 The deployment process is now fully automated using GitHub Actions and Microsoft Fabric CLI:
 
 ### Prerequisites
-1. **Azure Subscription** with sufficient quota for Fabric capacity
-2. **GitHub repository** configured with proper secrets (see [GitHub Secrets Setup](docs/GITHUB_SECRETS_SETUP.md))
-3. **Service Principal** with Fabric capacity admin permissions
+
+#### 1. **Shared Infrastructure (Platform Team Managed)**
+This project uses shared Azure Key Vault and service principal managed by the platform team:
+
+- **Shared Azure Key Vault**: Centrally managed Key Vault for storing project secrets
+- **Shared Service Principal**: Enterprise service principal with appropriate permissions
+
+#### 2. **Azure Key Vault Secrets (Required)**
+The following secrets must be manually added to the shared Key Vault using the project prefix `fabric-otel`:
+
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `fabric-otel-AZURE-CLIENT-ID` | Service principal application ID for project resources | `12345678-1234-1234-1234-123456789012` |
+| `fabric-otel-AZURE-CLIENT-SECRET` | Service principal client secret for project resources | `your-client-secret-value` |
+| `fabric-otel-AZURE-TENANT-ID` | Azure tenant ID for the project | `87654321-4321-4321-4321-210987654321` |
+| `fabric-otel-AZURE-SUBSCRIPTION-ID` | Azure subscription ID where resources will be deployed | `11111111-2222-3333-4444-555555555555` |
+| `fabric-otel-ADMIN-OBJECT-ID` | Object ID of the user who will be Fabric capacity administrator | `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee` |
+
+#### 3. **GitHub Repository Secrets (Minimal)**
+Only these minimal secrets are required in your GitHub repository:
+
+| Secret Name | Description | How to Obtain |
+|-------------|-------------|---------------|
+| `SHARED_KEYVAULT_NAME` | Name of the shared Key Vault | Provided by platform team |
+| `AZURE_CLIENT_ID` | Shared service principal ID for Key Vault access | Provided by platform team |
+| `AZURE_TENANT_ID` | Azure tenant ID for shared authentication | Provided by platform team |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID for shared authentication | Provided by platform team |
+
+#### 4. **Azure Subscription Requirements**
+- **Azure Subscription** with sufficient quota for Fabric capacity (F2 SKU minimum)
+- **Contributor permissions** for the project service principal
+- **Resource Group** creation permissions in the target subscription
 
 ### Automated Deployment
 
-#### GitHub Actions Workflow
-The main deployment workflow deploys both Azure infrastructure and Fabric artifacts:
+#### GitHub Actions Workflow (Shared Infrastructure)
+The main deployment workflow uses shared infrastructure and deploys both Azure infrastructure and Fabric artifacts:
 
 ```bash
 # Triggered automatically on push to main branch
-# Or manually via GitHub Actions UI
+# Or manually via GitHub Actions UI with project-specific parameters
 ```
 
-**Deployment Steps:**
-1. **Azure Infrastructure** - Deploys Bicep templates for:
-   - Fabric capacity
-   - Event Hub namespace
-   - Container instances for OTEL collector
-   - Supporting resources
+**🔒 Security Architecture:**
+- **Shared Key Vault**: Platform team managed, project-specific secrets with `fabric-otel` prefix
+- **Minimal GitHub Secrets**: Only basic authentication credentials for shared resources  
+- **Project Isolation**: Secret naming convention ensures project separation
 
-2. **Fabric Artifacts** - Uses Fabric CLI to deploy:
+**Deployment Steps:**
+1. **Fetch Secrets** - Retrieves project-specific secrets from shared Key Vault
+2. **Azure Infrastructure** - Deploys Bicep templates for:
+   - Fabric capacity
+   - Event Hub namespace  
+   - Container instances for OTEL collector
+   - Supporting resources (no Key Vault - uses shared infrastructure)
+3. **Fabric Artifacts** - Uses Fabric CLI to deploy:
    - Fabric workspace (`fabric-otel-workspace`)
    - KQL database (`otelobservabilitydb`)
    - OTEL tables (logs, metrics, traces)
@@ -58,6 +92,12 @@ The main deployment workflow deploys both Azure infrastructure and Fabric artifa
 For local development or manual deployment:
 
 ```bash
+# Ensure project secrets are available in shared Key Vault (platform team responsibility)
+# Export local environment variables (for development only):
+$env:AZURE_CLIENT_ID = "your-project-client-id"        # From Key Vault: fabric-otel-AZURE-CLIENT-ID
+$env:AZURE_CLIENT_SECRET = "your-project-client-secret" # From Key Vault: fabric-otel-AZURE-CLIENT-SECRET
+$env:AZURE_TENANT_ID = "your-tenant-id"                 # From Key Vault: fabric-otel-AZURE-TENANT-ID
+
 # Deploy Azure infrastructure
 cd infra/Bicep
 ./deploy.ps1
@@ -68,6 +108,8 @@ cd ../
 # or
 ./Deploy-FabricArtifacts.ps1        # PowerShell/Windows
 ```
+
+**Note**: Manual deployment requires the same project-specific secrets that are stored in the shared Key Vault. Contact your platform team for access to these values for local development.
 
 #### Validation
 ```bash
@@ -504,99 +546,54 @@ Configure a GitHub Actions workflow to build and deploy your application automat
 
 ## Continuous Deployment with GitHub Actions
 
-<details>
-<summary>GitHub Actions Workflow (Key Vault Integration)</summary>
-
-This repository includes a GitHub Actions workflow that automates the deployment of all resources, including:
+This repository includes a GitHub Actions workflow that automates the deployment of all resources using a **shared infrastructure approach**:
 
 - Microsoft Fabric capacity and workspace
-- KQL Database with OTEL tables
+- KQL Database with OTEL tables  
 - Event Hub namespace and hub
 - OTEL Collector container instance
 - App Service for sample telemetry
 
-### 🔒 Enhanced Security with Azure Key Vault
+### 🔒 Enhanced Security with Shared Key Vault
 
-The infrastructure deployment now includes **integrated Key Vault management** for secure secret storage:
+The deployment uses **shared infrastructure** managed by the platform team:
 
-- **✅ Infrastructure as Code**: Key Vault managed via Bicep templates
-- **✅ Automated Secret Population**: Secrets created during infrastructure deployment  
-- **✅ Service Principal Integration**: Automated creation and access policy configuration
-- **✅ Single Deployment Command**: Consolidated infrastructure and security setup
-- **✅ GitHub Actions Ready**: Minimal repository secrets required
+- **✅ Shared Key Vault**: Platform team managed, centralized secret storage
+- **✅ Project Isolation**: Secret naming with project prefix (`fabric-otel`)
+- **✅ Minimal GitHub Secrets**: Only basic shared authentication credentials
+- **✅ Enterprise Security**: Centralized access control and governance
+- **✅ Multi-Project Support**: Same shared infrastructure supports multiple projects
 
-### Quick Setup Options
+### Setup Requirements
 
-#### Option 1: Consolidated Deployment (Recommended)
-```powershell
-# Clone and deploy everything at once
-git clone https://github.com/zojovano/azuresamples-fabric-observability.git
-cd azuresamples-fabric-observability/infra/Bicep
+1. **Platform Team Prerequisites** (managed externally):
+   - Shared Azure Key Vault with appropriate access policies
+   - Project-specific secrets populated with `fabric-otel` prefix
+   - Shared service principal with Key Vault read permissions
 
-# Deploy infrastructure with integrated Key Vault
-.\deploy-with-keyvault.ps1 -AdminUserEmail "admin@yourcompany.com"
-```
+2. **Repository Configuration** (developer responsibility):
+   - Configure GitHub repository secrets (4 minimal secrets)
+   - Trigger workflow via push or manual dispatch
 
-#### Option 2: Existing Bicep Deployment  
-```powershell
-# Use existing deployment script (enhanced with Key Vault)
-cd infra/Bicep
-.\deploy.ps1
-```
-
-#### Option 3: Manual Configuration
-See detailed instructions in [`docs/CONSOLIDATED_DEPLOYMENT.md`](docs/CONSOLIDATED_DEPLOYMENT.md)
-
-### Setup Prerequisites
-
-1. **Azure Key Vault**: Store all application secrets securely
-2. **Minimal GitHub Secrets**: Only basic authentication credentials
-
-```powershell
-# Create service principal and capture output
-$sp = az ad sp create-for-rbac --name "fabric-observability-github" --role Contributor --scopes /subscriptions/{YourSubscriptionId} | ConvertFrom-Json
-
-# Display values for GitHub secrets
-Write-Output "AZURE_CLIENT_ID: $($sp.appId)"
-Write-Output "AZURE_TENANT_ID: $($sp.tenant)"
-Write-Output "AZURE_SUBSCRIPTION_ID: {YourSubscriptionId}"
-Write-Output "AZURE_CLIENT_SECRET: $($sp.password)"
-```
-
-2. **Admin Object ID**: Get the object ID of the user who will be the Fabric capacity administrator
-
-```powershell
-# Get the Object ID for a user
-$adminObjectId = (Get-AzADUser -UserPrincipalName "user@example.com").Id
-Write-Output "ADMIN_OBJECT_ID: $adminObjectId"
-```
-
-3. **GitHub Secrets**: Add these secrets to your GitHub repository:
-   - `AZURE_CLIENT_ID`: The service principal application ID
-   - `AZURE_TENANT_ID`: The Azure tenant ID
-   - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
-   - `AZURE_CLIENT_SECRET`: The service principal client secret
-   - `ADMIN_OBJECT_ID`: The object ID of the Fabric capacity administrator
+See detailed setup instructions in [`docs/GITHUB_ACTIONS_KEYVAULT_SETUP.md`](docs/GITHUB_ACTIONS_KEYVAULT_SETUP.md)
 
 ### Workflow Triggers
 
 The workflow runs automatically when:
-- Changes are pushed to the `main` branch in the `infra/Bicep/` directory
-- The workflow file itself is modified
-- Manually triggered via GitHub UI with optional parameters
+- Changes are pushed to the `main` branch
+- Manually triggered via GitHub UI with optional parameters:
+  - `location`: Azure region for deployment (default: swedencentral)
+  - `skip_deployment`: Run tests only without deployment
+  - `project_prefix`: Override project prefix for Key Vault secrets (default: fabric-otel)
 
 ### Manual Deployment
 
 To trigger a manual deployment:
 1. Go to the Actions tab in your repository
-2. Select the "Deploy Azure Infrastructure" workflow
+2. Select the "CI/CD Pipeline - Build, Deploy & Test (Shared Key Vault)" workflow  
 3. Click "Run workflow"
-4. Optionally specify a different Azure region
+4. Optionally specify deployment parameters
 5. Click "Run workflow" to start the deployment
-
-For more details, see the [GitHub Actions workflow documentation](./.github/workflows/README.md).
-
-</details>
 
 ## References
 - https://learn.microsoft.com/en-us/azure/data-explorer/open-telemetry-connector?context=%2Ffabric%2Fcontext%2Fcontext-rti&pivots=fabric&tabs=command-line

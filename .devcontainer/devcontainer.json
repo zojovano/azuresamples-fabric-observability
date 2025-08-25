@@ -1,19 +1,17 @@
 {
     "name": "Azure Fabric Observability DevContainer",
-    "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:8.0-jammy",
 
     "features": {
         "ghcr.io/devcontainers/features/azure-cli:1": {
             "version": "latest"
         },
-        "ghcr.io/devcontainers/features/dotnet:1": {
-            "version": "8.0"
-        },
         "ghcr.io/devcontainers/features/powershell:1": {
             "version": "latest"
         },
-        "ghcr.io/devcontainers/features/node:1": {
-            "version": "lts"
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.11",
+            "installTools": false
         }
     },
     "customizations": {
@@ -22,22 +20,15 @@
                 // Azure extensions
                 "ms-vscode.azure-account",
                 "ms-azuretools.azure-dev",
-                "ms-azuretools.vscode-azurefunctions",
                 "ms-azuretools.vscode-azureresourcegroups",
                 "ms-azuretools.vscode-bicep",
 
                 // Docker and Kubernetes
                 "ms-azuretools.vscode-docker",
-                "ms-kubernetes-tools.vscode-kubernetes-tools",
 
                 // .NET development
                 "ms-dotnettools.csharp",
                 "ms-dotnettools.csdevkit",
-
-                // Python development
-                "ms-python.python",
-                "ms-python.pylint",
-                "ms-python.flake8",
 
                 // PowerShell
                 "ms-vscode.powershell",
@@ -53,14 +44,10 @@
 
                 // Other useful extensions
                 "ms-vscode.vscode-markdown",
-                "streetsidesoftware.code-spell-checker",
-                "esbenp.prettier-vscode",
-                "bradlc.vscode-tailwindcss"
+                "streetsidesoftware.code-spell-checker"
             ],
             "settings": {
                 "terminal.integrated.defaultProfile.linux": "bash",
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
-                "python.formatting.provider": "black",
                 "files.associations": {
                     "*.bicep": "bicep",
                     "*.kql": "kusto"
@@ -72,8 +59,7 @@
     // Use 'forwardPorts' to make a list of ports inside the container available locally
     "forwardPorts": [
         8080,  // Common web port
-        5000,  // .NET development
-        8888   // Jupyter notebooks
+        5000   // .NET development
     ],
 
     // Use 'postCreateCommand' to run commands after the container is created
@@ -91,7 +77,6 @@
 
     // Environment variables
     "containerEnv": {
-        "PYTHONPATH": "${containerWorkspaceFolder}",
         "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}",
         "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}"
     }

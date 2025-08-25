@@ -1,83 +1,47 @@
 #!/bin/bash
 
 # Post-create script for Azure Fabric Observability DevContainer
-# Optimized for Podman in WSL environments
+# Focused on .NET/PowerShell development with minimal Python for Fabric CLI only
 set -e
 
 echo "🚀 Setting up Azure Fabric Observability development environment..."
-echo "🐧 Container runtime: $(if command -v podman >/dev/null 2>&1; then echo 'Podman'; elif command -v docker >/dev/null 2>&1; then echo 'Docker'; else echo 'Unknown'; fi)"
+echo "� Container runtime: $(if command -v docker >/dev/null 2>&1; then echo 'Docker'; else echo 'Unknown'; fi)"
 echo "🔍 Current user: $(whoami) (UID: $(id -u), GID: $(id -g))"
 echo "📁 Working directory: $(pwd)"
 
-# Check if we're in WSL and log environment info
-if [ -n "$WSL_DISTRO_NAME" ]; then
-    echo "🪟 Running in WSL: $WSL_DISTRO_NAME"
-fi
-
-# Update package lists with error handling
+# Update package lists
 echo "📦 Updating package lists..."
-if ! sudo apt-get update; then
-    echo "⚠️  Package update failed, continuing anyway..."
-fi
+sudo apt-get update
 
-# Install additional system packages
-echo "📦 Installing system packages..."
+# Install essential system packages
+echo "📦 Installing essential system packages..."
 sudo apt-get install -y \
     curl \
     wget \
     git \
     jq \
     unzip \
-    build-essential \
     ca-certificates \
-    gnupg \
-    lsb-release
+    gnupg
 
 # Install Azure CLI bicep extension
 echo "🔧 Installing Azure CLI extensions..."
 az extension add --name bicep --upgrade
 az extension add --name azure-devops
 
-# Install Microsoft Fabric CLI
+# Install Microsoft Fabric CLI (minimal Python installation)
 echo "🎯 Installing Microsoft Fabric CLI..."
-pip install --upgrade pip
-pip install ms-fabric-cli
+pip3 install --user fabric-cli
 
-# Install Python development packages
-echo "🐍 Installing Python packages..."
-pip install \
-    azure-identity \
-    azure-mgmt-resource \
-    azure-mgmt-storage \
-    azure-mgmt-eventhub \
-    azure-mgmt-containerinstance \
-    azure-monitor-opentelemetry \
-    opentelemetry-api \
-    opentelemetry-sdk \
-    jupyter \
-    pandas \
-    matplotlib \
-    black \
-    flake8 \
-    pytest
+# Ensure the local bin directory is in PATH
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
 # Install .NET tools
 echo "🔨 Installing .NET tools..."
 dotnet tool install -g Microsoft.Web.LibraryManager.Cli
-dotnet tool install -g dotnet-ef
 
-# Install Node.js tools for VS Code MCP Azure
-echo "📦 Installing Node.js tools for VS Code MCP Azure..."
-npm install -g @azure/mcp-server-azure
-npm install -g typescript
-npm install -g ts-node
-
-# Install kubectl and helm (if not already installed by feature)
-echo "☸️  Configuring Kubernetes tools..."
-# kubectl and helm should already be installed by the feature
-
-# Create useful aliases
-echo "📝 Setting up aliases..."
+# Create useful aliases for development
+echo "📝 Setting up development aliases..."
 cat >> ~/.bashrc << 'EOF'
 
 # Azure aliases
@@ -93,24 +57,13 @@ alias fabhelp='fab help'
 alias bicepbuild='az bicep build'
 alias bicepvalidate='az deployment group validate'
 
-# Docker aliases - Podman only (Docker removed from WSL)
-alias dps='podman ps'
-alias dimg='podman images'
-alias dlog='podman logs'
-alias dpull='podman pull'
+# Docker aliases
+alias dps='docker ps'
+alias dimg='docker images'
+alias dlog='docker logs'
 
-# Container runtime detection alias  
-alias container-runtime='echo "Using Podman"; podman version'
-
-# Kubernetes aliases
-alias k='kubectl'
-alias kgp='kubectl get pods'
-alias kgs='kubectl get services'
-
-# Node.js and npx aliases
-alias npmg='npm install -g'
-alias npxrun='npx'
-alias nodeversion='node --version && npm --version && npx --version'
+# PowerShell aliases
+alias pwsh='pwsh'
 
 EOF
 
@@ -123,28 +76,17 @@ if [ -n "${GIT_USER_EMAIL}" ]; then
     git config --global user.email "${GIT_USER_EMAIL}"
 fi
 
-# Create development directories
+# Create minimal development directories
 echo "📁 Creating development directories..."
 mkdir -p ~/.local/bin
-mkdir -p ~/workspace/notebooks
 mkdir -p ~/workspace/scripts
 
-# Install VS Code server extensions (if not already installed)
-echo "🔌 Ensuring VS Code extensions are installed..."
-code --install-extension ms-azuretools.vscode-bicep --force
-code --install-extension ms-python.python --force
-code --install-extension ms-vscode.azure-account --force
-
-# Validate installations with Podman-only
+# Validate installations
 echo "✅ Validating installations..."
 echo "Azure CLI version: $(az version --output tsv --query '"azure-cli"' 2>/dev/null || echo 'Not available')"
-echo "Python version: $(python --version 2>/dev/null || echo 'Not available')"
-echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Not installed')"
-echo "Container runtime: $(podman --version 2>/dev/null || echo 'Podman not available')"
 echo ".NET version: $(dotnet --version 2>/dev/null || echo 'Not available')"
-echo "Node.js version: $(node --version 2>/dev/null || echo 'Not available')"
-echo "npm version: $(npm --version 2>/dev/null || echo 'Not available')"
-echo "npx version: $(npx --version 2>/dev/null || echo 'Not available')"
+echo "PowerShell version: $(pwsh --version 2>/dev/null || echo 'Not available')"
+echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Installing...')"
 
 # Create sample configuration files
 echo "📋 Creating sample configuration files..."
@@ -164,8 +106,7 @@ EOF
 cat > ~/workspace/.fabric-config-sample << 'EOF'
 # Sample Fabric Configuration
 # Copy this to .fabric-config and update with your values
-export FABRIC_WORKSPACE_ID="your-workspace-id"
-export FABRIC_CAPACITY_ID="your-capacity-id"
+export FABRIC_WORKSPACE_NAME="fabric-otel-workspace"
 export FABRIC_DATABASE_NAME="otelobservabilitydb"
 EOF
 
@@ -176,19 +117,15 @@ echo "🎉 Welcome to Azure Fabric Observability DevContainer!"
 echo ""
 echo "Available tools:"
 echo "  - Azure CLI: $(az version --output tsv --query '"azure-cli"')"
-echo "  - Python: $(python --version)"
 echo "  - .NET: $(dotnet --version)"
-echo "  - Podman: $(podman --version)"
+echo "  - PowerShell: $(pwsh --version)"
 echo "  - Fabric CLI: $(fab --version 2>/dev/null || echo 'Run: fab auth login')"
 echo ""
 echo "Getting started:"
 echo "  1. Login to Azure: az login"
 echo "  2. Login to Fabric: fab auth login"
 echo "  3. Deploy infrastructure: cd infra/Bicep && ./deploy.ps1"
-echo ""
-echo "Useful directories:"
-echo "  - ~/workspace/notebooks - Jupyter notebooks"
-echo "  - ~/workspace/scripts - Custom scripts"
+echo "  4. Test locally: pwsh Test-FabricLocal.ps1 -SetupSecrets"
 echo ""
 echo "Configuration samples:"
 echo "  - ~/workspace/.azure-config-sample"
@@ -198,4 +135,5 @@ EOF
 chmod +x ~/workspace/welcome.sh
 
 echo "🎯 DevContainer setup completed successfully!"
+echo "🧹 Minimal setup: .NET/PowerShell focused with Fabric CLI only"
 echo "Run '~/workspace/welcome.sh' to see available tools and getting started instructions."

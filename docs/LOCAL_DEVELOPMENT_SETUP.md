@@ -8,29 +8,29 @@ This guide helps you securely test Fabric deployments locally without relying on
 
 1. **Setup secrets interactively:**
    ```powershell
-   pwsh Test-FabricLocal.ps1 -SetupSecrets
+   pwsh tools/Test-FabricLocal.ps1 -SetupSecrets
    ```
 
 2. **Test authentication:**
    ```powershell
-   pwsh Test-FabricLocal.ps1 -TestAuth
+   pwsh tools/Test-FabricLocal.ps1 -TestAuth
    ```
 
 3. **Run deployment:**
    ```powershell
-   pwsh Test-FabricLocal.ps1 -RunDeploy
+   pwsh tools/Test-FabricLocal.ps1 -RunDeploy
    ```
 
 ### Option 2: Azure Key Vault
 
 1. **Test with Key Vault:**
    ```powershell
-   pwsh Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -TestAuth
+   pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -TestAuth
    ```
 
 2. **Deploy with Key Vault:**
    ```powershell
-   pwsh Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -RunDeploy
+   pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -RunDeploy
    ```
 
 ### Option 3: Environment Variables
@@ -44,7 +44,7 @@ This guide helps you securely test Fabric deployments locally without relying on
 
 2. **Test with environment:**
    ```powershell
-   pwsh Test-FabricLocal.ps1 -Mode Environment -TestAuth
+   pwsh tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
    ```
 
 ## 🔧 Secret Manager Tool

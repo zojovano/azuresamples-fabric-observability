@@ -137,7 +137,7 @@ All deployment jobs now:
 3. **Local Development**:
    ```powershell
    # Test local access to Key Vault
-   pwsh setup-local-dev.ps1
+   pwsh tools/setup-local-dev.ps1
    # Select "Key Vault integration" option
    ```
 

@@ -28,7 +28,7 @@ The deployment process is now fully automated using GitHub Actions and Microsoft
 
 ### Prerequisites
 1. **Azure Subscription** with sufficient quota for Fabric capacity
-2. **GitHub repository** configured with proper secrets (see [GitHub Secrets Setup](GITHUB_SECRETS_SETUP.md))
+2. **GitHub repository** configured with proper secrets (see [GitHub Secrets Setup](docs/GITHUB_SECRETS_SETUP.md))
 3. **Service Principal** with Fabric capacity admin permissions
 
 ### Automated Deployment
@@ -545,7 +545,7 @@ cd infra/Bicep
 ```
 
 #### Option 3: Manual Configuration
-See detailed instructions in [`infra/CONSOLIDATED_DEPLOYMENT.md`](infra/CONSOLIDATED_DEPLOYMENT.md)
+See detailed instructions in [`docs/CONSOLIDATED_DEPLOYMENT.md`](docs/CONSOLIDATED_DEPLOYMENT.md)
 
 ### Setup Prerequisites
 

@@ -134,7 +134,7 @@ Local development tools automatically work with the new approach:
 
 ```powershell
 # Test with the deployed Key Vault
-pwsh Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "fabric-otel-kv-12345" -TestAuth
+pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "fabric-otel-kv-12345" -TestAuth
 
 # Use DevSecretManager with deployed Key Vault
 cd tools/DevSecretManager

@@ -76,7 +76,7 @@ function Initialize-UserSecrets {
         dotnet run set --key "Fabric:DatabaseName" --value $databaseName
         
         Write-ColorOutput "User secrets configured successfully!" $ColorSuccess "✅"
-        Write-ColorOutput "Run 'pwsh Test-FabricLocal.ps1 -TestAuth' to verify" $ColorInfo "💡"
+        Write-ColorOutput "Run 'pwsh tools/Test-FabricLocal.ps1 -TestAuth' to verify" $ColorInfo "💡"
     }
     finally {
         Pop-Location

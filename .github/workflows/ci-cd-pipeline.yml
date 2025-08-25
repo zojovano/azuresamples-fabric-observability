@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Build, Deploy & Test
+name: CI/CD Pipeline - Build, Deploy & Test (Key Vault Secrets)
 
 on:
   push:
@@ -19,12 +19,18 @@ on:
         required: false
         default: false
         type: boolean
+      key_vault_name:
+        description: 'Azure Key Vault name (override)'
+        required: false
+        default: 'fabric-otel-keyvault'
+        type: string
 
 env:
   LOCATION: ${{ github.event.inputs.location || 'swedencentral' }}
   RESOURCE_GROUP_NAME: 'azuresamples-platformobservabilty-fabric'
   FABRIC_WORKSPACE_NAME: 'fabric-otel-workspace'
   FABRIC_DATABASE_NAME: 'otelobservabilitydb'
+  KEY_VAULT_NAME: ${{ github.event.inputs.key_vault_name || 'fabric-otel-keyvault' }}
 
 permissions:
   id-token: write
@@ -33,7 +39,70 @@ permissions:
   pull-requests: write
 
 jobs:
-  # NEW: Professional .NET unit tests (fast, no Azure dependencies)
+  # NEW: Fetch secrets from Azure Key Vault
+  fetch-secrets:
+    name: Fetch Secrets from Key Vault
+    runs-on: ubuntu-latest
+    outputs:
+      azure-client-id: ${{ steps.fetch-secrets.outputs.azure-client-id }}
+      azure-client-secret: ${{ steps.fetch-secrets.outputs.azure-client-secret }}
+      azure-tenant-id: ${{ steps.fetch-secrets.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ steps.fetch-secrets.outputs.azure-subscription-id }}
+      admin-object-id: ${{ steps.fetch-secrets.outputs.admin-object-id }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login (using minimal GitHub secrets)
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Fetch secrets from Key Vault
+        id: fetch-secrets
+        shell: pwsh
+        run: |
+          Write-Host "🔐 Fetching secrets from Azure Key Vault: ${{ env.KEY_VAULT_NAME }}"
+          
+          try {
+            # Fetch all required secrets from Key Vault
+            $secrets = @{
+              'AZURE-CLIENT-ID' = 'azure-client-id'
+              'AZURE-CLIENT-SECRET' = 'azure-client-secret'
+              'AZURE-TENANT-ID' = 'azure-tenant-id'
+              'AZURE-SUBSCRIPTION-ID' = 'azure-subscription-id'
+              'ADMIN-OBJECT-ID' = 'admin-object-id'
+            }
+            
+            foreach ($kvSecret in $secrets.Keys) {
+              $outputName = $secrets[$kvSecret]
+              Write-Host "Fetching: $kvSecret → $outputName"
+              
+              $secretValue = az keyvault secret show --vault-name "${{ env.KEY_VAULT_NAME }}" --name $kvSecret --query "value" --output tsv
+              
+              if ([string]::IsNullOrEmpty($secretValue)) {
+                throw "Failed to fetch secret: $kvSecret"
+              }
+              
+              # Set as GitHub Actions output (masked)
+              Write-Host "::add-mask::$secretValue"
+              Write-Host "::set-output name=$($outputName)::$secretValue"
+              Write-Host "✅ Successfully fetched: $kvSecret"
+            }
+            
+            Write-Host "🎉 All secrets successfully fetched from Key Vault"
+          }
+          catch {
+            Write-Error "❌ Failed to fetch secrets from Key Vault: $_"
+            Write-Host "Available Key Vaults in subscription:"
+            az keyvault list --query "[].{Name:name, ResourceGroup:resourceGroup}" --output table
+            throw
+          }
+
+  # ORIGINAL: Professional .NET unit tests (fast, no Azure dependencies)
   unit-tests:
     name: Unit Tests (.NET xUnit)
     runs-on: ubuntu-latest
@@ -97,17 +166,17 @@ jobs:
     name: Validate Bicep Files
     runs-on: ubuntu-latest
     if: github.event.inputs.skip_deployment != 'true'
-    needs: unit-tests
+    needs: [unit-tests, fetch-secrets]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure CLI login
+      - name: Azure CLI login (using Key Vault secrets)
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
+          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
+          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
 
       - name: Validate Bicep files
         run: |
@@ -118,7 +187,7 @@ jobs:
   # ORIGINAL: Deploy Azure infrastructure via Bicep
   deploy-infra:
     name: Deploy Azure Resources
-    needs: [unit-tests, validate]
+    needs: [unit-tests, validate, fetch-secrets]
     runs-on: ubuntu-latest
     if: github.event.inputs.skip_deployment != 'true'
     
@@ -126,21 +195,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure login
+      - name: Azure login (using Key Vault secrets)
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
+          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
+          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
 
       - name: Deploy Bicep
         uses: azure/arm-deploy@v1
         with:
-          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          subscriptionId: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
           template: ./infra/Bicep/main.bicep
           parameters: >
             location=${{ env.LOCATION }}
-            adminObjectId=${{ secrets.ADMIN_OBJECT_ID }}
+            adminObjectId=${{ needs.fetch-secrets.outputs.admin-object-id }}
           deploymentName: 'github-${{ github.run_number }}'
           scope: subscription
           region: ${{ env.LOCATION }}
@@ -149,13 +218,13 @@ jobs:
       - name: Debug deployment parameters
         run: |
           echo "Location: ${{ env.LOCATION }}"
-          echo "Admin Object ID is set: ${{ secrets.ADMIN_OBJECT_ID != '' }}"
-          echo "Subscription ID is set: ${{ secrets.AZURE_SUBSCRIPTION_ID != '' }}"
+          echo "Admin Object ID is set: ${{ needs.fetch-secrets.outputs.admin-object-id != '' }}"
+          echo "Subscription ID is set: ${{ needs.fetch-secrets.outputs.azure-subscription-id != '' }}"
 
   # ORIGINAL: Deploy Fabric artifacts using Fabric CLI and the original shell script
   deploy-fabric-artifacts:
     name: Deploy Fabric Artifacts
-    needs: [unit-tests, deploy-infra]
+    needs: [unit-tests, deploy-infra, fetch-secrets]
     runs-on: ubuntu-latest
     if: github.event.inputs.skip_deployment != 'true'
     
@@ -163,12 +232,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure login
+      - name: Azure login (using Key Vault secrets)
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
+          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
+          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
 
       - name: Setup PowerShell
         uses: actions/setup-dotnet@v4
@@ -202,9 +271,9 @@ jobs:
       - name: Deploy Fabric Artifacts (PowerShell)
         shell: pwsh
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ needs.fetch-secrets.outputs.azure-client-id }}
+          AZURE_CLIENT_SECRET: ${{ needs.fetch-secrets.outputs.azure-client-secret }}
+          AZURE_TENANT_ID: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
         run: |
           Write-Host "Deploying Fabric artifacts using PowerShell script..."
           
@@ -214,10 +283,10 @@ jobs:
           $env:RESOURCE_GROUP_NAME = "${{ env.RESOURCE_GROUP_NAME }}"
           $env:LOCATION = "${{ env.LOCATION }}"
           
-          # Export Azure credentials for service principal authentication
-          $env:AZURE_CLIENT_ID = "${{ secrets.AZURE_CLIENT_ID }}"
-          $env:AZURE_CLIENT_SECRET = "${{ secrets.AZURE_CLIENT_SECRET }}"
-          $env:AZURE_TENANT_ID = "${{ secrets.AZURE_TENANT_ID }}"
+          # Export Azure credentials for service principal authentication (from Key Vault)
+          $env:AZURE_CLIENT_ID = "${{ needs.fetch-secrets.outputs.azure-client-id }}"
+          $env:AZURE_CLIENT_SECRET = "${{ needs.fetch-secrets.outputs.azure-client-secret }}"
+          $env:AZURE_TENANT_ID = "${{ needs.fetch-secrets.outputs.azure-tenant-id }}"
           
           # Use absolute path and verify script exists
           $scriptPath = Join-Path $env:GITHUB_WORKSPACE "infra" "Deploy-FabricArtifacts.ps1"
@@ -245,7 +314,7 @@ jobs:
   # ORIGINAL: Test using PowerShell script (Test-FabricIntegration.ps1)
   test-fabric-deployment:
     name: Test Fabric Deployment (PowerShell Scripts)
-    needs: [unit-tests, deploy-fabric-artifacts]
+    needs: [unit-tests, deploy-fabric-artifacts, fetch-secrets]
     runs-on: ubuntu-latest
     if: github.event.inputs.skip_deployment != 'true'
     
@@ -253,12 +322,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure login
+      - name: Azure login (using Key Vault secrets)
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
+          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
+          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
 
       - name: Setup PowerShell
         uses: actions/setup-dotnet@v4
@@ -336,7 +405,7 @@ jobs:
   # NEW: Additional .NET integration tests (runs in parallel with shell tests)
   test-dotnet-integration:
     name: Integration Tests (.NET xUnit)
-    needs: [unit-tests, deploy-fabric-artifacts] 
+    needs: [unit-tests, deploy-fabric-artifacts, fetch-secrets] 
     runs-on: ubuntu-latest
     if: always() && (needs.unit-tests.result == 'success')
     
@@ -349,13 +418,13 @@ jobs:
         with:
           dotnet-version: '8.0'
 
-      - name: Azure login
+      - name: Azure login (using Key Vault secrets)
         uses: azure/login@v1
         if: github.event.inputs.skip_deployment != 'true'
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
+          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
+          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -475,7 +544,7 @@ jobs:
   # ENHANCED: Final status report including both shell and .NET testing
   report-status:
     name: Report Overall Status
-    needs: [unit-tests, validate, deploy-infra, deploy-fabric-artifacts, test-fabric-deployment, test-dotnet-integration]
+    needs: [unit-tests, validate, deploy-infra, deploy-fabric-artifacts, test-fabric-deployment, test-dotnet-integration, fetch-secrets]
     runs-on: ubuntu-latest
     if: always()
     steps:

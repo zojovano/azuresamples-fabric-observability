@@ -505,7 +505,7 @@ Configure a GitHub Actions workflow to build and deploy your application automat
 ## Continuous Deployment with GitHub Actions
 
 <details>
-<summary>GitHub Actions Workflow</summary>
+<summary>GitHub Actions Workflow (Key Vault Integration)</summary>
 
 This repository includes a GitHub Actions workflow that automates the deployment of all resources, including:
 
@@ -515,9 +515,35 @@ This repository includes a GitHub Actions workflow that automates the deployment
 - OTEL Collector container instance
 - App Service for sample telemetry
 
+### 🔒 Enhanced Security with Azure Key Vault
+
+The workflow now supports **Azure Key Vault integration** for secure secret management:
+
+- **✅ Centralized Secret Management**: All secrets stored in Azure Key Vault
+- **✅ Audit Logging**: Track who accessed which secrets when
+- **✅ Fine-grained Access Control**: Azure RBAC for secret permissions
+- **✅ Secret Rotation**: Easy to update without touching GitHub
+- **✅ Compliance**: Enterprise-grade security standards
+
+### Quick Setup Options
+
+#### Option 1: Automated Key Vault Setup (Recommended)
+```powershell
+# Clone the repository
+git clone https://github.com/zojovano/azuresamples-fabric-observability.git
+cd azuresamples-fabric-observability
+
+# Run automated setup
+pwsh Setup-KeyVault.ps1 -AdminUserEmail "admin@yourcompany.com"
+```
+
+#### Option 2: Manual Setup
+See detailed instructions in [`GITHUB_ACTIONS_KEYVAULT_SETUP.md`](GITHUB_ACTIONS_KEYVAULT_SETUP.md)
+
 ### Setup Prerequisites
 
-1. **Service Principal**: Create an Azure service principal with Contributor access to your subscription
+1. **Azure Key Vault**: Store all application secrets securely
+2. **Minimal GitHub Secrets**: Only basic authentication credentials
 
 ```powershell
 # Create service principal and capture output

@@ -67,7 +67,7 @@ dotnet run list
 dotnet run test
 
 # Import from Key Vault
-dotnet run import-from-keyvault --vault-name "your-vault" --secret-name "fabric-client-id" --local-key "Azure:ClientId"
+dotnet run import-from-keyvault --vault-name "your-vault" --secret-name "AZURE-CLIENT-ID" --local-key "Azure:ClientId"
 ```
 
 ## 🔐 Security Features

@@ -128,10 +128,11 @@ function Get-SecretsFromKeyVault {
         
         # Get secrets from Key Vault
         $secrets = @{
-            'AZURE_CLIENT_ID' = 'fabric-client-id'
-            'AZURE_CLIENT_SECRET' = 'fabric-client-secret'
-            'AZURE_TENANT_ID' = 'fabric-tenant-id'
-            'AZURE_SUBSCRIPTION_ID' = 'fabric-subscription-id'
+            'AZURE_CLIENT_ID' = 'AZURE-CLIENT-ID'
+            'AZURE_CLIENT_SECRET' = 'AZURE-CLIENT-SECRET'
+            'AZURE_TENANT_ID' = 'AZURE-TENANT-ID'
+            'AZURE_SUBSCRIPTION_ID' = 'AZURE-SUBSCRIPTION-ID'
+            'ADMIN_OBJECT_ID' = 'ADMIN-OBJECT-ID'
             'RESOURCE_GROUP_NAME' = 'fabric-resource-group'
             'FABRIC_WORKSPACE_NAME' = 'fabric-workspace-name'
             'FABRIC_DATABASE_NAME' = 'fabric-database-name'

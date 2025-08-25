@@ -69,14 +69,13 @@ jobs:
           Write-Host "📋 Using project prefix: ${{ env.PROJECT_PREFIX }}"
           
           try {
-            # Fetch project-specific secrets using naming convention
-            $projectPrefix = "${{ env.PROJECT_PREFIX }}"
+            # Fetch project-specific secrets (temporarily without prefix)
             $secrets = @{
-              "$projectPrefix-AZURE-CLIENT-ID" = 'azure-client-id'
-              "$projectPrefix-AZURE-CLIENT-SECRET" = 'azure-client-secret'
-              "$projectPrefix-AZURE-TENANT-ID" = 'azure-tenant-id'
-              "$projectPrefix-AZURE-SUBSCRIPTION-ID" = 'azure-subscription-id'
-              "$projectPrefix-ADMIN-OBJECT-ID" = 'admin-object-id'
+              "AZURE-CLIENT-ID" = 'azure-client-id'
+              "AZURE-CLIENT-SECRET" = 'azure-client-secret'
+              "AZURE-TENANT-ID" = 'azure-tenant-id'
+              "AZURE-SUBSCRIPTION-ID" = 'azure-subscription-id'
+              "ADMIN-OBJECT-ID" = 'admin-object-id'
             }
             
             foreach ($kvSecret in $secrets.Keys) {
@@ -100,7 +99,7 @@ jobs:
           catch {
             Write-Error "❌ Failed to fetch secrets from shared Key Vault: $_"
             Write-Host "Available secrets in Key Vault:"
-            az keyvault secret list --vault-name "${{ secrets.SHARED_KEYVAULT_NAME }}" --query "[?starts_with(name, '${{ env.PROJECT_PREFIX }}-')].name" --output table
+            az keyvault secret list --vault-name "${{ secrets.SHARED_KEYVAULT_NAME }}" --query "[].name" --output table
             throw
           }
 

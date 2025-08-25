@@ -35,15 +35,17 @@ This project uses shared Azure Key Vault and service principal managed by the pl
 - **Shared Service Principal**: Enterprise service principal with appropriate permissions
 
 #### 2. **Azure Key Vault Secrets (Required)**
-The following secrets must be manually added to the shared Key Vault using the project prefix `fabric-otel`:
+The following secrets must be manually added to the shared Key Vault (currently without project prefix):
 
 | Secret Name | Description | Example Value |
 |-------------|-------------|---------------|
-| `fabric-otel-AZURE-CLIENT-ID` | Service principal application ID for project resources | `12345678-1234-1234-1234-123456789012` |
-| `fabric-otel-AZURE-CLIENT-SECRET` | Service principal client secret for project resources | `your-client-secret-value` |
-| `fabric-otel-AZURE-TENANT-ID` | Azure tenant ID for the project | `87654321-4321-4321-4321-210987654321` |
-| `fabric-otel-AZURE-SUBSCRIPTION-ID` | Azure subscription ID where resources will be deployed | `11111111-2222-3333-4444-555555555555` |
-| `fabric-otel-ADMIN-OBJECT-ID` | Object ID of the user who will be Fabric capacity administrator | `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee` |
+| `AZURE-CLIENT-ID` | Service principal application ID for project resources | `12345678-1234-1234-1234-123456789012` |
+| `AZURE-CLIENT-SECRET` | Service principal client secret for project resources | `your-client-secret-value` |
+| `AZURE-TENANT-ID` | Azure tenant ID for the project | `87654321-4321-4321-4321-210987654321` |
+| `AZURE-SUBSCRIPTION-ID` | Azure subscription ID where resources will be deployed | `11111111-2222-3333-4444-555555555555` |
+| `ADMIN-OBJECT-ID` | Object ID of the user who will be Fabric capacity administrator | `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee` |
+
+> **Note**: Project prefixes (e.g., `fabric-otel-`) will be added in future iterations for multi-project support.
 
 #### 3. **GitHub Repository Secrets (Minimal)**
 Only these minimal secrets are required in your GitHub repository:
@@ -71,9 +73,9 @@ The main deployment workflow uses shared infrastructure and deploys both Azure i
 ```
 
 **🔒 Security Architecture:**
-- **Shared Key Vault**: Platform team managed, project-specific secrets with `fabric-otel` prefix
+- **Shared Key Vault**: Platform team managed, project secrets (prefixes to be added later)
 - **Minimal GitHub Secrets**: Only basic authentication credentials for shared resources  
-- **Project Isolation**: Secret naming convention ensures project separation
+- **Project Isolation**: Future enhancement with project-specific naming convention
 
 **Deployment Steps:**
 1. **Fetch Secrets** - Retrieves project-specific secrets from shared Key Vault
@@ -94,9 +96,9 @@ For local development or manual deployment:
 ```bash
 # Ensure project secrets are available in shared Key Vault (platform team responsibility)
 # Export local environment variables (for development only):
-$env:AZURE_CLIENT_ID = "your-project-client-id"        # From Key Vault: fabric-otel-AZURE-CLIENT-ID
-$env:AZURE_CLIENT_SECRET = "your-project-client-secret" # From Key Vault: fabric-otel-AZURE-CLIENT-SECRET
-$env:AZURE_TENANT_ID = "your-tenant-id"                 # From Key Vault: fabric-otel-AZURE-TENANT-ID
+$env:AZURE_CLIENT_ID = "your-project-client-id"        # From Key Vault: AZURE-CLIENT-ID
+$env:AZURE_CLIENT_SECRET = "your-project-client-secret" # From Key Vault: AZURE-CLIENT-SECRET
+$env:AZURE_TENANT_ID = "your-tenant-id"                 # From Key Vault: AZURE-TENANT-ID
 
 # Deploy Azure infrastructure
 cd infra/Bicep
@@ -559,16 +561,16 @@ This repository includes a GitHub Actions workflow that automates the deployment
 The deployment uses **shared infrastructure** managed by the platform team:
 
 - **✅ Shared Key Vault**: Platform team managed, centralized secret storage
-- **✅ Project Isolation**: Secret naming with project prefix (`fabric-otel`)
+- **✅ Project Isolation**: Future enhancement with secret naming prefixes
 - **✅ Minimal GitHub Secrets**: Only basic shared authentication credentials
 - **✅ Enterprise Security**: Centralized access control and governance
-- **✅ Multi-Project Support**: Same shared infrastructure supports multiple projects
+- **✅ Multi-Project Support**: Future enhancement with project-specific prefixes
 
 ### Setup Requirements
 
 1. **Platform Team Prerequisites** (managed externally):
    - Shared Azure Key Vault with appropriate access policies
-   - Project-specific secrets populated with `fabric-otel` prefix
+   - Project secrets populated (currently without prefixes)
    - Shared service principal with Key Vault read permissions
 
 2. **Repository Configuration** (developer responsibility):
@@ -584,7 +586,7 @@ The workflow runs automatically when:
 - Manually triggered via GitHub UI with optional parameters:
   - `location`: Azure region for deployment (default: swedencentral)
   - `skip_deployment`: Run tests only without deployment
-  - `project_prefix`: Override project prefix for Key Vault secrets (default: fabric-otel)
+  - `project_prefix`: Reserved for future use (default: fabric-otel)
 
 ### Manual Deployment
 

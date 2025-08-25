@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Build, Deploy & Test (Key Vault Secrets)
+name: CI/CD Pipeline - Build, Deploy & Test (Shared Key Vault)
 
 on:
   push:
@@ -19,10 +19,10 @@ on:
         required: false
         default: false
         type: boolean
-      key_vault_name:
-        description: 'Azure Key Vault name (override)'
+      project_prefix:
+        description: 'Project prefix for Key Vault secrets'
         required: false
-        default: 'fabric-otel-keyvault'
+        default: 'fabric-otel'
         type: string
 
 env:
@@ -30,7 +30,7 @@ env:
   RESOURCE_GROUP_NAME: 'azuresamples-platformobservabilty-fabric'
   FABRIC_WORKSPACE_NAME: 'fabric-otel-workspace'
   FABRIC_DATABASE_NAME: 'otelobservabilitydb'
-  KEY_VAULT_NAME: ${{ github.event.inputs.key_vault_name || 'fabric-otel-keyvault' }}
+  PROJECT_PREFIX: ${{ github.event.inputs.project_prefix || 'fabric-otel' }}
 
 permissions:
   id-token: write
@@ -39,9 +39,9 @@ permissions:
   pull-requests: write
 
 jobs:
-  # NEW: Fetch secrets from Azure Key Vault
+  # Fetch secrets from shared Azure Key Vault
   fetch-secrets:
-    name: Fetch Secrets from Key Vault
+    name: Fetch Secrets from Shared Key Vault
     runs-on: ubuntu-latest
     outputs:
       azure-client-id: ${{ steps.fetch-secrets.outputs.azure-client-id }}
@@ -54,34 +54,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure login (using minimal GitHub secrets)
+      - name: Azure login (using shared service principal)
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Fetch secrets from Key Vault
+      - name: Fetch project secrets from shared Key Vault
         id: fetch-secrets
         shell: pwsh
         run: |
-          Write-Host "🔐 Fetching secrets from Azure Key Vault: ${{ env.KEY_VAULT_NAME }}"
+          Write-Host "🔐 Fetching project secrets from shared Key Vault: ${{ secrets.SHARED_KEYVAULT_NAME }}"
+          Write-Host "📋 Using project prefix: ${{ env.PROJECT_PREFIX }}"
           
           try {
-            # Fetch all required secrets from Key Vault
+            # Fetch project-specific secrets using naming convention
+            $projectPrefix = "${{ env.PROJECT_PREFIX }}"
             $secrets = @{
-              'AZURE-CLIENT-ID' = 'azure-client-id'
-              'AZURE-CLIENT-SECRET' = 'azure-client-secret'
-              'AZURE-TENANT-ID' = 'azure-tenant-id'
-              'AZURE-SUBSCRIPTION-ID' = 'azure-subscription-id'
-              'ADMIN-OBJECT-ID' = 'admin-object-id'
+              "$projectPrefix-AZURE-CLIENT-ID" = 'azure-client-id'
+              "$projectPrefix-AZURE-CLIENT-SECRET" = 'azure-client-secret'
+              "$projectPrefix-AZURE-TENANT-ID" = 'azure-tenant-id'
+              "$projectPrefix-AZURE-SUBSCRIPTION-ID" = 'azure-subscription-id'
+              "$projectPrefix-ADMIN-OBJECT-ID" = 'admin-object-id'
             }
             
             foreach ($kvSecret in $secrets.Keys) {
               $outputName = $secrets[$kvSecret]
               Write-Host "Fetching: $kvSecret → $outputName"
               
-              $secretValue = az keyvault secret show --vault-name "${{ env.KEY_VAULT_NAME }}" --name $kvSecret --query "value" --output tsv
+              $secretValue = az keyvault secret show --vault-name "${{ secrets.SHARED_KEYVAULT_NAME }}" --name $kvSecret --query "value" --output tsv
               
               if ([string]::IsNullOrEmpty($secretValue)) {
                 throw "Failed to fetch secret: $kvSecret"
@@ -93,12 +95,12 @@ jobs:
               Write-Host "✅ Successfully fetched: $kvSecret"
             }
             
-            Write-Host "🎉 All secrets successfully fetched from Key Vault"
+            Write-Host "🎉 All project secrets successfully fetched from shared Key Vault"
           }
           catch {
-            Write-Error "❌ Failed to fetch secrets from Key Vault: $_"
-            Write-Host "Available Key Vaults in subscription:"
-            az keyvault list --query "[].{Name:name, ResourceGroup:resourceGroup}" --output table
+            Write-Error "❌ Failed to fetch secrets from shared Key Vault: $_"
+            Write-Host "Available secrets in Key Vault:"
+            az keyvault secret list --vault-name "${{ secrets.SHARED_KEYVAULT_NAME }}" --query "[?starts_with(name, '${{ env.PROJECT_PREFIX }}-')].name" --output table
             throw
           }
 
@@ -171,7 +173,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure CLI login (using Key Vault secrets)
+      - name: Azure CLI login (using shared Key Vault secrets)
         uses: azure/login@v1
         with:
           client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
@@ -195,7 +197,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure login (using Key Vault secrets)
+      - name: Azure login (using shared Key Vault secrets)
         uses: azure/login@v1
         with:
           client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
@@ -214,7 +216,6 @@ jobs:
             appServicePrincipalClientId="${{ needs.fetch-secrets.outputs.azure-client-id }}"
             appServicePrincipalObjectId="${{ secrets.APP_SP_OBJECT_ID }}"
             appServicePrincipalClientSecret="${{ needs.fetch-secrets.outputs.azure-client-secret }}"
-            keyVaultName="${{ env.KEY_VAULT_NAME }}"
           deploymentName: 'github-${{ github.run_number }}'
           scope: subscription
           region: ${{ env.LOCATION }}

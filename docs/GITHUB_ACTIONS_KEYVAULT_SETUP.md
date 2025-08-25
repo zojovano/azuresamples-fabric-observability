@@ -1,107 +1,98 @@
 # GitHub Actions + Azure Key Vault Setup Guide
 
-This guide explains how to set up GitHub Actions to use Azure Key Vault for secrets instead of GitHub repository secrets.
+This guide explains how to set up GitHub Actions to use an existing Azure Key Vault for secrets. This approach treats Key Vault and the main service principal as shared infrastructure (external dependencies).
 
 ## Architecture Overview
 
-The updated workflow uses a hybrid approach:
-- **Minimal GitHub Secrets**: Only the basic credentials needed to authenticate to Azure and access Key Vault
-- **Azure Key Vault**: Stores all sensitive application secrets with proper access controls
-- **Improved Security**: Centralized secret management, audit logging, and fine-grained access control
+The workflow uses a **shared infrastructure** approach:
+- **Shared Key Vault**: Pre-existing Key Vault managed by platform/DevOps team
+- **Shared Service Principal**: Pre-existing service principal with access to Key Vault and Azure subscriptions
+- **Project-Specific Secrets**: Only application-specific secrets stored in the shared Key Vault
+- **Minimal GitHub Secrets**: Only the credentials needed to access the shared infrastructure
 
-## Benefits of Key Vault Integration
+## Benefits of Shared Infrastructure
 
-✅ **Centralized Management**: All secrets managed in one place  
-✅ **Audit Logging**: Track who accessed which secrets when  
-✅ **Access Control**: Fine-grained permissions via Azure RBAC  
-✅ **Secret Rotation**: Easy to update secrets without touching GitHub  
-✅ **Compliance**: Enterprise-grade secret management  
+✅ **Enterprise Architecture**: Centralized secret management across multiple projects  
+✅ **Separation of Concerns**: Platform team manages infrastructure, project teams manage applications  
+✅ **Security**: Consistent security policies and access controls  
+✅ **Cost Efficiency**: Shared resources across multiple projects  
+✅ **Compliance**: Centralized audit logging and governance  
 
-## Step 1: Create Azure Key Vault
+## Prerequisites (Managed by Platform Team)
 
+These are **external dependencies** that should be set up once and shared across projects:
+
+### 1. Shared Azure Key Vault
 ```powershell
-# Set variables
-$resourceGroupName = "azuresamples-platformobservabilty-fabric"
-$keyVaultName = "fabric-otel-keyvault"  # Must be globally unique
+# Platform team creates shared Key Vault (one-time setup)
+$sharedResourceGroup = "shared-platform-resources"
+$sharedKeyVault = "company-shared-keyvault"
 $location = "swedencentral"
 
-# Login to Azure
-Connect-AzAccount
-
-# Create Key Vault (if not exists)
-$keyVault = Get-AzKeyVault -VaultName $keyVaultName -ErrorAction SilentlyContinue
-if (-not $keyVault) {
-    Write-Host "Creating Key Vault: $keyVaultName"
-    New-AzKeyVault -VaultName $keyVaultName -ResourceGroupName $resourceGroupName -Location $location
-} else {
-    Write-Host "Key Vault already exists: $keyVaultName"
-}
-
-# Enable soft delete and purge protection (recommended)
-Update-AzKeyVault -VaultName $keyVaultName -EnableSoftDelete -EnablePurgeProtection
+New-AzKeyVault -VaultName $sharedKeyVault -ResourceGroupName $sharedResourceGroup -Location $location
+Update-AzKeyVault -VaultName $sharedKeyVault -EnableSoftDelete -EnablePurgeProtection
 ```
 
-## Step 2: Create Service Principal for GitHub Actions
-
+### 2. Shared Service Principal  
 ```powershell
-# Create service principal for GitHub Actions
+# Platform team creates shared service principal (one-time setup)
+$sharedSpName = "shared-github-actions-sp"
 $subscriptionId = (Get-AzContext).Subscription.Id
-$tenantId = (Get-AzContext).Tenant.Id
 
-$sp = New-AzADServicePrincipal -DisplayName "github-actions-fabric-otel" -Role "Contributor" -Scope "/subscriptions/$subscriptionId"
+$sharedSp = New-AzADServicePrincipal -DisplayName $sharedSpName -Role "Contributor" -Scope "/subscriptions/$subscriptionId"
 
-# Get the values for GitHub secrets
-$clientId = $sp.AppId
-$clientSecret = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sp.PasswordCredentials.SecretText))
-
-Write-Host "GitHub Repository Secrets (add these to GitHub):" -ForegroundColor Green
-Write-Host "AZURE_CLIENT_ID: $clientId" -ForegroundColor Yellow
-Write-Host "AZURE_TENANT_ID: $tenantId" -ForegroundColor Yellow  
-Write-Host "AZURE_SUBSCRIPTION_ID: $subscriptionId" -ForegroundColor Yellow
-Write-Host "CLIENT_SECRET_FOR_KEYVAULT: $clientSecret" -ForegroundColor Yellow
-
-# Grant Key Vault access to the service principal
-Set-AzKeyVaultAccessPolicy -VaultName $keyVaultName -ServicePrincipalName $clientId -PermissionsToSecrets get,list
+# Grant Key Vault access
+Set-AzKeyVaultAccessPolicy -VaultName $sharedKeyVault -ServicePrincipalName $sharedSp.AppId -PermissionsToSecrets get,list
 ```
 
-## Step 3: Store Application Secrets in Key Vault
+## Project Setup (Per Project)
+
+## Project Setup (Per Project)
+
+### Step 1: Get Shared Infrastructure Details
+
+Contact your platform team to get:
+- **Shared Key Vault Name**: e.g., `company-shared-keyvault`
+- **Shared Service Principal Credentials**: Client ID, Tenant ID, Subscription ID
+- **Key Vault Access**: Ensure your project's secrets can be stored
+
+### Step 2: Store Project-Specific Secrets
+
+Store your project's secrets in the shared Key Vault with a project prefix:
 
 ```powershell
-# Store the main application secrets in Key Vault
-$keyVaultName = "fabric-otel-keyvault"  # Replace with your Key Vault name
+# Use project-specific naming convention
+$projectPrefix = "fabric-otel"
+$keyVaultName = "company-shared-keyvault"  # Provided by platform team
 
-# Create or get a service principal for the application
-$appSp = New-AzADServicePrincipal -DisplayName "fabric-otel-app" -Role "Contributor" -Scope "/subscriptions/$subscriptionId"
-$appClientId = $appSp.AppId
-$appClientSecret = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($appSp.PasswordCredentials.SecretText))
-
-# Get admin object ID
-$adminUser = Read-Host "Enter admin user email (e.g., admin@yourdomain.com)"
-$adminObjectId = (Get-AzADUser -UserPrincipalName $adminUser).Id
-
-# Store secrets in Key Vault (note: Key Vault requires dash separators)
-Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "AZURE-CLIENT-ID" -SecretValue (ConvertTo-SecureString $appClientId -AsPlainText -Force)
-Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "AZURE-CLIENT-SECRET" -SecretValue (ConvertTo-SecureString $appClientSecret -AsPlainText -Force)
-Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "AZURE-TENANT-ID" -SecretValue (ConvertTo-SecureString $tenantId -AsPlainText -Force)
-Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "AZURE-SUBSCRIPTION-ID" -SecretValue (ConvertTo-SecureString $subscriptionId -AsPlainText -Force)
-Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "ADMIN-OBJECT-ID" -SecretValue (ConvertTo-SecureString $adminObjectId -AsPlainText -Force)
-
-Write-Host "✅ All secrets stored in Key Vault successfully!" -ForegroundColor Green
+# Store project-specific application secrets
+Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "$projectPrefix-AZURE-CLIENT-ID" -SecretValue (ConvertTo-SecureString $appClientId -AsPlainText -Force)
+Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "$projectPrefix-AZURE-CLIENT-SECRET" -SecretValue (ConvertTo-SecureString $appClientSecret -AsPlainText -Force)
+Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "$projectPrefix-AZURE-TENANT-ID" -SecretValue (ConvertTo-SecureString $tenantId -AsPlainText -Force)
+Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "$projectPrefix-AZURE-SUBSCRIPTION-ID" -SecretValue (ConvertTo-SecureString $subscriptionId -AsPlainText -Force)
+Set-AzKeyVaultSecret -VaultName $keyVaultName -Name "$projectPrefix-ADMIN-OBJECT-ID" -SecretValue (ConvertTo-SecureString $adminObjectId -AsPlainText -Force)
 ```
 
-## Step 4: Configure GitHub Repository Secrets
+### Step 3: Configure GitHub Repository Secrets
 
-Add these **minimal** secrets to your GitHub repository (Settings → Secrets → Actions):
+Add these **shared infrastructure** secrets to your GitHub repository (provided by platform team):
 
-| Secret Name | Value | Purpose |
-|-------------|-------|---------|
-| `AZURE_CLIENT_ID` | Service principal client ID | Authenticate to Azure |
-| `AZURE_TENANT_ID` | Azure tenant ID | Authenticate to Azure |
-| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID | Authenticate to Azure |
+| Secret Name | Value | Source |
+|-------------|-------|--------|
+| `AZURE_CLIENT_ID` | Shared service principal client ID | Platform team |
+| `AZURE_TENANT_ID` | Azure tenant ID | Platform team |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID | Platform team |
+| `SHARED_KEYVAULT_NAME` | Shared Key Vault name | Platform team |
 
-**Note**: We're NOT storing `AZURE_CLIENT_SECRET` in GitHub anymore - the workflow will get it from Key Vault.
+### Step 4: Update Workflow Configuration
 
-## Step 5: Workflow Configuration
+Update your workflow to use the shared Key Vault and project-specific secret names:
+
+```yaml
+env:
+  SHARED_KEYVAULT_NAME: ${{ secrets.SHARED_KEYVAULT_NAME }}
+  PROJECT_PREFIX: "fabric-otel"  # Your project's unique prefix
+```
 
 The updated workflow includes these key changes:
 

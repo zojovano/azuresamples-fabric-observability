@@ -70,7 +70,7 @@ jobs:
         id: fetch-secrets
         shell: pwsh
         run: |
-          Write-Host "🔐 Fetching project secrets from shared Key Vault: ${{ secrets.SHARED_KEYVAULT_NAME }}"
+          Write-Host "🔐 Fetching project secrets from shared Key Vault: azuresamplesdevopskeys"
           Write-Host "📋 Using project prefix: ${{ env.PROJECT_PREFIX }}"
           
           try {
@@ -87,7 +87,7 @@ jobs:
               $outputName = $secrets[$kvSecret]
               Write-Host "Fetching: $kvSecret → $outputName"
               
-              $secretValue = az keyvault secret show --vault-name "${{ secrets.SHARED_KEYVAULT_NAME }}" --name $kvSecret --query "value" --output tsv
+              $secretValue = az keyvault secret show --vault-name "azuresamplesdevopskeys" --name $kvSecret --query "value" --output tsv
               
               if ([string]::IsNullOrEmpty($secretValue)) {
                 throw "Failed to fetch secret: $kvSecret"
@@ -104,7 +104,7 @@ jobs:
           catch {
             Write-Error "❌ Failed to fetch secrets from shared Key Vault: $_"
             Write-Host "Available secrets in Key Vault:"
-            az keyvault secret list --vault-name "${{ secrets.SHARED_KEYVAULT_NAME }}" --query "[].name" --output table
+            az keyvault secret list --vault-name "azuresamplesdevopskeys" --query "[].name" --output table
             throw
           }
 

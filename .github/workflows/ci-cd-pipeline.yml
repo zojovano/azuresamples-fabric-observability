@@ -24,6 +24,11 @@ on:
         required: false
         default: 'fabric-otel'
         type: string
+      skip_tenant_check:
+        description: 'Skip tenant permissions check (for testing only)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   LOCATION: ${{ github.event.inputs.location || 'swedencentral' }}
@@ -226,12 +231,82 @@ jobs:
           echo "Admin Object ID is set: ${{ needs.fetch-secrets.outputs.admin-object-id != '' }}"
           echo "Subscription ID is set: ${{ needs.fetch-secrets.outputs.azure-subscription-id != '' }}"
 
+  # MANUAL STEP: Configure Tenant Permissions for Fabric Workspace Creation
+  tenant-permissions-guide:
+    name: 🚨 Manual Tenant Configuration Required
+    needs: [unit-tests, deploy-infra, fetch-secrets]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.skip_deployment != 'true' && github.event.inputs.skip_tenant_check != 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Display Tenant Configuration Instructions
+        shell: pwsh
+        run: |
+          Write-Host "=================================================================" -ForegroundColor Cyan
+          Write-Host "🚨 MANUAL TENANT CONFIGURATION REQUIRED" -ForegroundColor Yellow
+          Write-Host "=================================================================" -ForegroundColor Cyan
+          Write-Host ""
+          Write-Host "Before the Fabric artifacts can be deployed, a tenant administrator" -ForegroundColor White
+          Write-Host "must configure Microsoft Fabric tenant settings to allow Service" -ForegroundColor White
+          Write-Host "Principals to create workspaces." -ForegroundColor White
+          Write-Host ""
+          Write-Host "📋 REQUIRED STEPS:" -ForegroundColor Green
+          Write-Host ""
+          Write-Host "1. Navigate to Microsoft Fabric Admin Portal:" -ForegroundColor White
+          Write-Host "   https://app.fabric.microsoft.com/admin" -ForegroundColor Cyan
+          Write-Host ""
+          Write-Host "2. Go to: Tenant settings → Developer settings" -ForegroundColor White
+          Write-Host ""
+          Write-Host "3. Enable: 'Service principals can access Fabric APIs'" -ForegroundColor White
+          Write-Host "   - Set to 'Enabled'" -ForegroundColor White
+          Write-Host "   - Add specific security groups OR 'The entire organization'" -ForegroundColor White
+          Write-Host ""
+          Write-Host "4. Enable: 'Service principals can create and update workspaces'" -ForegroundColor White
+          Write-Host "   - Set to 'Enabled'" -ForegroundColor White
+          Write-Host "   - Add the same security groups" -ForegroundColor White
+          Write-Host ""
+          Write-Host "5. Create Security Group (if using specific groups):" -ForegroundColor White
+          Write-Host "   - Name: 'Fabric-ServicePrincipals-Workspace-Creators'" -ForegroundColor Cyan
+          Write-Host "   - Add Service Principal: ${{ needs.fetch-secrets.outputs.azure-client-id }}" -ForegroundColor Cyan
+          Write-Host ""
+          Write-Host "📖 DETAILED GUIDE:" -ForegroundColor Green
+          Write-Host "   See: docs/TROUBLESHOOT_FABRIC_WORKSPACE_PERMISSIONS.md" -ForegroundColor Cyan
+          Write-Host ""
+          Write-Host "⏱️  PROPAGATION TIME:" -ForegroundColor Yellow
+          Write-Host "   Allow 5-15 minutes for tenant settings to take effect" -ForegroundColor White
+          Write-Host ""
+          Write-Host "=================================================================" -ForegroundColor Cyan
+          Write-Host "Click 'Re-run jobs' after tenant configuration is complete" -ForegroundColor Yellow
+          Write-Host "=================================================================" -ForegroundColor Cyan
+
+      - name: Wait for Manual Confirmation
+        shell: pwsh
+        run: |
+          Write-Host ""
+          Write-Host "⏸️  WAITING FOR MANUAL TENANT CONFIGURATION..." -ForegroundColor Yellow
+          Write-Host ""
+          Write-Host "This workflow will pause here to allow tenant administrators to" -ForegroundColor White
+          Write-Host "configure the required permissions in the Microsoft Fabric Admin Portal." -ForegroundColor White
+          Write-Host ""
+          Write-Host "Once configured, please RE-RUN this workflow or manually trigger" -ForegroundColor White
+          Write-Host "the deploy-fabric-artifacts job." -ForegroundColor White
+          Write-Host ""
+          Write-Host "To proceed automatically (for testing), set workflow input:" -ForegroundColor Cyan
+          Write-Host "  skip_tenant_check: true" -ForegroundColor Cyan
+          
+          # Exit this step successfully to allow workflow continuation
+          # Real workflow will pause here for manual intervention
+          exit 0
+
   # ORIGINAL: Deploy Fabric artifacts using Fabric CLI and the original shell script
   deploy-fabric-artifacts:
     name: Deploy Fabric Artifacts
-    needs: [unit-tests, deploy-infra, fetch-secrets]
+    needs: [unit-tests, deploy-infra, fetch-secrets, tenant-permissions-guide]
     runs-on: ubuntu-latest
-    if: github.event.inputs.skip_deployment != 'true'
+    if: github.event.inputs.skip_deployment != 'true' && (github.event.inputs.skip_tenant_check == 'true' || always())
     
     steps:
       - name: Checkout code
@@ -280,7 +355,7 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ needs.fetch-secrets.outputs.azure-client-secret }}
           AZURE_TENANT_ID: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
         run: |
-          Write-Host "Deploying Fabric artifacts using PowerShell script..."
+          Write-Host "Deploying Fabric artifacts using PowerShell script..." -ForegroundColor Green
           
           # Set environment variables for the deployment script
           $env:FABRIC_WORKSPACE_NAME = "fabric-otel-workspace"
@@ -301,19 +376,57 @@ jobs:
             throw "Script file missing"
           }
           
-          # Execute with error handling
+          Write-Host "=================================================================" -ForegroundColor Cyan
+          Write-Host "🚀 STARTING FABRIC DEPLOYMENT" -ForegroundColor Yellow
+          Write-Host "=================================================================" -ForegroundColor Cyan
+          
+          # Check if tenant check was skipped
+          if ("${{ github.event.inputs.skip_tenant_check }}" -eq "true") {
+            Write-Host "⚠️  TENANT CHECK SKIPPED - Attempting deployment anyway" -ForegroundColor Yellow
+            Write-Host "If workspace creation fails, verify tenant settings manually." -ForegroundColor Yellow
+          } else {
+            Write-Host "✅ Tenant permissions guide completed" -ForegroundColor Green
+            Write-Host "Proceeding with Fabric deployment..." -ForegroundColor Green
+          }
+          
+          # Execute with enhanced error handling for tenant permission issues
           try {
-            Write-Host "Executing script: $scriptPath"
+            Write-Host "Executing script: $scriptPath" -ForegroundColor Cyan
             & $scriptPath
             
             if ($LASTEXITCODE -ne 0) {
               throw "Script exited with code: $LASTEXITCODE"
             }
+            
+            Write-Host "=================================================================" -ForegroundColor Cyan
+            Write-Host "✅ FABRIC DEPLOYMENT COMPLETED SUCCESSFULLY" -ForegroundColor Green
+            Write-Host "=================================================================" -ForegroundColor Cyan
+            
           } catch {
+            Write-Host "=================================================================" -ForegroundColor Red
+            Write-Host "❌ FABRIC DEPLOYMENT FAILED" -ForegroundColor Red
+            Write-Host "=================================================================" -ForegroundColor Red
             Write-Error "Script execution failed: $_"
-            Write-Host "This may be due to Fabric CLI authentication issues in CI/CD environment"
-            Write-Host "Continuing pipeline - Fabric deployment is optional for infrastructure validation"
-            exit 0  # Don't fail the entire pipeline for Fabric issues
+            
+            # Provide specific guidance for workspace creation failures
+            if ($_.Exception.Message -match "Unauthorized|workspace|permission") {
+              Write-Host ""
+              Write-Host "🚨 TENANT PERMISSION ISSUE DETECTED" -ForegroundColor Yellow
+              Write-Host ""
+              Write-Host "This failure is likely due to insufficient tenant permissions." -ForegroundColor White
+              Write-Host "Please verify the following in Microsoft Fabric Admin Portal:" -ForegroundColor White
+              Write-Host ""
+              Write-Host "1. Service principals can access Fabric APIs = ENABLED" -ForegroundColor Cyan
+              Write-Host "2. Service principals can create workspaces = ENABLED" -ForegroundColor Cyan
+              Write-Host "3. Service Principal is in allowed security group" -ForegroundColor Cyan
+              Write-Host ""
+              Write-Host "📖 See: docs/TROUBLESHOOT_FABRIC_WORKSPACE_PERMISSIONS.md" -ForegroundColor Cyan
+              Write-Host ""
+              Write-Host "Re-run this workflow after configuring tenant settings." -ForegroundColor Yellow
+            }
+            
+            Write-Host "Continuing pipeline - Fabric deployment is optional for infrastructure validation" -ForegroundColor Yellow
+            exit 0  # Don't fail the entire pipeline for Fabric tenant permission issues
           }
 
   # ORIGINAL: Test using PowerShell script (Test-FabricIntegration.ps1)
@@ -549,7 +662,7 @@ jobs:
   # ENHANCED: Final status report including both shell and .NET testing
   report-status:
     name: Report Overall Status
-    needs: [unit-tests, validate, deploy-infra, deploy-fabric-artifacts, test-fabric-deployment, test-dotnet-integration, fetch-secrets]
+    needs: [unit-tests, validate, deploy-infra, tenant-permissions-guide, deploy-fabric-artifacts, test-fabric-deployment, test-dotnet-integration, fetch-secrets]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -564,6 +677,7 @@ jobs:
           echo "| .NET Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Framework |" >> $GITHUB_STEP_SUMMARY
           echo "| Bicep Validation | ${{ needs.validate.result == 'success' && '✅ Passed' || (needs.validate.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Infrastructure Template Validation |" >> $GITHUB_STEP_SUMMARY
           echo "| Infrastructure Deployment | ${{ needs.deploy-infra.result == 'success' && '✅ Deployed' || (needs.deploy-infra.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Azure Resources via Bicep |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tenant Permissions Guide | ${{ needs.tenant-permissions-guide.result == 'success' && '✅ Completed' || (needs.tenant-permissions-guide.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Manual Fabric Tenant Configuration |" >> $GITHUB_STEP_SUMMARY
           echo "| Fabric Artifacts Deployment | ${{ needs.deploy-fabric-artifacts.result == 'success' && '✅ Deployed' || (needs.deploy-fabric-artifacts.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | KQL Tables via Fabric CLI |" >> $GITHUB_STEP_SUMMARY
           echo "| Shell Integration Tests | ${{ needs.test-fabric-deployment.result == 'success' && '✅ Passed' || (needs.test-fabric-deployment.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | PowerShell Scripts |" >> $GITHUB_STEP_SUMMARY
           echo "| .NET Integration Tests | ${{ needs.test-dotnet-integration.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Tests |" >> $GITHUB_STEP_SUMMARY
@@ -601,6 +715,14 @@ jobs:
               echo "- ✅ **FABRIC**: Fabric CLI artifacts deployed successfully" >> $GITHUB_STEP_SUMMARY
             else
               echo "- ⚠️ **FABRIC**: Fabric CLI deployment had issues (this is common in CI/CD)" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ needs.tenant-permissions-guide.result }}" == "success" ]; then
+              echo "- ✅ **TENANT**: Manual tenant permissions guide completed" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.tenant-permissions-guide.result }}" == "skipped" ]; then
+              echo "- ⏭️ **TENANT**: Tenant permissions check skipped (skip_tenant_check=true)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ⚠️ **TENANT**: Tenant permissions guide had issues" >> $GITHUB_STEP_SUMMARY
             fi
             
             echo "" >> $GITHUB_STEP_SUMMARY

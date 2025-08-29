@@ -140,6 +140,35 @@ function Get-SecretsFromKeyVault {
     }
 }
 
+function Show-TenantPermissionsGuide {
+    Write-ColorOutput "🔒 FABRIC TENANT PERMISSIONS REQUIRED" $ColorWarning "⚠️"
+    Write-Host "=" * 80 -ForegroundColor Yellow
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "Service Principal workspace creation requires Fabric Administrator to enable tenant settings:" $ColorWarning
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "📋 REQUIRED MANUAL CONFIGURATION:" $ColorError
+    Write-ColorOutput "1. Go to Microsoft Fabric Admin Portal: https://fabric.microsoft.com" $ColorInfo
+    Write-ColorOutput "2. Navigate: ⚙️ Settings → Admin portal → Tenant settings → Developer settings" $ColorInfo
+    Write-ColorOutput "3. Enable: 'Service principals can create workspaces, connections, and deployment pipelines'" $ColorInfo
+    Write-ColorOutput "4. Select: 'Specific security groups'" $ColorInfo
+    Write-ColorOutput "5. Add Service Principal (ADOGenericService) to a security group" $ColorInfo
+    Write-ColorOutput "6. Add that security group to the tenant setting" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "📖 Detailed guide: docs/TROUBLESHOOT_FABRIC_WORKSPACE_PERMISSIONS.md" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "💡 ALTERNATIVE: Manual workspace creation (skip tenant settings)" $ColorWarning
+    Write-ColorOutput "   - Create workspace manually in Fabric portal" $ColorWarning
+    Write-ColorOutput "   - Add ADOGenericService as Admin to workspace" $ColorWarning
+    Write-ColorOutput "   - Use -SkipWorkspaceCreation flag in deployment" $ColorWarning
+    Write-ColorOutput "" $ColorInfo
+    Write-Host "=" * 80 -ForegroundColor Yellow
+    
+    # Prompt user to confirm they've configured tenant settings
+    $choice = Read-Host "Have you configured the tenant settings above? (y/N/skip)"
+    
+    return $choice.ToLower() -in @('y', 'yes', 'skip')
+}
+
 function Test-Authentication {
     Write-ColorOutput "Testing authentication with current secrets..." $ColorInfo "🧪"
     
@@ -172,7 +201,7 @@ function Test-Authentication {
         # Check if Fabric CLI is installed
         if (-not (Get-Command fab -ErrorAction SilentlyContinue)) {
             Write-ColorOutput "Installing Fabric CLI..." $ColorWarning "📦"
-            & "$PSScriptRoot\..\Install-FabricCLI.ps1"
+            & "$PSScriptRoot\..\infra\Install-FabricCLI.ps1"
         }
         
         # Configure Fabric CLI
@@ -191,16 +220,34 @@ function Test-Authentication {
                 Write-ColorOutput "Workspace listing successful!" $ColorSuccess "✅"
                 Write-ColorOutput "Available workspaces:" $ColorInfo
                 $workspaces | ForEach-Object { Write-ColorOutput "  $_" $ColorInfo }
+                return $true
             } else {
-                Write-ColorOutput "Workspace listing failed:" $ColorError "❌"
+                Write-ColorOutput "Workspace listing failed (tenant permissions required):" $ColorError "❌"
                 $workspaces | ForEach-Object { Write-ColorOutput "  $_" $ColorError }
+                
+                # Check if it's the unauthorized error
+                if ($workspaces -match "Unauthorized|Access is unauthorized") {
+                    Write-ColorOutput "" $ColorInfo
+                    Write-ColorOutput "🔍 DIAGNOSIS: Service Principal lacks tenant-level permissions" $ColorWarning
+                    Write-ColorOutput "💡 SOLUTION: Configure Fabric tenant settings for workspace creation" $ColorWarning
+                    Write-ColorOutput "" $ColorInfo
+                    
+                    # Show tenant permissions guide
+                    if (Show-TenantPermissionsGuide) {
+                        Write-ColorOutput "Continuing with deployment (tenant settings configured)..." $ColorSuccess "✅"
+                        return $true
+                    } else {
+                        Write-ColorOutput "Tenant permissions not configured. Deployment will use manual workspace creation." $ColorWarning "⚠️"
+                        return $false
+                    }
+                }
+                return $false
             }
         } else {
             Write-ColorOutput "Fabric CLI authentication failed:" $ColorError "❌"
             $fabricAuth | ForEach-Object { Write-ColorOutput "  $_" $ColorError }
+            return $false
         }
-        
-        return $true
     } else {
         Write-ColorOutput "Azure CLI authentication failed!" $ColorError "❌"
         return $false
@@ -227,13 +274,56 @@ function Start-FabricDeployment {
         return
     }
     
-    # Run the deployment script
+    # Check tenant permissions before deployment
+    Write-ColorOutput "Checking Fabric workspace permissions..." $ColorInfo "🔍"
+    
+    # Test workspace listing to check permissions
+    try {
+        $null = fab ls 2>&1
+        $hasWorkspacePermissions = $LASTEXITCODE -eq 0
+    } catch {
+        $hasWorkspacePermissions = $false
+    }
+    
     $deployScript = Join-Path $PSScriptRoot ".." "infra" "Deploy-FabricArtifacts.ps1"
     
-    Write-ColorOutput "Running deployment script..." $ColorInfo "⚡"
-    Write-ColorOutput "Script: $deployScript" $ColorInfo
-    
-    & $deployScript -SkipPrereqs
+    if ($hasWorkspacePermissions) {
+        Write-ColorOutput "Workspace permissions verified! Running full deployment..." $ColorSuccess "✅"
+        Write-ColorOutput "Script: $deployScript" $ColorInfo
+        & $deployScript
+    } else {
+        Write-ColorOutput "Workspace creation permissions not available." $ColorWarning "⚠️"
+        Write-ColorOutput "This can happen if tenant settings are not configured." $ColorWarning
+        Write-ColorOutput "" $ColorInfo
+        
+        # Show tenant permissions guide and get user choice
+        $tenantConfigured = Show-TenantPermissionsGuide
+        
+        if ($tenantConfigured) {
+            Write-ColorOutput "Running deployment with workspace creation..." $ColorSuccess "✅"
+            Write-ColorOutput "Script: $deployScript" $ColorInfo
+            & $deployScript
+        } else {
+            Write-ColorOutput "Running deployment with manual workspace creation required..." $ColorWarning "⚠️"
+            Write-ColorOutput "" $ColorInfo
+            Write-ColorOutput "📋 MANUAL STEPS REQUIRED:" $ColorWarning
+            Write-ColorOutput "1. Go to https://fabric.microsoft.com" $ColorInfo
+            Write-ColorOutput "2. Create workspace: '$($config.fabric.workspaceName)'" $ColorInfo
+            Write-ColorOutput "3. Assign capacity: '$($config.fabric.capacityName)'" $ColorInfo
+            Write-ColorOutput "4. Add 'ADOGenericService' as Admin to workspace" $ColorInfo
+            Write-ColorOutput "" $ColorInfo
+            
+            $proceed = Read-Host "Have you completed the manual workspace creation steps? (y/N)"
+            if ($proceed.ToLower() -in @('y', 'yes')) {
+                Write-ColorOutput "Running deployment with existing workspace..." $ColorSuccess "✅"
+                Write-ColorOutput "Script: $deployScript -SkipWorkspaceCreation" $ColorInfo
+                & $deployScript -SkipWorkspaceCreation
+            } else {
+                Write-ColorOutput "Deployment cancelled. Complete manual steps and try again." $ColorWarning "⏭️"
+                Write-ColorOutput "Or configure tenant settings and run without -SkipWorkspaceCreation" $ColorInfo
+            }
+        }
+    }
 }
 
 # Main execution logic

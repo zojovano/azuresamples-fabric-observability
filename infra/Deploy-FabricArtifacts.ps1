@@ -27,11 +27,17 @@
 .PARAMETER UseConfig
     Use centralized configuration (default: true)
 
+.PARAMETER SkipWorkspaceCreation
+    Skip workspace creation (useful when workspace already exists or tenant settings not configured)
+
 .EXAMPLE
     .\Deploy-FabricArtifacts.ps1
     
 .EXAMPLE
     .\Deploy-FabricArtifacts.ps1 -WorkspaceName "my-workspace" -DatabaseName "mydb"
+
+.EXAMPLE
+    .\Deploy-FabricArtifacts.ps1 -SkipWorkspaceCreation
 
 .NOTES
     Author: Generated for Azure Samples - Fabric Observability Project
@@ -45,7 +51,8 @@ param(
     [string]$ResourceGroupName = "",
     [string]$Location = "",
     [switch]$SkipAuth,
-    [switch]$UseConfig = $true
+    [switch]$SkipWorkspaceCreation,
+    [bool]$UseConfig = $true
 )
 
 # Import centralized configuration
@@ -584,7 +591,13 @@ try {
     Test-Prerequisites
     Connect-Fabric
     Get-FabricCapacity
-    New-OrGetWorkspace
+    
+    if ($SkipWorkspaceCreation) {
+        Write-ColorOutput "Skipping workspace creation (already exists or will be created manually)" $ColorWarning "⏭️"
+    } else {
+        New-OrGetWorkspace
+    }
+    
     New-KqlDatabase
     Deploy-KqlTables
     Test-Deployment

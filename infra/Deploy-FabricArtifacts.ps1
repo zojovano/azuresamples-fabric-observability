@@ -7,21 +7,25 @@
 .DESCRIPTION
     This script deploys KQL tables and other Fabric artifacts to Microsoft Fabric.
     It handles workspace creation, database setup, and table deployment.
+    Uses centralized configuration from config/project-config.json.
 
 .PARAMETER WorkspaceName
-    Name of the Fabric workspace (default: fabric-otel-workspace)
+    Name of the Fabric workspace (overrides configuration)
 
 .PARAMETER DatabaseName  
-    Name of the KQL database (default: otelobservabilitydb)
+    Name of the KQL database (overrides configuration)
 
 .PARAMETER ResourceGroupName
-    Azure resource group name (default: azuresamples-platformobservabilty-fabric)
+    Azure resource group name (overrides configuration)
 
 .PARAMETER Location
-    Azure region (default: swedencentral)
+    Azure region (overrides configuration)
 
 .PARAMETER SkipAuth
     Skip Fabric authentication (useful if already authenticated)
+
+.PARAMETER UseConfig
+    Use centralized configuration (default: true)
 
 .EXAMPLE
     .\Deploy-FabricArtifacts.ps1
@@ -36,12 +40,47 @@
 
 [CmdletBinding()]
 param(
-    [string]$WorkspaceName = $env:FABRIC_WORKSPACE_NAME ?? "fabric-otel-workspace",
-    [string]$DatabaseName = $env:FABRIC_DATABASE_NAME ?? "otelobservabilitydb", 
-    [string]$ResourceGroupName = $env:RESOURCE_GROUP_NAME ?? "azuresamples-platformobservabilty-fabric",
-    [string]$Location = $env:LOCATION ?? "swedencentral",
-    [switch]$SkipAuth
+    [string]$WorkspaceName = "",
+    [string]$DatabaseName = "", 
+    [string]$ResourceGroupName = "",
+    [string]$Location = "",
+    [switch]$SkipAuth,
+    [switch]$UseConfig = $true
 )
+
+# Import centralized configuration
+if ($UseConfig) {
+    $configModulePath = Join-Path $PSScriptRoot ".." "config" "ProjectConfig.psm1"
+    if (Test-Path $configModulePath) {
+        Import-Module $configModulePath -Force
+        $config = Get-ProjectConfig
+        
+        # Use configuration values if parameters not provided
+        if ([string]::IsNullOrWhiteSpace($WorkspaceName)) { $WorkspaceName = $config.fabric.workspaceName }
+        if ([string]::IsNullOrWhiteSpace($DatabaseName)) { $DatabaseName = $config.fabric.databaseName }
+        if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) { $ResourceGroupName = $config.azure.resourceGroupName }
+        if ([string]::IsNullOrWhiteSpace($Location)) { $Location = $config.azure.location }
+        
+        # Set environment variables from configuration
+        Set-ConfigEnvironmentVariables -Config $config
+        
+        Write-Host "📋 Using centralized configuration:" -ForegroundColor Cyan
+        Write-ConfigSummary -Config $config
+    } else {
+        Write-Warning "Configuration module not found. Using environment variables or defaults."
+        # Fallback to environment variables
+        if ([string]::IsNullOrWhiteSpace($WorkspaceName)) { $WorkspaceName = $env:FABRIC_WORKSPACE_NAME ?? "fabric-otel-workspace" }
+        if ([string]::IsNullOrWhiteSpace($DatabaseName)) { $DatabaseName = $env:FABRIC_DATABASE_NAME ?? "otelobservabilitydb" }
+        if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) { $ResourceGroupName = $env:RESOURCE_GROUP_NAME ?? "azuresamples-platformobservabilty-fabric" }
+        if ([string]::IsNullOrWhiteSpace($Location)) { $Location = $env:LOCATION ?? "swedencentral" }
+    }
+} else {
+    # Use environment variables or defaults when not using config
+    if ([string]::IsNullOrWhiteSpace($WorkspaceName)) { $WorkspaceName = $env:FABRIC_WORKSPACE_NAME ?? "fabric-otel-workspace" }
+    if ([string]::IsNullOrWhiteSpace($DatabaseName)) { $DatabaseName = $env:FABRIC_DATABASE_NAME ?? "otelobservabilitydb" }
+    if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) { $ResourceGroupName = $env:RESOURCE_GROUP_NAME ?? "azuresamples-platformobservabilty-fabric" }
+    if ([string]::IsNullOrWhiteSpace($Location)) { $Location = $env:LOCATION ?? "swedencentral" }
+}
 
 # Colors for output
 $ColorSuccess = "Green"

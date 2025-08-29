@@ -28,9 +28,12 @@ param tags object = {
   project: 'OTEL Observability'
 }
 
+@description('Resource group name for the project')
+param resourceGroupName string = 'azuresamples-platformobservabilty-fabric'
+
 // Resource Group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: 'azuresamples-platformobservabilty-fabric'
+  name: resourceGroupName
   location: location
   tags: tags
 }
@@ -53,14 +56,26 @@ module keyVault './modules/keyvault.bicep' = {
   }
 }
 
+@description('Fabric capacity name')
+param fabricCapacityName string = 'fabriccapacityobservability'
+
+@description('Fabric capacity SKU')
+param fabricCapacitySku string = 'F2'
+
+@description('Fabric workspace name')
+param fabricWorkspaceName string = 'fabric-otel-workspace'
+
+@description('Fabric database name')
+param fabricDatabaseName string = 'otelobservabilitydb'
+
 // Deploy Fabric Capacity
 module fabricCapacity './modules/fabriccapacity.bicep' = {
   name: 'fabricCapacityDeploy'
   scope: resourceGroup
   params: {
     location: location
-    capacityName: 'fabriccapacityobservability'
-    skuName: 'F2'
+    capacityName: fabricCapacityName
+    skuName: fabricCapacitySku
     adminObjectId: adminObjectId
     tags: tags
   }
@@ -72,7 +87,7 @@ module fabricWorkspace './modules/kqldatabase.bicep' = {
   scope: resourceGroup
   params: {
     location: location
-    databaseName: 'otelobservabilitydb'
+    databaseName: fabricDatabaseName
     fabricCapacityId: fabricCapacity.outputs.capacityId
   }
 }
@@ -82,18 +97,32 @@ module fabricWorkspace './modules/kqldatabase.bicep' = {
 // Deploy Fabric Workspace (Note: Fabric deployments require ARM template - limited Bicep support)
 // This is a placeholder as direct Fabric workspace deployment requires special considerations
 
+@description('Event Hub namespace name')
+param eventHubNamespaceName string = 'evhns-otel'
+
+@description('Event Hub name')
+param eventHubName string = 'evh-otel-diagnostics'
+
+@description('Event Hub SKU')
+param eventHubSku string = 'Standard'
+
 // Deploy Event Hub
 module eventHubNamespace './modules/eventhub.bicep' = {
   name: 'eventHubDeploy'
   scope: resourceGroup
   params: {
     location: location
-    namespaceName: 'evhns-otel'
-    eventHubName: 'evh-otel-diagnostics'
-    skuName: 'Standard'
+    namespaceName: eventHubNamespaceName
+    eventHubName: eventHubName
+    skuName: eventHubSku
     tags: tags
   }
 }
+
+@description('Container instance parameters')
+param containerGroupName string = 'ci-otel-collector'
+param containerName string = 'otel-collector'
+param containerImage string = 'otel/opentelemetry-collector-contrib:latest'
 
 // Deploy Container Instance for OTEL Collector
 module containerInstance './modules/containerinstance.bicep' = {
@@ -101,9 +130,9 @@ module containerInstance './modules/containerinstance.bicep' = {
   scope: resourceGroup
   params: {
     location: location
-    containerGroupName: 'ci-otel-collector'
-    containerName: 'otel-collector'
-    containerImage: 'otel/opentelemetry-collector-contrib:latest'
+    containerGroupName: containerGroupName
+    containerName: containerName
+    containerImage: containerImage
     configYamlContent: loadTextContent('./config/otel-config.yaml')
     tags: tags
   }
@@ -112,14 +141,18 @@ module containerInstance './modules/containerinstance.bicep' = {
   ]
 }
 
+@description('App Service parameters')
+param appServicePlanName string = 'asp-otel-sample'
+param appServiceName string = 'app-otel-sample'
+
 // Deploy App Service for sample telemetry
 module appService './modules/appservice.bicep' = {
   name: 'appServiceDeploy'
   scope: resourceGroup
   params: {
     location: location
-    appServicePlanName: 'asp-otel-sample'
-    appServiceName: 'app-otel-sample'
+    appServicePlanName: appServicePlanName
+    appServiceName: appServiceName
     sku: {
       name: 'B1'
       tier: 'Basic'
@@ -136,7 +169,8 @@ output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 output githubSecretsRequired object = keyVault.outputs.githubSecretsRequired
 output fabricCapacityName string = fabricCapacity.outputs.capacityName
-output fabricWorkspaceName string = fabricWorkspace.outputs.fabricWorkspaceName
+output fabricWorkspaceName string = fabricWorkspaceName
+output fabricDatabaseName string = fabricDatabaseName
 output eventHubNamespaceName string = eventHubNamespace.outputs.namespaceName
 output eventHubName string = eventHubNamespace.outputs.eventHubName
 output containerGroupName string = containerInstance.outputs.containerGroupName

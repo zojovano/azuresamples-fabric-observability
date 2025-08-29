@@ -9,6 +9,17 @@ param(
     [switch]$RunDeploy
 )
 
+# Import centralized configuration
+$configModulePath = Join-Path $PSScriptRoot ".." "config" "ProjectConfig.psm1"
+if (Test-Path $configModulePath) {
+    Import-Module $configModulePath -Force
+} else {
+    throw "Configuration module not found at: $configModulePath"
+}
+
+# Load project configuration
+$config = Get-ProjectConfig
+
 # Color output functions
 $ColorSuccess = "Green"
 $ColorWarning = "Yellow" 
@@ -52,14 +63,12 @@ function Initialize-UserSecrets {
     $clientSecret = Read-Host "Azure Client Secret" -AsSecureString
     $tenantId = Read-Host "Azure Tenant ID"
     $subscriptionId = Read-Host "Azure Subscription ID"
-    $resourceGroupName = Read-Host "Resource Group Name [azuresamples-platformobservabilty-fabric]"
-    $workspaceName = Read-Host "Fabric Workspace Name [fabric-otel-workspace]"
-    $databaseName = Read-Host "Fabric Database Name [otelobservabilitydb]"
     
-    # Set defaults
-    if ([string]::IsNullOrWhiteSpace($resourceGroupName)) { $resourceGroupName = "azuresamples-platformobservabilty-fabric" }
-    if ([string]::IsNullOrWhiteSpace($workspaceName)) { $workspaceName = "fabric-otel-workspace" }
-    if ([string]::IsNullOrWhiteSpace($databaseName)) { $databaseName = "otelobservabilitydb" }
+    # Use configuration for other values
+    Write-ColorOutput "Using configuration defaults:" $ColorInfo "📋"
+    Write-ColorOutput "  Resource Group: $($config.azure.resourceGroupName)" $ColorInfo
+    Write-ColorOutput "  Workspace: $($config.fabric.workspaceName)" $ColorInfo
+    Write-ColorOutput "  Database: $($config.fabric.databaseName)" $ColorInfo
     
     # Convert secure string to plain text for storage
     $clientSecretPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientSecret))
@@ -71,9 +80,9 @@ function Initialize-UserSecrets {
         dotnet run set --key "Azure:ClientSecret" --value $clientSecretPlain
         dotnet run set --key "Azure:TenantId" --value $tenantId
         dotnet run set --key "Azure:SubscriptionId" --value $subscriptionId
-        dotnet run set --key "Azure:ResourceGroupName" --value $resourceGroupName
-        dotnet run set --key "Fabric:WorkspaceName" --value $workspaceName
-        dotnet run set --key "Fabric:DatabaseName" --value $databaseName
+        dotnet run set --key "Azure:ResourceGroupName" --value $config.azure.resourceGroupName
+        dotnet run set --key "Fabric:WorkspaceName" --value $config.fabric.workspaceName
+        dotnet run set --key "Fabric:DatabaseName" --value $config.fabric.databaseName
         
         Write-ColorOutput "User secrets configured successfully!" $ColorSuccess "✅"
         Write-ColorOutput "Run 'pwsh tools/Test-FabricLocal.ps1 -TestAuth' to verify" $ColorInfo "💡"
@@ -117,42 +126,13 @@ function Get-SecretsFromKeyVault {
     Write-ColorOutput "Loading secrets from Key Vault: $VaultName..." $ColorInfo "🔐"
     
     try {
-        # Check if authenticated with Azure
-        $account = az account show --query "user.name" -o tsv 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            Write-ColorOutput "Please authenticate with Azure CLI first: az login" $ColorError "❌"
-            return $false
-        }
+        # Use the centralized configuration function
+        $secrets = Get-KeyVaultSecrets -Config $config -SetEnvironmentVariables
         
-        Write-ColorOutput "Authenticated as: $account" $ColorInfo "👤"
+        # Set additional environment variables from configuration
+        Set-ConfigEnvironmentVariables -Config $config
         
-        # Get secrets from Key Vault
-        $secrets = @{
-            'AZURE_CLIENT_ID' = 'AZURE-CLIENT-ID'
-            'AZURE_CLIENT_SECRET' = 'AZURE-CLIENT-SECRET'
-            'AZURE_TENANT_ID' = 'AZURE-TENANT-ID'
-            'AZURE_SUBSCRIPTION_ID' = 'AZURE-SUBSCRIPTION-ID'
-            'ADMIN_OBJECT_ID' = 'ADMIN-OBJECT-ID'
-            'RESOURCE_GROUP_NAME' = 'fabric-resource-group'
-            'FABRIC_WORKSPACE_NAME' = 'fabric-workspace-name'
-            'FABRIC_DATABASE_NAME' = 'fabric-database-name'
-        }
-        
-        foreach ($envVar in $secrets.Keys) {
-            $secretName = $secrets[$envVar]
-            try {
-                $secretValue = az keyvault secret show --vault-name $VaultName --name $secretName --query "value" -o tsv 2>$null
-                if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($secretValue)) {
-                    Set-Item -Path "env:$envVar" -Value $secretValue
-                    Write-ColorOutput "Loaded $envVar from Key Vault" $ColorSuccess "✅"
-                } else {
-                    Write-ColorOutput "Secret '$secretName' not found in Key Vault" $ColorWarning "⚠️"
-                }
-            } catch {
-                Write-ColorOutput "Failed to get secret '$secretName': $_" $ColorWarning "⚠️"
-            }
-        }
-        
+        Write-ColorOutput "Successfully loaded secrets and configuration!" $ColorSuccess "✅"
         return $true
     } catch {
         Write-ColorOutput "Failed to load secrets from Key Vault: $_" $ColorError "❌"
@@ -259,6 +239,15 @@ function Start-FabricDeployment {
 # Main execution logic
 Write-ColorOutput "🧪 Fabric Local Development Testing" $ColorInfo "🔬"
 Write-ColorOutput "Mode: $Mode" $ColorInfo
+
+# Display configuration summary
+Write-ConfigSummary -Config $config
+
+# Override KeyVault name from config if not provided
+if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
+    $KeyVaultName = $config.keyVault.vaultName
+    Write-ColorOutput "Using KeyVault from configuration: $KeyVaultName" $ColorInfo "🔑"
+}
 
 switch ($Mode.ToLower()) {
     "usersecrets" {

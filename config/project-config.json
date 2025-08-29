@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "Azure Fabric OTEL Observability Project Configuration",
+  "description": "Centralized configuration for Azure resources and Fabric artifacts",
+  "version": "1.0.0",
+  "azure": {
+    "location": "swedencentral",
+    "resourceGroupName": "azuresamples-platformobservabilty-fabric",
+    "subscriptionId": "",
+    "tags": {
+      "environment": "prod",
+      "project": "OTEL Observability",
+      "owner": "Platform Team"
+    }
+  },
+  "fabric": {
+    "capacityName": "fabriccapacityobservability",
+    "capacitySku": "F2",
+    "workspaceName": "fabric-otel-workspace",
+    "databaseName": "otelobservabilitydb"
+  },
+  "otel": {
+    "eventHub": {
+      "namespaceName": "evhns-otel",
+      "eventHubName": "evh-otel-diagnostics",
+      "skuName": "Standard"
+    },
+    "containerInstance": {
+      "containerGroupName": "ci-otel-collector",
+      "containerName": "otel-collector",
+      "containerImage": "otel/opentelemetry-collector-contrib:latest"
+    },
+    "appService": {
+      "planName": "asp-otel-sample",
+      "appName": "app-otel-sample",
+      "sku": {
+        "name": "B1",
+        "tier": "Basic"
+      }
+    }
+  },
+  "keyVault": {
+    "vaultName": "azuresamplesdevopskeys",
+    "resourceGroupName": "management",
+    "secrets": {
+      "clientId": "AZURE-CLIENT-ID",
+      "clientSecret": "AZURE-CLIENT-SECRET", 
+      "tenantId": "AZURE-TENANT-ID",
+      "subscriptionId": "AZURE-SUBSCRIPTION-ID",
+      "adminObjectId": "ADMIN-OBJECT-ID"
+    }
+  }
+}

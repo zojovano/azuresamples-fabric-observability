@@ -1,10 +1,17 @@
 # Local Fabric Development Testing Script
-# This script provides secure ways to test Fabric deployments locally
+# This script provides secure ways to test Fabric deployments locally using KeyVault
+#
+# Usage:
+#   .\Test-FabricLocal.ps1              # Show available options
+#   .\Test-FabricLocal.ps1 -TestAuth    # Test authentication with KeyVault secrets
+#   .\Test-FabricLocal.ps1 -RunDeploy   # Run full Fabric deployment
+#
+# Requirements:
+#   - Azure CLI logged in with access to KeyVault: azuresamplesdevopskeys
+#   - Fabric CLI installed (uses fab commands)
+#   - Tenant permissions configured for workspace creation
 
 param(
-    [string]$Mode = "UserSecrets", # UserSecrets, KeyVault, Environment
-    [string]$KeyVaultName = "",
-    [switch]$SetupSecrets,
     [switch]$TestAuth,
     [switch]$RunDeploy
 )
@@ -30,104 +37,12 @@ function Write-ColorOutput($Message, $Color, $Emoji = "") {
     Write-Host "$Emoji $Message" -ForegroundColor $Color
 }
 
-function Test-SecretManagerAvailable {
-    $secretManagerPath = Join-Path $PSScriptRoot ".." "tools" "DevSecretManager"
-    if (-not (Test-Path $secretManagerPath)) {
-        Write-ColorOutput "Secret manager not found. Building it now..." $ColorWarning "⚡"
-        
-        # Build the secret manager
-        Push-Location $secretManagerPath
-        try {
-            dotnet build
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to build secret manager"
-            }
-            Write-ColorOutput "Secret manager built successfully" $ColorSuccess "✅"
-        }
-        finally {
-            Pop-Location
-        }
-    }
-    return $secretManagerPath
-}
-
-function Initialize-UserSecrets {
-    Write-ColorOutput "Setting up user secrets for local development..." $ColorInfo "🔧"
-    
-    $secretManagerPath = Test-SecretManagerAvailable
-    
-    Write-ColorOutput "Please provide the following values (they will be stored securely):" $ColorInfo "📝"
-    
-    # Get service principal details
-    $clientId = Read-Host "Azure Client ID (Service Principal Application ID)"
-    $clientSecret = Read-Host "Azure Client Secret" -AsSecureString
-    $tenantId = Read-Host "Azure Tenant ID"
-    $subscriptionId = Read-Host "Azure Subscription ID"
-    
-    # Use configuration for other values
-    Write-ColorOutput "Using configuration defaults:" $ColorInfo "📋"
-    Write-ColorOutput "  Resource Group: $($config.azure.resourceGroupName)" $ColorInfo
-    Write-ColorOutput "  Workspace: $($config.fabric.workspaceName)" $ColorInfo
-    Write-ColorOutput "  Database: $($config.fabric.databaseName)" $ColorInfo
-    
-    # Convert secure string to plain text for storage
-    $clientSecretPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientSecret))
-    
-    # Store secrets using the secret manager
-    Push-Location $secretManagerPath
-    try {
-        dotnet run set --key "Azure:ClientId" --value $clientId
-        dotnet run set --key "Azure:ClientSecret" --value $clientSecretPlain
-        dotnet run set --key "Azure:TenantId" --value $tenantId
-        dotnet run set --key "Azure:SubscriptionId" --value $subscriptionId
-        dotnet run set --key "Azure:ResourceGroupName" --value $config.azure.resourceGroupName
-        dotnet run set --key "Fabric:WorkspaceName" --value $config.fabric.workspaceName
-        dotnet run set --key "Fabric:DatabaseName" --value $config.fabric.databaseName
-        
-        Write-ColorOutput "User secrets configured successfully!" $ColorSuccess "✅"
-        Write-ColorOutput "Run 'pwsh tools/Test-FabricLocal.ps1 -TestAuth' to verify" $ColorInfo "💡"
-    }
-    finally {
-        Pop-Location
-        # Clear the plain text secret from memory
-        $clientSecretPlain = $null
-    }
-}
-
-function Get-SecretsFromUserSecrets {
-    $secretManagerPath = Test-SecretManagerAvailable
-    
-    Write-ColorOutput "Loading secrets from user secrets..." $ColorInfo "🔑"
-    
-    Push-Location $secretManagerPath
-    try {
-        # Generate environment export script
-        dotnet run test
-        
-        # The test command creates the environment script
-        $envScript = Join-Path $env:TEMP "fabric-test-env.ps1"
-        if (Test-Path $envScript) {
-            Write-ColorOutput "Loading environment variables..." $ColorInfo "📋"
-            & $envScript
-            return $true
-        } else {
-            Write-ColorOutput "Failed to generate environment script" $ColorError "❌"
-            return $false
-        }
-    }
-    finally {
-        Pop-Location
-    }
-}
-
 function Get-SecretsFromKeyVault {
-    param([string]$VaultName)
-    
-    Write-ColorOutput "Loading secrets from Key Vault: $VaultName..." $ColorInfo "🔐"
+    Write-ColorOutput "Loading secrets from Key Vault..." $ColorInfo "🔐"
     
     try {
         # Use the centralized configuration function
-        $secrets = Get-KeyVaultSecrets -Config $config -SetEnvironmentVariables
+        Get-KeyVaultSecrets -Config $config -SetEnvironmentVariables | Out-Null
         
         # Set additional environment variables from configuration
         Set-ConfigEnvironmentVariables -Config $config
@@ -208,8 +123,14 @@ function Test-Authentication {
         fab config set encryption_fallback_enabled true
         fab config clear-cache
         
-        # Try Fabric authentication
-        $fabricAuth = fab auth login --azure-cli 2>&1
+        # Try Fabric authentication using service principal
+        if ($env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET -and $env:AZURE_TENANT_ID) {
+            Write-ColorOutput "Attempting service principal authentication..." $ColorInfo "🔐"
+            $fabricAuth = fab auth login -u $env:AZURE_CLIENT_ID -p $env:AZURE_CLIENT_SECRET --tenant $env:AZURE_TENANT_ID 2>&1
+        } else {
+            Write-ColorOutput "Missing required environment variables for service principal auth" $ColorError "❌"
+            return $false
+        }
         if ($LASTEXITCODE -eq 0) {
             Write-ColorOutput "Fabric CLI authentication successful!" $ColorSuccess "✅"
             
@@ -339,67 +260,19 @@ if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
     Write-ColorOutput "Using KeyVault from configuration: $KeyVaultName" $ColorInfo "🔑"
 }
 
-switch ($Mode.ToLower()) {
-    "usersecrets" {
-        if ($SetupSecrets) {
-            Initialize-UserSecrets
-        } elseif ($TestAuth) {
-            if (Get-SecretsFromUserSecrets) {
-                Test-Authentication
-            }
-        } elseif ($RunDeploy) {
-            if (Get-SecretsFromUserSecrets) {
-                Start-FabricDeployment
-            }
-        } else {
-            Write-ColorOutput "Available options for UserSecrets mode:" $ColorInfo "📋"
-            Write-ColorOutput "  -SetupSecrets : Configure user secrets interactively" $ColorInfo
-            Write-ColorOutput "  -TestAuth     : Test authentication with stored secrets" $ColorInfo
-            Write-ColorOutput "  -RunDeploy    : Run Fabric deployment with stored secrets" $ColorInfo
-        }
+# Main execution
+if ($TestAuth) {
+    if (Get-SecretsFromKeyVault -VaultName $KeyVaultName) {
+        Test-Authentication
     }
-    
-    "keyvault" {
-        if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
-            Write-ColorOutput "KeyVault name required for KeyVault mode" $ColorError "❌"
-            Write-ColorOutput "Usage: -Mode KeyVault -KeyVaultName 'your-keyvault-name'" $ColorInfo "💡"
-            exit 1
-        }
-        
-        if ($TestAuth) {
-            if (Get-SecretsFromKeyVault -VaultName $KeyVaultName) {
-                Test-Authentication
-            }
-        } elseif ($RunDeploy) {
-            if (Get-SecretsFromKeyVault -VaultName $KeyVaultName) {
-                Start-FabricDeployment
-            }
-        } else {
-            Write-ColorOutput "Available options for KeyVault mode:" $ColorInfo "📋"
-            Write-ColorOutput "  -TestAuth  : Test authentication with Key Vault secrets" $ColorInfo
-            Write-ColorOutput "  -RunDeploy : Run Fabric deployment with Key Vault secrets" $ColorInfo
-        }
+} elseif ($RunDeploy) {
+    if (Get-SecretsFromKeyVault -VaultName $KeyVaultName) {
+        Start-FabricDeployment
     }
-    
-    "environment" {
-        if ($TestAuth) {
-            Test-Authentication
-        } elseif ($RunDeploy) {
-            Start-FabricDeployment
-        } else {
-            Write-ColorOutput "Available options for Environment mode:" $ColorInfo "📋"
-            Write-ColorOutput "  -TestAuth  : Test authentication with environment variables" $ColorInfo
-            Write-ColorOutput "  -RunDeploy : Run Fabric deployment with environment variables" $ColorInfo
-            Write-ColorOutput "" $ColorInfo
-            Write-ColorOutput "Set these environment variables first:" $ColorWarning "⚠️"
-            Write-ColorOutput "  `$env:AZURE_CLIENT_ID = 'your-client-id'" $ColorWarning
-            Write-ColorOutput "  `$env:AZURE_CLIENT_SECRET = 'your-client-secret'" $ColorWarning
-            Write-ColorOutput "  `$env:AZURE_TENANT_ID = 'your-tenant-id'" $ColorWarning
-        }
-    }
-    
-    default {
-        Write-ColorOutput "Invalid mode: $Mode" $ColorError "❌"
-        Write-ColorOutput "Available modes: UserSecrets, KeyVault, Environment" $ColorInfo "💡"
-    }
+} else {
+    Write-ColorOutput "Available options:" $ColorInfo "📋"
+    Write-ColorOutput "  -TestAuth  : Test authentication with Key Vault secrets" $ColorInfo
+    Write-ColorOutput "  -RunDeploy : Run Fabric deployment with Key Vault secrets" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "Using Key Vault: $KeyVaultName" $ColorInfo "�"
 }

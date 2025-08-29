@@ -12,8 +12,20 @@
         "owner": "Platform Team"
       }
     },
-    "adminObjectId": {
-      "value": "f42fd94b-9842-48a0-aaa0-c9fca9882928"
+    "adminObjectIds": {
+      "value": ["ce318fa7-f43a-4c71-b072-d52d2bc2c86c"]
+    },
+    "githubServicePrincipalObjectId": {
+      "value": "ce318fa7-f43a-4c71-b072-d52d2bc2c86c"
+    },
+    "appServicePrincipalClientId": {
+      "value": "e10b0ed5-117d-466c-8a84-bee676f32373"
+    },
+    "appServicePrincipalObjectId": {
+      "value": "ce318fa7-f43a-4c71-b072-d52d2bc2c86c"
+    },
+    "appServicePrincipalClientSecret": {
+      "value": "dummy-secret-will-be-overridden-by-keyvault"
     }
   }
 }

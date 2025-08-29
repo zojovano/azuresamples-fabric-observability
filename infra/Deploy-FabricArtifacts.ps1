@@ -394,7 +394,7 @@ function New-OrGetWorkspace {
         
         # Create new workspace using file-system style command
         Write-ColorOutput "Creating new workspace: $WorkspaceName" $ColorInfo "🆕"
-        $createOutput = fab create "$WorkspaceName.Workspace" --capacity-id $script:CapacityName --description "Workspace for OpenTelemetry observability data" 2>&1
+        $createOutput = fab mkdir "$WorkspaceName.Workspace" -P "capacityName=$script:CapacityName" 2>&1
         $createExitCode = $LASTEXITCODE
         
         if ($createExitCode -eq 0) {
@@ -451,13 +451,15 @@ function New-KqlDatabase {
             return
         }
         
-        # Create KQL database using file-system style command
+        # Create KQL database using full path format
         Write-ColorOutput "Creating KQL database: $DatabaseName" $ColorInfo "🆕"
-        $createOutput = fab create "$DatabaseName.KQLDatabase" --description "KQL Database for OpenTelemetry observability data" 2>&1
+        $createOutput = fab mkdir "$WorkspaceName.Workspace/$DatabaseName.KQLDatabase" 2>&1
         $createExitCode = $LASTEXITCODE
         
         if ($createExitCode -eq 0) {
             Write-ColorOutput "Successfully created KQL database: $DatabaseName" $ColorSuccess "✅"
+        } elseif ($createOutput -match "AlreadyExists") {
+            Write-ColorOutput "KQL database '$DatabaseName' already exists" $ColorSuccess "✅"
         } else {
             Write-ColorOutput "Database creation failed (exit code: $createExitCode)" $ColorError "❌"
             Write-ColorOutput "Create output:" $ColorWarning "🔍"
@@ -491,7 +493,7 @@ function Deploy-KqlTables {
         $kqlDir = if ($env:GITHUB_WORKSPACE) {
             Join-Path $env:GITHUB_WORKSPACE "infra/kql-definitions/tables"
         } else {
-            Join-Path $PSScriptRoot "../kql-definitions/tables"
+            Join-Path $PSScriptRoot "kql-definitions/tables"
         }
         
         if (-not (Test-Path $kqlDir)) {

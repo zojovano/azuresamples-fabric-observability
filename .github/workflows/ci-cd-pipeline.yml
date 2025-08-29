@@ -215,7 +215,7 @@ jobs:
           template: ./infra/Bicep/main.bicep
           parameters: >
             location=${{ env.LOCATION }}
-            adminObjectId=${{ needs.fetch-secrets.outputs.admin-object-id }}
+            adminObjectIds=["${{ needs.fetch-secrets.outputs.admin-object-id }}"]
             githubServicePrincipalObjectId="${{ secrets.GITHUB_SP_OBJECT_ID }}"
             appServicePrincipalClientId="${{ needs.fetch-secrets.outputs.azure-client-id }}"
             appServicePrincipalObjectId="${{ secrets.APP_SP_OBJECT_ID }}"
@@ -228,7 +228,7 @@ jobs:
       - name: Debug deployment parameters
         run: |
           echo "Location: ${{ env.LOCATION }}"
-          echo "Admin Object ID is set: ${{ needs.fetch-secrets.outputs.admin-object-id != '' }}"
+          echo "Admin Object IDs are set: ${{ needs.fetch-secrets.outputs.admin-object-id != '' }}"
           echo "Subscription ID is set: ${{ needs.fetch-secrets.outputs.azure-subscription-id != '' }}"
 
   # MANUAL STEP: Configure Tenant Permissions for Fabric Workspace Creation

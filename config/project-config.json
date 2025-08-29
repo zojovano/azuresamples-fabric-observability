@@ -16,7 +16,7 @@
   "fabric": {
     "capacityName": "fabriccapacityobservability",
     "capacitySku": "F2",
-    "workspaceName": "fabric-otel-workspace",
+    "workspaceName": "azuresamples-platformobservabilty-fabric",
     "databaseName": "otelobservabilitydb"
   },
   "otel": {

@@ -20,8 +20,8 @@ param location string
 ])
 param skuName string = 'F2'
 
-@description('Administrator object ID (service principal or user)')
-param adminObjectId string
+@description('Administrator object IDs (service principals and/or users)')
+param adminObjectIds array
 
 @description('Tags to apply to all resources')
 param tags object = {}
@@ -37,9 +37,7 @@ resource fabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' = {
   }
   properties: {
     administration: {
-      members: [
-        adminObjectId
-      ]
+      members: adminObjectIds
     }
   }
 }

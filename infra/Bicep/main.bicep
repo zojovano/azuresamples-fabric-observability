@@ -3,8 +3,8 @@ targetScope = 'subscription'
 @description('The Azure region for deploying resources')
 param location string = 'swedencentral'
 
-@description('Administrator object ID for Fabric capacity (service principal or user)')
-param adminObjectId string
+@description('Administrator object IDs for Fabric capacity (service principals and/or users)')
+param adminObjectIds array
 
 @description('GitHub Actions service principal object ID for Key Vault access')
 param githubServicePrincipalObjectId string
@@ -47,7 +47,7 @@ module keyVault './modules/keyvault.bicep' = {
     keyVaultName: keyVaultName
     githubServicePrincipalObjectId: githubServicePrincipalObjectId
     appServicePrincipalObjectId: appServicePrincipalObjectId
-    adminObjectId: adminObjectId
+    adminObjectId: adminObjectIds[0]
     tenantId: subscription().tenantId
     subscriptionId: subscription().subscriptionId
     appClientId: appServicePrincipalClientId
@@ -76,7 +76,7 @@ module fabricCapacity './modules/fabriccapacity.bicep' = {
     location: location
     capacityName: fabricCapacityName
     skuName: fabricCapacitySku
-    adminObjectId: adminObjectId
+    adminObjectIds: adminObjectIds
     tags: tags
   }
 }

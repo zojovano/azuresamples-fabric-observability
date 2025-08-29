@@ -135,7 +135,15 @@ function Get-KeyVaultSecrets {
                 $secrets[$envVar] = $secretValue
                 
                 if ($SetEnvironmentVariables) {
-                    $envVarName = "AZURE_$($envVar.ToUpper())"
+                    # Map the config keys to the correct environment variable names
+                    $envVarName = switch ($envVar) {
+                        'clientId' { 'AZURE_CLIENT_ID' }
+                        'clientSecret' { 'AZURE_CLIENT_SECRET' }
+                        'tenantId' { 'AZURE_TENANT_ID' }
+                        'subscriptionId' { 'AZURE_SUBSCRIPTION_ID' }
+                        'adminObjectId' { 'ADMIN_OBJECT_ID' }
+                        default { "AZURE_$($envVar.ToUpper())" }
+                    }
                     Set-Item -Path "env:$envVarName" -Value $secretValue
                 }
                 

@@ -77,6 +77,35 @@ Write-ColorOutput "Error message" $ColorError "❌"
 ### Test Data Generation
 The project includes sophisticated OTEL data generators in `tests/FabricObservability.IntegrationTests/Models/OtelModels.cs` with realistic service names, operations, and telemetry patterns.
 
+## Development Environment
+
+### DevContainer Requirements
+This project **exclusively runs within a DevContainer environment** on Linux. All commands, scripts, and tools are designed for Linux execution within the containerized development environment.
+
+**Critical Environment Checks:**
+- ✅ **Always verify DevContainer connection** before executing any commands
+- ✅ **All terminal commands are Linux-based** (bash, not Windows CMD/PowerShell)
+- ✅ **File paths use Linux conventions** (`/workspaces/azuresamples-fabric-observability/`)
+- ✅ **PowerShell scripts run via `pwsh` (PowerShell Core)** not Windows PowerShell
+
+**Environment Validation Commands:**
+```bash
+# Verify DevContainer connection
+echo $PWD  # Should show /workspaces/azuresamples-fabric-observability
+uname -a   # Should show Linux kernel information
+
+# Verify required tools are available
+az version      # Azure CLI
+pwsh --version  # PowerShell Core
+dotnet --version # .NET SDK
+```
+
+**Important Notes:**
+- All file operations use Linux file system conventions
+- PowerShell scripts are executed via `pwsh` command, not native Windows PowerShell
+- Git operations use Linux git client within the container
+- Azure CLI commands run in Linux environment with proper authentication context
+
 ## Integration Points
 
 ### OTEL Collector Configuration

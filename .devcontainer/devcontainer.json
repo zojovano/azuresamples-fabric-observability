@@ -6,9 +6,7 @@
         "ghcr.io/devcontainers/features/azure-cli:1": {
             "version": "latest"
         },
-        "ghcr.io/devcontainers/features/powershell:1": {
-            "version": "latest"
-        },
+        // PowerShell 7.5.2 installed via post-create script for latest version
         "ghcr.io/devcontainers/features/python:1": {
             "version": "3.11",
             "installTools": false

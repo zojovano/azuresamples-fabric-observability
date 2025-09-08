@@ -5,8 +5,23 @@
     Comprehensive Test Suite for Fabric OTEL Observability
 
 .DESCRIPTION
-    Tests KQL table deployment and EventHub to Fabric data streaming
-    with GitHub Actions integration and JUnit XML reporting.
+    Comprehensive test suite for Microsoft Fabric OTEL observability implementation.
+    Tests KQL table deployment and EventHub to Fabric data streaming.
+    
+    The script includes early exit logic to avoid time-consuming EventHub tests (300s timeout)
+    when critical prerequisites fail. This improves test efficiency and developer experience.
+
+.PARAMETER ResourceGroupName
+    Name of the Azure resource group containing the infrastructure
+
+.PARAMETER WorkspaceName  
+    Name of the Microsoft Fabric workspace
+
+.PARAMETER DatabaseName
+    Name of the KQL database in the workspace
+
+.PARAMETER TestTimeout
+    Timeout for data streaming tests in seconds (default: 300)
 
 .PARAMETER WorkspaceName
     Name of the Fabric workspace (default: fabric-otel-workspace)
@@ -188,7 +203,7 @@ function Test-Prerequisites {
     
     # Check Fabric authentication
     try {
-        fab auth whoami >$null 2>&1
+        fab auth status >$null 2>&1
         if ($LASTEXITCODE -ne 0) {
             Write-TestResult "Prerequisites - Fabric Auth" "FAIL" "Not authenticated with Fabric"
             return $false
@@ -380,6 +395,13 @@ function Send-TestDataToEventHub {
     $startTime = Get-Date
     Write-ColorOutput "Sending test data to EventHub..." $ColorInfo "📤"
     
+    # Check if critical prerequisites have passed (need at least 4: Prerequisites, Workspace, Database, Tables)
+    if ($script:PassedTests -lt 4) {
+        $duration = [int]((Get-Date) - $startTime).TotalSeconds
+        Write-TestResult "EventHub Test Data" "SKIP" "Critical prerequisites not met (passed: $($script:PassedTests), required: 4)" $duration
+        return $false
+    }
+    
     if (-not $script:EventHubNamespace -or -not $script:EventHubName) {
         $duration = [int]((Get-Date) - $startTime).TotalSeconds
         Write-TestResult "EventHub Test Data" "SKIP" "EventHub not available" $duration
@@ -426,6 +448,13 @@ function Send-TestDataToEventHub {
 function Test-DataStreaming {
     $startTime = Get-Date
     Write-ColorOutput "Testing EventHub to Fabric data streaming..." $ColorInfo "🔄"
+    
+    # Check if critical prerequisites have passed (need at least 4: Prerequisites, Workspace, Database, Tables)
+    if ($script:PassedTests -lt 4) {
+        $duration = [int]((Get-Date) - $startTime).TotalSeconds
+        Write-TestResult "Data Streaming" "SKIP" "Critical prerequisites not met (passed: $($script:PassedTests), required: 4)" $duration
+        return $false
+    }
     
     if (-not $script:EventHubNamespace -or -not $script:EventHubName) {
         $duration = [int]((Get-Date) - $startTime).TotalSeconds
@@ -537,6 +566,11 @@ try {
     Test-KqlDatabase | Out-Null
     Test-OtelTables | Out-Null
     Test-TableSchemas | Out-Null
+    
+    # EventHub tests - will skip if critical prerequisites failed
+    if ($script:PassedTests -lt 4) {
+        Write-ColorOutput "Skipping EventHub tests due to failed prerequisites (passed: $($script:PassedTests), required: 4)" $ColorWarning "⏭️"
+    }
     Send-TestDataToEventHub | Out-Null
     Test-DataStreaming | Out-Null
     Test-QueryPerformance | Out-Null

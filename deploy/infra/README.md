@@ -18,9 +18,6 @@ Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This scri
 | **`Deploy-Complete.ps1`** | ✅ **RECOMMENDED** | Single script for all deployment scenarios |
 | `Deploy-FabricArtifacts.ps1` | ✅ Active | Fabric-only deployment (used by Deploy-Complete.ps1) |
 | `Setup-Authentication.ps1` | ✅ Active | Authentication helper |
-| `Bicep/deploy.ps1` | ⚠️ Legacy | Redirects to deploy-unified.ps1 |
-| `Bicep/deploy-unified.ps1` | ⚠️ Legacy | Replaced by Deploy-Complete.ps1 |
-| `Bicep/deploy-with-keyvault-legacy.ps1` | ⚠️ Legacy | Replaced by Deploy-Complete.ps1 |
 
 ## Quick Start
 
@@ -78,13 +75,14 @@ Your Key Vault must contain:
 
 ## Migration from Legacy Scripts
 
-If you were using the old scripts:
+**✅ Legacy scripts have been removed!** 
 
-| Old Script | New Command |
-|------------|-------------|
-| `./Bicep/deploy.ps1` | `./Deploy-Complete.ps1 -KeyVaultName "your-kv"` |
-| `./Bicep/deploy-unified.ps1` | `./Deploy-Complete.ps1 -KeyVaultName "your-kv"` |
-| `./Bicep/deploy-with-keyvault-legacy.ps1` | `./Deploy-Complete.ps1 -CreateServicePrincipals -KeyVaultName "your-kv"` |
+All functionality has been consolidated into the single `Deploy-Complete.ps1` script. If you were using the old scripts, simply use:
+
+```powershell
+# Replace any old deployment command with:
+./Deploy-Complete.ps1 -KeyVaultName "your-kv"
+```
 
 ## Directory Structure
 

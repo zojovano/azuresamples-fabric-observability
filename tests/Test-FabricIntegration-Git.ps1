@@ -10,7 +10,7 @@
 .PARAMETER DatabaseName  
     Name of the KQL database (default: otelobservabilitydb)
 .PARAMETER GitFolder
-    Folder in the repository connected to workspace (default: fabric-artifacts)
+    Folder in the repository connected to workspace (default: fabric-artifacts, resolves to deploy/fabric-artifacts)
 #>
 
 param(
@@ -113,7 +113,7 @@ function Test-GitFolderStructure {
     Write-ColorOutput "Testing Git folder structure..." $ColorInfo "📁"
     
     try {
-        $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) $GitFolder
+        $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) "deploy/$GitFolder"
         
         if (-not (Test-Path $gitFolderPath)) {
             $duration = [int]((Get-Date) - $startTime).TotalSeconds
@@ -177,7 +177,7 @@ function Show-GitIntegrationGuidance {
     Write-ColorOutput "   - Select GitHub as provider" $ColorInfo
     Write-ColorOutput "   - Repository: $(git remote get-url origin 2>/dev/null)" $ColorInfo
     Write-ColorOutput "   - Branch: main" $ColorInfo
-    Write-ColorOutput "   - Folder: $GitFolder" $ColorInfo
+    Write-ColorOutput "   - Folder: deploy/$GitFolder" $ColorInfo
     Write-ColorOutput "" $ColorInfo
     Write-ColorOutput "5. Sync workspace:" $ColorInfo "👉"
     Write-ColorOutput "   - Choose sync direction (Git to workspace recommended)" $ColorInfo

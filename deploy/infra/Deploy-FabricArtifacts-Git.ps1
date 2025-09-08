@@ -11,7 +11,7 @@
 .PARAMETER DatabaseName  
     Name of the KQL database (default: otelobservabilitydb)
 .PARAMETER GitFolder
-    Folder in the repository to connect to (default: fabric-artifacts)
+    Folder in the repository to connect to (default: fabric-artifacts, resolves to deploy/fabric-artifacts)
 .PARAMETER WhatIf
     Show what would be deployed without actually deploying
 .EXAMPLE
@@ -89,7 +89,7 @@ function Connect-WorkspaceToGit {
     Write-ColorOutput "1. Navigate to workspace '$WorkspaceName' in Fabric portal" $ColorInfo "👉"
     Write-ColorOutput "2. Go to Workspace Settings > Git Integration" $ColorInfo "👉"
     Write-ColorOutput "3. Connect to this GitHub repository" $ColorInfo "👉"
-    Write-ColorOutput "4. Set folder to: '$GitFolder'" $ColorInfo "👉"
+    Write-ColorOutput "4. Set folder to: 'deploy/$GitFolder'" $ColorInfo "👉"
     Write-ColorOutput "5. Commit the workspace items to Git" $ColorInfo "👉"
     
     return $true
@@ -102,7 +102,7 @@ function Copy-KqlDefinitionsToGitFolder {
     
     Write-ColorOutput "Copying KQL definitions to Git folder..." $ColorInfo "📁"
     
-    $gitFolderPath = Join-Path $PSScriptRoot "../../$GitFolder"
+    $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) $GitFolder
     $kqlDefinitionsPath = Join-Path $PSScriptRoot "kql-definitions"
     
     if (-not (Test-Path $gitFolderPath)) {
@@ -186,7 +186,7 @@ function Show-NextSteps {
     Write-ColorOutput "3. Create KQL database: $DatabaseName" $ColorInfo "👉"
     Write-ColorOutput "4. Go to Workspace Settings > Git Integration" $ColorInfo "👉"
     Write-ColorOutput "5. Connect to GitHub repository: $(git remote get-url origin 2>/dev/null)" $ColorInfo "👉"
-    Write-ColorOutput "6. Set folder to: $GitFolder" $ColorInfo "👉"
+    Write-ColorOutput "6. Set folder to: deploy/$GitFolder" $ColorInfo "👉"
     Write-ColorOutput "7. Sync workspace with Git (commit/update as needed)" $ColorInfo "👉"
     Write-ColorOutput "" $ColorInfo
     Write-ColorOutput "Benefits of Git Integration:" $ColorSuccess "💡"

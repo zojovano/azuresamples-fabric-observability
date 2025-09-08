@@ -156,11 +156,11 @@ Infrastructure uses Azure Verified Modules pattern:
 ## Critical File Locations
 
 **Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts.ps1` (legacy API), `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Install-FabricCLI.ps1`
-**KQL Definitions**: `deploy/infra/kql-definitions/tables/*.kql` (source), `fabric-artifacts/tables/*.kql` (Git integration)
+**KQL Definitions**: `deploy/infra/kql-definitions/tables/*.kql` (source), `deploy/fabric-artifacts/tables/*.kql` (Git integration)
 **Test Suite**: `tests/Test-FabricIntegration.ps1` (legacy API), `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
 **OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline)
 **Sample App**: `app/dotnet-client/OTELWorker/` (.NET worker with OTEL instrumentation)
-**Git Integration**: `fabric-artifacts/` folder for Fabric workspace sync, `fabric-artifacts/README.md` (setup guide)
+**Git Integration**: `deploy/fabric-artifacts/` folder for Fabric workspace sync, `deploy/fabric-artifacts/README.md` (setup guide)
 
 ## Debugging Commands
 
@@ -182,9 +182,17 @@ az resource list --resource-group $resourceGroupName --resource-type "Microsoft.
 
 ## Git Workflow Requirements
 
-**IMPORTANT**: After making any code changes, always automatically commit and push but ask the user to confirm:
+**IMPORTANT**: After making any code changes, always test thoroughly before committing:
 
 ```bash
+# 1. ALWAYS TEST FIRST - Execute relevant test scripts
+./tests/Test-FabricIntegration-Git.ps1  # For Git integration changes
+./tests/Test-FabricIntegration.ps1      # For API-based changes
+pwsh -c "script-name.ps1 -WhatIf"       # For deployment scripts
+
+# 2. VERIFY FUNCTIONALITY - Ensure all tests pass and functionality works
+# 3. ONLY THEN COMMIT - After successful testing
+
 # Stage all changes
 git add -A
 
@@ -195,7 +203,13 @@ git commit -m "Brief description of changes made"
 git push origin main
 ```
 
-This ensures all changes are immediately saved and available to the team. Write meaningful commit messages that describe the specific changes made (e.g., "Update OTEL collector config for improved error handling" or "Add validation for Fabric workspace creation").
+**TESTING REQUIREMENT**: Every code change must be tested and verified before committing. This includes:
+- Running relevant test scripts to verify functionality
+- Testing scripts with -WhatIf parameter when available
+- Verifying that changes don't break existing functionality
+- Ensuring all tests pass before proceeding to commit
+
+This ensures code quality and prevents introducing untested changes to the repository.
 
 ## Development Best Practices & Context Management
 

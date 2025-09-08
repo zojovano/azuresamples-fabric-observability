@@ -24,7 +24,23 @@ Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container 
 
 ## Deploy Microsoft Fabric for OTEL Observability
 
-The deployment process is now fully automated using GitHub Actions and Microsoft Fabric CLI:
+The deployment process is now fully automated using GitHub Actions and Microsoft Fabric CLI.
+
+### Getting Started
+
+#### DevContainer Development Environment (Recommended)
+
+For the best development experience, use the provided DevContainer which includes all required tools:
+
+```bash
+# Open in DevContainer
+git clone https://github.com/zojovano/azuresamples-fabric-observability.git
+cd azuresamples-fabric-observability
+code .
+# Click "Reopen in Container" when prompted
+```
+
+**📖 Complete Setup Guide**: See [Local Development Setup](docs/LOCAL_DEVELOPMENT_SETUP.md) for detailed DevContainer configuration, Git setup, and local testing instructions.
 
 ### Prerequisites
 

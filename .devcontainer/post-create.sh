@@ -76,12 +76,36 @@ EOF
 
 # Set up Git configuration (use environment variables if available)
 echo "🔧 Configuring Git..."
-if [ -n "${GIT_USER_NAME}" ]; then
+
+# Try to get git user info from various sources
+GIT_USER_NAME="${GIT_USER_NAME:-}"
+GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
+
+# If not set via environment variables, try to detect from GitHub CLI or other sources
+if [ -z "${GIT_USER_NAME}" ] && command -v gh >/dev/null 2>&1; then
+    GIT_USER_NAME=$(gh api user --jq '.name' 2>/dev/null || echo "")
+    GIT_USER_EMAIL=$(gh api user --jq '.email' 2>/dev/null || echo "")
+fi
+
+# If still not set, use placeholder values that indicate user should configure
+if [ -z "${GIT_USER_NAME}" ]; then
+    GIT_USER_NAME="DevContainer User"
+    echo "⚠️  Git user.name not configured. Set GIT_USER_NAME environment variable or run: git config --global user.name 'Your Name'"
+else
     git config --global user.name "${GIT_USER_NAME}"
+    echo "✅ Git user.name set to: ${GIT_USER_NAME}"
 fi
-if [ -n "${GIT_USER_EMAIL}" ]; then
+
+if [ -z "${GIT_USER_EMAIL}" ]; then
+    GIT_USER_EMAIL="user@example.com"
+    echo "⚠️  Git user.email not configured. Set GIT_USER_EMAIL environment variable or run: git config --global user.email 'your.email@example.com'"
+else
     git config --global user.email "${GIT_USER_EMAIL}"
+    echo "✅ Git user.email set to: ${GIT_USER_EMAIL}"
 fi
+
+# Configure git to use VS Code's credential helper
+git config --global credential.helper store
 
 # Create minimal development directories
 echo "📁 Creating development directories..."

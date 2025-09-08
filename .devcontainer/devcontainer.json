@@ -10,6 +10,9 @@
         "ghcr.io/devcontainers/features/python:1": {
             "version": "3.11",
             "installTools": false
+        },
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "latest"
         }
     },
     "customizations": {
@@ -76,6 +79,9 @@
     // Environment variables
     "containerEnv": {
         "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}",
-        "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}"
+        "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}",
+        "GIT_USER_NAME": "${localEnv:GIT_USER_NAME}",
+        "GIT_USER_EMAIL": "${localEnv:GIT_USER_EMAIL}"
     }
+
 }

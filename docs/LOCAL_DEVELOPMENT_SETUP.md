@@ -1,6 +1,66 @@
-# 🧪 Local Fabric Development Setup Guide
+# 🧪 Local Development Setup Guide
 
-This guide helps you securely test Fabric deployments locally without relying on GitHub Actions for debugging.
+This comprehensive guide covers DevContainer setup, Git configuration, and secure Fabric testing for local development.
+
+## 🐳 DevContainer Setup
+
+### Prerequisites
+- [VS Code](https://code.visualstudio.com/)
+- [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+- Docker or Podman container runtime
+
+### Getting Started
+
+1. **Open in DevContainer:**
+   ```bash
+   # Clone and open in VS Code
+   git clone https://github.com/zojovano/azuresamples-fabric-observability.git
+   cd azuresamples-fabric-observability
+   code .
+   
+   # When prompted, click "Reopen in Container"
+   # Or use Command Palette: "Dev Containers: Reopen in Container"
+   ```
+
+2. **Configure Git (Required for commits):**
+   
+   **Option A: Environment Variables (Recommended - persists across rebuilds)**
+   ```bash
+   # On your HOST system (not in container):
+   # Windows:
+   setx GIT_USER_NAME "Your Name"
+   setx GIT_USER_EMAIL "your.email@example.com"
+   
+   # Linux/Mac:
+   export GIT_USER_NAME="Your Name"
+   export GIT_USER_EMAIL="your.email@example.com"
+   # Add to ~/.bashrc for persistence
+   ```
+   
+   **Option B: Interactive Setup (run inside container after rebuild)**
+   ```bash
+   ./.devcontainer/setup-git-config.sh
+   # Or with parameters:
+   ./.devcontainer/setup-git-config.sh "Your Name" "your.email@example.com"
+   ```
+
+3. **Verify Environment:**
+   ```bash
+   # Run verification script
+   pwsh tools/Verify-DevEnvironment.ps1
+   
+   # Or with authentication check
+   pwsh tools/Verify-DevEnvironment.ps1 -CheckAuth
+   ```
+
+### What's Included
+- **Azure CLI** with Bicep extension
+- **Microsoft Fabric CLI** for Fabric management  
+- **.NET 8.0** SDK for C# development
+- **PowerShell 7.5.2** for scripting
+- **Python 3.11** with pip
+- **Git** with VS Code credential integration
+- **All VS Code extensions** for Azure, .NET, PowerShell development
 
 ## 🚀 Quick Start
 

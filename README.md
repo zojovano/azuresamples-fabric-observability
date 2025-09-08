@@ -251,17 +251,15 @@ code .
 
 ### Option 2: Manual Setup
 ```powershell
-# Deploy infrastructure
+# Simple deployment (uses environment variables or prompts)
 cd infra/Bicep
 ./deploy.ps1
 
-# Deploy Fabric artifacts
-cd ../
-./Deploy-FabricArtifacts.ps1
+# Or create full Key Vault setup with service principals
+./deploy.ps1 -CreateKeyVault
 
-# Test the deployment
-cd ../tests
-./Test-FabricIntegration.ps1
+# Preview deployment without executing
+./deploy.ps1 -WhatIf
 ```
 
 ### Option 3: GitHub Actions

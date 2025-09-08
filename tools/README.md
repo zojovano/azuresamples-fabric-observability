@@ -12,6 +12,7 @@ This directory contains development and deployment tools for the Microsoft Fabri
 ### Testing & Validation
 | Tool | Description | Usage |
 |------|-------------|-------|
+| [`Verify-DevEnvironment.ps1`](Verify-DevEnvironment.ps1) | DevContainer environment verification (checks all required tools) | `pwsh tools/Verify-DevEnvironment.ps1` |
 | [`Test-FabricLocal.ps1`](Test-FabricLocal.ps1) | Comprehensive Fabric authentication and deployment testing | `pwsh tools/Test-FabricLocal.ps1 -TestAuth` |
 | [`test-fabric-auth.ps1`](test-fabric-auth.ps1) | Quick Fabric authentication test | `pwsh tools/test-fabric-auth.ps1` |
 
@@ -21,6 +22,15 @@ This directory contains development and deployment tools for the Microsoft Fabri
 | [`DevSecretManager/`](DevSecretManager/) | .NET console app for secure credential management | `dotnet run --project tools/DevSecretManager` |
 
 ## 🚀 Quick Start
+
+### 0. Verify DevContainer Environment (Recommended First Step)
+```powershell
+# Verify all required tools are installed in DevContainer
+pwsh tools/Verify-DevEnvironment.ps1
+
+# Include authentication check
+pwsh tools/Verify-DevEnvironment.ps1 -CheckAuth
+```
 
 ### 1. Interactive Setup (Recommended)
 ```powershell
@@ -75,6 +85,28 @@ The tools support multiple authentication approaches:
 - **Temporary**: Good for testing
 
 ## 📋 Tool Details
+
+### Verify-DevEnvironment.ps1
+DevContainer environment verification script that checks all required tools are properly installed and accessible.
+
+**Features:**
+- Verifies PowerShell, Azure CLI, Fabric CLI, .NET SDK, Python, and Git
+- Checks workspace directory structure
+- Optional authentication status checking
+- Designed for DevContainer environments
+
+**Usage:**
+```powershell
+# Basic verification
+pwsh tools/Verify-DevEnvironment.ps1
+
+# Include authentication check
+pwsh tools/Verify-DevEnvironment.ps1 -CheckAuth
+```
+
+**Exit Codes:**
+- `0`: All required tools verified successfully
+- `1`: One or more required tools missing or failed verification
 
 ### setup-local-dev.ps1
 Interactive wizard that guides you through:
@@ -147,7 +179,8 @@ dotnet run import-from-keyvault --vault-name "vault" --secret-name "secret"
 
 ## 💡 Tips
 
-- **Start with `setup-local-dev.ps1`** for the easiest setup experience
+- **Start with `Verify-DevEnvironment.ps1`** to ensure your DevContainer environment is properly configured
+- **Use `setup-local-dev.ps1`** for the easiest setup experience after environment verification
 - **Use User Secrets** for local development (most secure and convenient)
 - **Use Key Vault** for team environments and production
 - **Use Environment Variables** for CI/CD and automated testing

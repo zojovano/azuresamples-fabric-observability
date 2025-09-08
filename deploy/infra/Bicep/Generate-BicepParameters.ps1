@@ -23,13 +23,13 @@
 
 [CmdletBinding()]
 param(
-    [string]$ConfigPath = (Join-Path $PSScriptRoot ".." ".." "config" "project-config.json"),
+    [string]$ConfigPath = (Join-Path $PSScriptRoot ".." ".." ".." "config" "project-config.json"),
     [string]$OutputPath = (Join-Path $PSScriptRoot "parameters-generated.json"),
     [string]$AdminObjectId = ""
 )
 
 # Import configuration module
-Import-Module (Join-Path $PSScriptRoot ".." ".." "config" "ProjectConfig.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot ".." ".." ".." "config" "ProjectConfig.psm1") -Force
 
 try {
     Write-Host "📋 Generating Bicep parameters from configuration..." -ForegroundColor Cyan
@@ -68,7 +68,7 @@ try {
             appServicePlanName = @{ value = $config.otel.appService.planName }
             appServiceName = @{ value = $config.otel.appService.appName }
             tags = @{ value = $config.azure.tags }
-            adminObjectId = @{ value = $AdminObjectId }
+            adminObjectIds = @{ value = @($AdminObjectId) }
         }
     }
     

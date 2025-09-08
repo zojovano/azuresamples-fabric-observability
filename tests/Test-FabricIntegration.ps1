@@ -146,18 +146,50 @@ function Invoke-KqlQuery {
     )
     
     try {
-        # Use the same API approach as the deployment script
-        $tempFile = [System.IO.Path]::GetTempFileName()
-        $Query | Out-File -FilePath $tempFile -Encoding UTF8
+        # Get workspace ID 
+        $workspaceList = fab api "workspaces" --method get 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "Failed to get workspace list" $ColorError "❌"
+            return @()
+        }
         
-        $result = fab api "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --input "@$tempFile" 2>&1
+        $workspaces = $workspaceList | ConvertFrom-Json
+        $workspace = $workspaces.value | Where-Object { $_.displayName -eq $WorkspaceName }
+        if (-not $workspace) {
+            Write-ColorOutput "Workspace '$WorkspaceName' not found" $ColorError "❌"
+            return @()
+        }
+        
+        # Get database ID
+        $databaseList = fab api "workspaces/$($workspace.id)/kqldatabases" --method get 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "Failed to get database list for workspace" $ColorError "❌"
+            return @()
+        }
+        
+        $databases = $databaseList | ConvertFrom-Json
+        $database = $databases.value | Where-Object { $_.displayName -eq $DatabaseName }
+        if (-not $database) {
+            Write-ColorOutput "Database '$DatabaseName' not found in workspace" $ColorError "❌"
+            return @()
+        }
+        
+        # Execute query using proper IDs
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        $queryBody = @{
+            csl = $Query
+            db = $DatabaseName
+        } | ConvertTo-Json
+        $queryBody | Out-File -FilePath $tempFile -Encoding UTF8
+        
+        $result = fab api "workspaces/$($workspace.id)/kqldatabases/$($database.id)/query" --method post --input "@$tempFile" 2>&1
         Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
         
         if ($LASTEXITCODE -eq 0 -and $result) {
             return $result | ConvertFrom-Json
         }
     } catch {
-        # Return empty array on error
+        Write-ColorOutput "Error in KQL query: $_" $ColorError "❌"
     }
     return @()
 }

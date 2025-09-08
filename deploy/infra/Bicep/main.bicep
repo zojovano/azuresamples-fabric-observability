@@ -6,22 +6,6 @@ param location string = 'swedencentral'
 @description('Administrator object IDs for Fabric capacity (service principals and/or users)')
 param adminObjectIds array
 
-@description('GitHub Actions service principal object ID for Key Vault access')
-param githubServicePrincipalObjectId string
-
-@description('Application service principal client ID')
-param appServicePrincipalClientId string
-
-@description('Application service principal object ID for Key Vault access')
-param appServicePrincipalObjectId string
-
-@description('Application service principal client secret')
-@secure()
-param appServicePrincipalClientSecret string
-
-@description('Key Vault name (must be globally unique)')
-param keyVaultName string = 'fabric-otel-kv-${uniqueString(subscription().subscriptionId)}'
-
 @description('Tags to apply to all resources')
 param tags object = {
   environment: 'prod'
@@ -36,24 +20,6 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: resourceGroupName
   location: location
   tags: tags
-}
-
-// Deploy Key Vault for secure secret management
-module keyVault './modules/keyvault.bicep' = {
-  name: 'keyVaultDeploy'
-  scope: resourceGroup
-  params: {
-    location: location
-    keyVaultName: keyVaultName
-    githubServicePrincipalObjectId: githubServicePrincipalObjectId
-    appServicePrincipalObjectId: appServicePrincipalObjectId
-    adminObjectId: adminObjectIds[0]
-    tenantId: subscription().tenantId
-    subscriptionId: subscription().subscriptionId
-    appClientId: appServicePrincipalClientId
-    appClientSecret: appServicePrincipalClientSecret
-    tags: tags
-  }
 }
 
 @description('Fabric capacity name')
@@ -165,9 +131,6 @@ module appService './modules/appservice.bicep' = {
 
 // Outputs
 output resourceGroupName string = resourceGroup.name
-output keyVaultName string = keyVault.outputs.keyVaultName
-output keyVaultUri string = keyVault.outputs.keyVaultUri
-output githubSecretsRequired object = keyVault.outputs.githubSecretsRequired
 output fabricCapacityName string = fabricCapacity.outputs.capacityName
 output fabricWorkspaceName string = fabricWorkspaceName
 output fabricDatabaseName string = fabricDatabaseName

@@ -1,18 +1,34 @@
 {
-  "contentVersion": "1.0.0.0",
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "parameters": {
-    "eventHubSku": {
-      "value": "Standard"
+    "fabricDatabaseName": {
+      "value": "otelobservabilitydb"
     },
-    "eventHubNamespaceName": {
-      "value": "evhns-otel"
+    "containerName": {
+      "value": "otel-collector"
+    },
+    "fabricCapacityName": {
+      "value": "fabriccapacityobservability"
+    },
+    "appServicePlanName": {
+      "value": "asp-otel-sample"
+    },
+    "adminObjectIds": {
+      "value": [
+        "admin@MngEnvMCAP742925.onmicrosoft.com"
+      ]
     },
     "appServiceName": {
       "value": "app-otel-sample"
     },
-    "containerName": {
-      "value": "otel-collector"
+    "fabricWorkspaceName": {
+      "value": "azuresamples-platformobservabilty-fabric"
+    },
+    "eventHubName": {
+      "value": "evh-otel-diagnostics"
+    },
+    "location": {
+      "value": "swedencentral"
     },
     "resourceGroupName": {
       "value": "azuresamples-platformobservabilty-fabric"
@@ -24,35 +40,21 @@
         "owner": "Platform Team"
       }
     },
-    "fabricDatabaseName": {
-      "value": "otelobservabilitydb"
+    "eventHubNamespaceName": {
+      "value": "evhns-otel"
     },
-    "fabricWorkspaceName": {
-      "value": "azuresamples-platformobservabilty-fabric"
-    },
-    "adminObjectId": {
-      "value": "12345678-1234-1234-1234-123456789012"
-    },
-    "location": {
-      "value": "swedencentral"
-    },
-    "eventHubName": {
-      "value": "evh-otel-diagnostics"
-    },
-    "appServicePlanName": {
-      "value": "asp-otel-sample"
-    },
-    "fabricCapacityName": {
-      "value": "fabriccapacityobservability"
+    "fabricCapacitySku": {
+      "value": "F2"
     },
     "containerImage": {
       "value": "otel/opentelemetry-collector-contrib:latest"
     },
+    "eventHubSku": {
+      "value": "Standard"
+    },
     "containerGroupName": {
       "value": "ci-otel-collector"
-    },
-    "fabricCapacitySku": {
-      "value": "F2"
     }
-  }
+  },
+  "contentVersion": "1.0.0.0"
 }

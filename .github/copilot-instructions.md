@@ -155,11 +155,12 @@ Infrastructure uses Azure Verified Modules pattern:
 
 ## Critical File Locations
 
-**Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts.ps1` (main), `deploy/infra/Install-FabricCLI.ps1`
-**KQL Definitions**: `deploy/infra/kql-definitions/tables/*.kql` (three files for logs/metrics/traces)
-**Test Suite**: `tests/Test-FabricIntegration.ps1` (PowerShell), `tests/FabricObservability.IntegrationTests/` (.NET)
+**Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts.ps1` (legacy API), `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Install-FabricCLI.ps1`
+**KQL Definitions**: `deploy/infra/kql-definitions/tables/*.kql` (source), `fabric-artifacts/tables/*.kql` (Git integration)
+**Test Suite**: `tests/Test-FabricIntegration.ps1` (legacy API), `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
 **OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline)
 **Sample App**: `app/dotnet-client/OTELWorker/` (.NET worker with OTEL instrumentation)
+**Git Integration**: `fabric-artifacts/` folder for Fabric workspace sync, `fabric-artifacts/README.md` (setup guide)
 
 ## Debugging Commands
 
@@ -204,6 +205,21 @@ This ensures all changes are immediately saved and available to the team. Write 
 - **Fabric CLI, Azure CLI, PowerShell, .NET, Git** are pre-installed via DevContainer configuration
 - **Installation scripts are anti-pattern** - they violate the DevContainer-only approach
 
+### **Fabric CLI Best Practices** 
+**Always research Fabric CLI documentation online before implementing commands:**
+- **Documentation**: https://microsoft.github.io/fabric-cli/ (main site)
+- **Cheatsheet**: https://microsoft.github.io/fabric-cli/cheatsheet.html (all commands)  
+- **Examples**: https://microsoft.github.io/fabric-cli/examples.html (usage patterns)
+- **API Examples**: https://microsoft.github.io/fabric-cli/examples/api_examples.html (REST API usage)
+
+**Key Fabric CLI Facts:**
+- **File-system navigation**: Use `fab ls`, `fab cd`, `fab pwd` like bash commands
+- **KQL Database queries**: Use `fab api` endpoint with workspace/database IDs, not names
+- **Table command**: Only for Delta tables in Lakehouses, NOT KQL tables in databases  
+- **API format**: `fab api "workspaces/{id}/kqldatabases/{id}/query" --method post --input "@file"`
+- **Authentication**: `fab auth status` (not `fab auth whoami`)
+- **Case sensitive**: `--method post` (lowercase), not `--method POST`
+
 ### **Documentation Consolidation Strategy**
 - **All detailed documentation belongs in `docs/` folder** - specifically in `docs/README.md` as the comprehensive guide
 - **Never create per-topic documentation files** (like README-Deploy-Complete.md, README-Destroy-Complete.md)
@@ -231,6 +247,7 @@ This ensures all changes are immediately saved and available to the team. Write 
 - **Branch Strategy Clarification**: Main branch for DevContainer development, `ci-cd` branch for enterprise deployment patterns
 - **Documentation Consolidation Strategy**: All detailed documentation moved to `docs/README.md` - removed per-topic files like README-Deploy-Complete.md, README-Destroy-Complete.md in favor of single comprehensive guide
 - **Unified Deployment Scripts**: Created Deploy-Complete.ps1 and Destroy-Complete.ps1 with centralized configuration integration
+- **Git Integration Approach (September 2025)**: Replaced complex API-based deployment with Microsoft Fabric Git integration pattern using `fabric-artifacts/` folder, eliminating authentication and API complexity issues
 
 ### **Common Anti-Patterns to Avoid**
 ❌ Creating installation scripts for tools (use DevContainer instead)  

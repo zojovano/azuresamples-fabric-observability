@@ -16,7 +16,36 @@
     Name of the KQL database (overrides configuration)
 
 .PARAMETER ResourceGroupName
-    Azure resource group name (ov                    $executeOutput = fab api --resource-path "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --body "@$tempFile" 2>&1rrides configuration)
+    A                Write-ColorOutput "Checking if table exists for $tableName" $ColorInfo "🔍"
+                
+                # Get workspace and database IDs for API calls
+                $workspaceList = fab api "workspaces" --method get 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput "Failed to get workspace list" $ColorError "❌"
+                    continue
+                }
+                
+                $workspaces = $workspaceList | ConvertFrom-Json
+                $workspace = $workspaces.value | Where-Object { $_.displayName -eq $WorkspaceName }
+                if (-not $workspace) {
+                    Write-ColorOutput "Workspace '$WorkspaceName' not found" $ColorError "❌"
+                    continue
+                }
+                
+                $databaseList = fab api "workspaces/$($workspace.id)/kqldatabases" --method get 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput "Failed to get database list" $ColorError "❌"
+                    continue
+                }
+                
+                $databases = $databaseList | ConvertFrom-Json
+                $database = $databases.value | Where-Object { $_.displayName -eq $DatabaseName }
+                if (-not $database) {
+                    Write-ColorOutput "Database '$DatabaseName' not found" $ColorError "❌"
+                    continue
+                }
+                
+                # Try to execute a simple count query to check if table existse resource group name (ov                    $executeOutput = fab api --resource-path "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --body "@$tempFile" 2>&1rrides configuration)
 
 .PARAMETER Location
     Azure region (overrides configuration)
@@ -524,9 +553,13 @@ function Deploy-KqlTables {
                 try {
                     # Use the API approach to check table existence using temp file
                     $tempCheckFile = [System.IO.Path]::GetTempFileName()
-                    $tableCheckQuery | Out-File -FilePath $tempCheckFile -Encoding UTF8
+                    $queryBody = @{
+                        csl = $tableCheckQuery
+                        db = $DatabaseName
+                    } | ConvertTo-Json
+                    $queryBody | Out-File -FilePath $tempCheckFile -Encoding UTF8
                     
-                    $checkOutput = fab api "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --input "@$tempCheckFile" 2>&1
+                    $checkOutput = fab api "workspaces/$($workspace.id)/kqldatabases/$($database.id)/query" --method post --input "@$tempCheckFile" 2>&1
                     Remove-Item $tempCheckFile -Force -ErrorAction SilentlyContinue
                     
                     if ($LASTEXITCODE -eq 0) {
@@ -543,9 +576,13 @@ function Deploy-KqlTables {
                     
                     # Execute the KQL create table command using temp file to avoid pipe issues
                     $tempFile = [System.IO.Path]::GetTempFileName()
-                    $kqlContent | Out-File -FilePath $tempFile -Encoding UTF8
+                    $createQueryBody = @{
+                        csl = $kqlContent
+                        db = $DatabaseName
+                    } | ConvertTo-Json
+                    $createQueryBody | Out-File -FilePath $tempFile -Encoding UTF8
                     
-                    $executeOutput = fab api "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --input "@$tempFile" 2>&1
+                    $executeOutput = fab api "workspaces/$($workspace.id)/kqldatabases/$($database.id)/query" --method post --input "@$tempFile" 2>&1
                     $executeExitCode = $LASTEXITCODE
                     
                     # Clean up temp file

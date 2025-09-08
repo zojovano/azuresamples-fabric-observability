@@ -8,7 +8,8 @@ This guide covers development environment setup, deployment procedures, and trou
 |---------|---------|-------------|
 | [🚀 **Environment Setup**](#environment-setup) | DevContainer and local development | Setting up development environment |
 | [🏗️ **Deployment Procedures**](#deployment-procedures) | Step-by-step deployment guide | Deploying the sample |
-| [🔧 **Troubleshooting**](#troubleshooting) | Common issues and solutions | When encountering problems |
+| [� **Infrastructure Removal**](#infrastructure-removal) | Complete resource cleanup | Removing all project resources |
+| [�🔧 **Troubleshooting**](#troubleshooting) | Common issues and solutions | When encountering problems |
 | [🧪 **Local Development**](LOCAL_DEVELOPMENT_SETUP.md) | Detailed development guide | In-depth development work |
 
 ---
@@ -125,26 +126,89 @@ bash dotnet-install.sh --version 8.0.100
 
 ### 🛠️ Manual Deployment
 
-#### 1. Deploy Azure Infrastructure
-```powershell
-# Navigate to Bicep directory
-cd deploy/infra/Bicep
+The project uses a unified deployment script that automatically loads configuration from `config/project-config.json`:
 
-# Deploy infrastructure
-./deploy.ps1
+#### Complete Deployment
+```powershell
+# Simple deployment - uses centralized configuration
+./deploy/infra/Deploy-Complete.ps1
+
+# Preview what will be deployed
+./deploy/infra/Deploy-Complete.ps1 -WhatIf
+
+# Skip specific components
+./deploy/infra/Deploy-Complete.ps1 -SkipFabricArtifacts    # Infrastructure only
+./deploy/infra/Deploy-Complete.ps1 -SkipInfrastructure    # Fabric only
 ```
 
-#### 2. Deploy Fabric Artifacts
+#### Legacy Individual Components
 ```powershell
-# Deploy workspace, database, and tables
+# 1. Deploy Azure Infrastructure
+cd deploy/infra/Bicep && ./deploy.ps1
+
+# 2. Deploy Fabric Artifacts
 ./deploy/infra/Deploy-FabricArtifacts.ps1
-```
 
-#### 3. Validate Deployment
-```powershell
-# Run integration tests
+# 3. Validate Deployment
 ./tests/Test-FabricIntegration.ps1
 ```
+
+---
+
+## 🔥 Infrastructure Removal
+
+### ⚠️ DESTRUCTIVE OPERATION WARNING
+
+The `Destroy-Complete.ps1` script **PERMANENTLY REMOVES** all project resources. Use with extreme caution!
+
+#### Safe Preview (RECOMMENDED)
+```powershell
+# ALWAYS preview first to see what will be removed
+./deploy/infra/Destroy-Complete.ps1 -WhatIf
+```
+
+#### Complete Destruction
+```powershell
+# Complete removal with confirmation prompt
+./deploy/infra/Destroy-Complete.ps1
+
+# Partial removal options
+./deploy/infra/Destroy-Complete.ps1 -SkipFabricArtifacts  # Keep Fabric data
+./deploy/infra/Destroy-Complete.ps1 -SkipInfrastructure   # Keep Azure resources
+
+# Include service principals (VERY DESTRUCTIVE)
+./deploy/infra/Destroy-Complete.ps1 -RemoveServicePrincipals
+
+# Automated destruction (DANGEROUS - no prompts)
+./deploy/infra/Destroy-Complete.ps1 -Force
+```
+
+#### What Gets Removed
+
+**🏗️ Microsoft Fabric Resources**
+- Workspace: `azuresamples-platformobservabilty-fabric`
+- Database: `otelobservabilitydb` 
+- KQL Tables: `OTELLogs`, `OTELMetrics`, `OTELTraces`
+- All workspace data and configurations
+
+**☁️ Azure Infrastructure**
+- Resource Group: `azuresamples-platformobservabilty-fabric`
+- Fabric Capacity: `fabriccapacityobservability`
+- Event Hub Namespace: `evhns-otel`
+- Container Instance: `ci-otel-collector`
+- App Service and App Service Plan
+- All associated storage, networking, and monitoring resources
+
+**🔐 Service Principals (Optional)**
+- GitHub Actions Service Principal
+- Application Service Principal
+- Only removed when `-RemoveServicePrincipals` specified
+
+#### Safety Features
+- **Confirmation Required**: Must type 'DESTROY' to confirm
+- **What-If Mode**: Preview without making changes
+- **Selective Removal**: Skip Fabric or Azure components
+- **Configuration Loading**: Uses centralized config automatically
 
 ---
 

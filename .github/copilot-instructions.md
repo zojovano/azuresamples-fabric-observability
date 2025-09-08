@@ -204,6 +204,14 @@ This ensures all changes are immediately saved and available to the team. Write 
 - **Fabric CLI, Azure CLI, PowerShell, .NET, Git** are pre-installed via DevContainer configuration
 - **Installation scripts are anti-pattern** - they violate the DevContainer-only approach
 
+### **Documentation Consolidation Strategy**
+- **All detailed documentation belongs in `docs/` folder** - specifically in `docs/README.md` as the comprehensive guide
+- **Never create per-topic documentation files** (like README-Deploy-Complete.md, README-Destroy-Complete.md)
+- **Update existing `docs/README.md`** with new sections instead of creating separate files
+- **Brief overview files** in specific directories (like `deploy/infra/README.md`) should reference the consolidated docs
+- **Use existing files where possible** rather than creating new documentation files
+- **Centralized documentation pattern**: `docs/README.md` is the single comprehensive source
+
 ### **Git Repository Status Validation**
 - **Always check current git status** before making assumptions about file structure
 - **Deleted files may persist in IDE cache** - verify actual file existence with `ls` or `file_search` tools
@@ -221,13 +229,17 @@ This ensures all changes are immediately saved and available to the team. Write 
 - **DevContainer Focus**: Simplified main branch workflow to focus on local development validation rather than full CI/CD deployment
 - **Folder Consolidation**: Moved `infra/` → `deploy/infra/` and `tools/` → `deploy/tools/` to create unified deployment structure
 - **Branch Strategy Clarification**: Main branch for DevContainer development, `ci-cd` branch for enterprise deployment patterns
+- **Documentation Consolidation Strategy**: All detailed documentation moved to `docs/README.md` - removed per-topic files like README-Deploy-Complete.md, README-Destroy-Complete.md in favor of single comprehensive guide
+- **Unified Deployment Scripts**: Created Deploy-Complete.ps1 and Destroy-Complete.ps1 with centralized configuration integration
 
 ### **Common Anti-Patterns to Avoid**
 ❌ Creating installation scripts for tools (use DevContainer instead)  
+❌ Creating per-topic documentation files (use consolidated docs/README.md instead)  
 ❌ Assuming file structure without verification  
 ❌ Ignoring established patterns from previous work  
 ❌ Making changes without checking git status first  
 ❌ Forgetting to document significant architectural decisions  
+❌ Creating README-Topic-Specific.md files instead of updating docs/README.md  
 
 ### **Validation Commands Before Major Changes**
 ```bash

@@ -1,5 +1,7 @@
 # Infrastructure Deployment
 
+👉 **[Complete Documentation: docs/README.md](../../docs/README.md)**
+
 ## 🚀 Recommended: Single Unified Deployment Script
 
 Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This script consolidates all deployment functionality into a single, easy-to-use PowerShell script.
@@ -19,6 +21,7 @@ Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This scri
 | Script | Status | Purpose |
 |--------|--------|---------|
 | **`Deploy-Complete.ps1`** | ✅ **RECOMMENDED** | Single script for all deployment scenarios |
+| **`Destroy-Complete.ps1`** | ⚠️ **DESTRUCTIVE** | Complete infrastructure removal |
 | `Deploy-FabricArtifacts.ps1` | ✅ Active | Fabric-only deployment (used by Deploy-Complete.ps1) |
 | `Setup-Authentication.ps1` | ✅ Active | Authentication helper |
 
@@ -44,6 +47,21 @@ Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This scri
 # 4. Preview mode
 ./Deploy-Complete.ps1 -WhatIf
 ```
+
+### Complete Removal (DESTRUCTIVE)
+```powershell
+# ⚠️ PREVIEW what will be destroyed (RECOMMENDED FIRST)
+./Destroy-Complete.ps1 -WhatIf
+
+# 🔥 Complete destruction (requires confirmation)
+./Destroy-Complete.ps1
+
+# Partial removal options
+./Destroy-Complete.ps1 -SkipFabricArtifacts  # Keep Fabric data
+./Destroy-Complete.ps1 -SkipInfrastructure   # Keep Azure resources
+```
+
+👉 **[Full Destruction Documentation: docs/README.md#infrastructure-removal](../../docs/README.md#infrastructure-removal)**
 
 ## Required Key Vault Secrets
 
@@ -96,13 +114,12 @@ The script automatically loads all configuration from `config/project-config.jso
 ```
 deploy/infra/
 ├── Deploy-Complete.ps1              # 🎯 Single unified deployment script
-├── README-Deploy-Complete.md        # 📖 Detailed documentation
+├── Destroy-Complete.ps1             # 🔥 Complete infrastructure removal
 ├── Deploy-FabricArtifacts.ps1      # Fabric-specific deployment
 ├── Setup-Authentication.ps1        # Authentication helper
 ├── Bicep/                          # Infrastructure templates
 │   ├── main.bicep                  # Main Bicep template
-│   ├── modules/                    # Bicep modules
-│   └── deploy*.ps1                 # Legacy deployment scripts
+│   └── modules/                    # Bicep modules
 ├── kql-definitions/                # KQL table definitions
 │   └── tables/                     # OTEL table schemas
 └── data/                          # Sample data files
@@ -110,7 +127,7 @@ deploy/infra/
 
 ## Support
 
-- 📖 **Full Documentation**: [README-Deploy-Complete.md](./README-Deploy-Complete.md)
-- 🔧 **Troubleshooting**: Check the detailed README for common issues
+- 📖 **Complete Documentation**: [docs/README.md](../../docs/README.md)
+- 🔧 **Troubleshooting**: [docs/README.md#troubleshooting](../../docs/README.md#troubleshooting)
 - 🧪 **Testing**: Use `deploy/tools/Test-FabricLocal.ps1` after deployment
 - 💬 **DevContainer**: This project is designed for DevContainer development

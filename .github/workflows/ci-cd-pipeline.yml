@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Build, Deploy & Test (Shared Key Vault)
+name: CI/CD Pipeline - DevContainer Development Focus
 
 on:
   push:
@@ -9,106 +9,25 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      location:
-        description: 'Azure region for deployment'
+      validation_only:
+        description: 'Run validation and unit tests only'
         required: false
-        default: 'swedencentral'
-        type: string
-      skip_deployment:
-        description: 'Skip deployment and run tests only'
-        required: false
-        default: false
-        type: boolean
-      project_prefix:
-        description: 'Project prefix for Key Vault secrets'
-        required: false
-        default: 'fabric-otel'
-        type: string
-      skip_tenant_check:
-        description: 'Skip tenant permissions check (for testing only)'
-        required: false
-        default: false
+        default: true
         type: boolean
 
 env:
-  LOCATION: ${{ github.event.inputs.location || 'swedencentral' }}
+  LOCATION: 'swedencentral'
   RESOURCE_GROUP_NAME: 'azuresamples-platformobservabilty-fabric'
   FABRIC_WORKSPACE_NAME: 'fabric-otel-workspace'
   FABRIC_DATABASE_NAME: 'otelobservabilitydb'
-  PROJECT_PREFIX: ${{ github.event.inputs.project_prefix || 'fabric-otel' }}
 
 permissions:
-  id-token: write
   contents: read
   checks: write
   pull-requests: write
 
 jobs:
-  # Fetch secrets from shared Azure Key Vault
-  fetch-secrets:
-    name: Fetch Secrets from Shared Key Vault
-    runs-on: ubuntu-latest
-    outputs:
-      azure-client-id: ${{ steps.fetch-secrets.outputs.azure-client-id }}
-      azure-client-secret: ${{ steps.fetch-secrets.outputs.azure-client-secret }}
-      azure-tenant-id: ${{ steps.fetch-secrets.outputs.azure-tenant-id }}
-      azure-subscription-id: ${{ steps.fetch-secrets.outputs.azure-subscription-id }}
-      admin-object-id: ${{ steps.fetch-secrets.outputs.admin-object-id }}
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Azure login (using shared service principal)
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Fetch project secrets from shared Key Vault
-        id: fetch-secrets
-        shell: pwsh
-        run: |
-          Write-Host "🔐 Fetching project secrets from shared Key Vault: azuresamplesdevopskeys"
-          Write-Host "📋 Using project prefix: ${{ env.PROJECT_PREFIX }}"
-          
-          try {
-            # Fetch project-specific secrets (temporarily without prefix)
-            $secrets = @{
-              "AZURE-CLIENT-ID" = 'azure-client-id'
-              "AZURE-CLIENT-SECRET" = 'azure-client-secret'
-              "AZURE-TENANT-ID" = 'azure-tenant-id'
-              "AZURE-SUBSCRIPTION-ID" = 'azure-subscription-id'
-              "ADMIN-OBJECT-ID" = 'admin-object-id'
-            }
-            
-            foreach ($kvSecret in $secrets.Keys) {
-              $outputName = $secrets[$kvSecret]
-              Write-Host "Fetching: $kvSecret → $outputName"
-              
-              $secretValue = az keyvault secret show --vault-name "azuresamplesdevopskeys" --name $kvSecret --query "value" --output tsv
-              
-              if ([string]::IsNullOrEmpty($secretValue)) {
-                throw "Failed to fetch secret: $kvSecret"
-              }
-              
-              # Set as GitHub Actions output (masked)
-              Write-Host "::add-mask::$secretValue"
-              Write-Host "::set-output name=$($outputName)::$secretValue"
-              Write-Host "✅ Successfully fetched: $kvSecret"
-            }
-            
-            Write-Host "🎉 All project secrets successfully fetched from shared Key Vault"
-          }
-          catch {
-            Write-Error "❌ Failed to fetch secrets from shared Key Vault: $_"
-            Write-Host "Available secrets in Key Vault:"
-            az keyvault secret list --vault-name "azuresamplesdevopskeys" --query "[].name" --output table
-            throw
-          }
-
-  # ORIGINAL: Professional .NET unit tests (fast, no Azure dependencies)
+  # Core validation that works in any environment
   unit-tests:
     name: Unit Tests (.NET xUnit)
     runs-on: ubuntu-latest
@@ -167,581 +86,227 @@ jobs:
           path: test-results/
           retention-days: 30
 
-  # ORIGINAL: Bicep validation 
-  validate:
-    name: Validate Bicep Files
+  # Basic Bicep validation without Azure authentication
+  validate-templates:
+    name: Validate Bicep Templates
     runs-on: ubuntu-latest
-    if: github.event.inputs.skip_deployment != 'true'
-    needs: [unit-tests, fetch-secrets]
+    needs: [unit-tests]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure CLI login (using shared Key Vault secrets)
-        uses: azure/login@v1
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
         with:
-          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
-          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
-          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
+          azcliversion: latest
 
       - name: Validate Bicep files
         run: |
-          cd infra/Bicep
-          az bicep build --file main.bicep
-          echo "Bicep files validated successfully"
-
-  # ORIGINAL: Deploy Azure infrastructure via Bicep
-  deploy-infra:
-    name: Deploy Azure Resources
-    needs: [unit-tests, validate, fetch-secrets]
-    runs-on: ubuntu-latest
-    if: github.event.inputs.skip_deployment != 'true'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Azure login (using shared Key Vault secrets)
-        uses: azure/login@v1
-        with:
-          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
-          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
-          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
-
-      - name: Deploy Bicep
-        uses: azure/arm-deploy@v1
-        with:
-          subscriptionId: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
-          template: ./infra/Bicep/main.bicep
-          parameters: >
-            location=${{ env.LOCATION }}
-            adminObjectIds=["${{ needs.fetch-secrets.outputs.admin-object-id }}"]
-            githubServicePrincipalObjectId="${{ secrets.GITHUB_SP_OBJECT_ID }}"
-            appServicePrincipalClientId="${{ needs.fetch-secrets.outputs.azure-client-id }}"
-            appServicePrincipalObjectId="${{ secrets.APP_SP_OBJECT_ID }}"
-            appServicePrincipalClientSecret="${{ needs.fetch-secrets.outputs.azure-client-secret }}"
-          deploymentName: 'github-${{ github.run_number }}'
-          scope: subscription
-          region: ${{ env.LOCATION }}
-          failOnStdErr: false
-
-      - name: Debug deployment parameters
-        run: |
-          echo "Location: ${{ env.LOCATION }}"
-          echo "Admin Object IDs are set: ${{ needs.fetch-secrets.outputs.admin-object-id != '' }}"
-          echo "Subscription ID is set: ${{ needs.fetch-secrets.outputs.azure-subscription-id != '' }}"
-
-  # MANUAL STEP: Configure Tenant Permissions for Fabric Workspace Creation
-  tenant-permissions-guide:
-    name: 🚨 Manual Tenant Configuration Required
-    needs: [unit-tests, deploy-infra, fetch-secrets]
-    runs-on: ubuntu-latest
-    if: github.event.inputs.skip_deployment != 'true' && github.event.inputs.skip_tenant_check != 'true'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Display Tenant Configuration Instructions
-        shell: pwsh
-        run: |
-          Write-Host "=================================================================" -ForegroundColor Cyan
-          Write-Host "🚨 MANUAL TENANT CONFIGURATION REQUIRED" -ForegroundColor Yellow
-          Write-Host "=================================================================" -ForegroundColor Cyan
-          Write-Host ""
-          Write-Host "Before the Fabric artifacts can be deployed, a tenant administrator" -ForegroundColor White
-          Write-Host "must configure Microsoft Fabric tenant settings to allow Service" -ForegroundColor White
-          Write-Host "Principals to create workspaces." -ForegroundColor White
-          Write-Host ""
-          Write-Host "📋 REQUIRED STEPS:" -ForegroundColor Green
-          Write-Host ""
-          Write-Host "1. Navigate to Microsoft Fabric Admin Portal:" -ForegroundColor White
-          Write-Host "   https://app.fabric.microsoft.com/admin" -ForegroundColor Cyan
-          Write-Host ""
-          Write-Host "2. Go to: Tenant settings → Developer settings" -ForegroundColor White
-          Write-Host ""
-          Write-Host "3. Enable: 'Service principals can access Fabric APIs'" -ForegroundColor White
-          Write-Host "   - Set to 'Enabled'" -ForegroundColor White
-          Write-Host "   - Add specific security groups OR 'The entire organization'" -ForegroundColor White
-          Write-Host ""
-          Write-Host "4. Enable: 'Service principals can create and update workspaces'" -ForegroundColor White
-          Write-Host "   - Set to 'Enabled'" -ForegroundColor White
-          Write-Host "   - Add the same security groups" -ForegroundColor White
-          Write-Host ""
-          Write-Host "5. Create Security Group (if using specific groups):" -ForegroundColor White
-          Write-Host "   - Name: 'Fabric-ServicePrincipals-Workspace-Creators'" -ForegroundColor Cyan
-          Write-Host "   - Add Service Principal: ${{ needs.fetch-secrets.outputs.azure-client-id }}" -ForegroundColor Cyan
-          Write-Host ""
-          Write-Host "📖 DETAILED GUIDE:" -ForegroundColor Green
-          Write-Host "   See: docs/TROUBLESHOOT_FABRIC_WORKSPACE_PERMISSIONS.md" -ForegroundColor Cyan
-          Write-Host ""
-          Write-Host "⏱️  PROPAGATION TIME:" -ForegroundColor Yellow
-          Write-Host "   Allow 5-15 minutes for tenant settings to take effect" -ForegroundColor White
-          Write-Host ""
-          Write-Host "=================================================================" -ForegroundColor Cyan
-          Write-Host "Click 'Re-run jobs' after tenant configuration is complete" -ForegroundColor Yellow
-          Write-Host "=================================================================" -ForegroundColor Cyan
-
-      - name: Wait for Manual Confirmation
-        shell: pwsh
-        run: |
-          Write-Host ""
-          Write-Host "⏸️  WAITING FOR MANUAL TENANT CONFIGURATION..." -ForegroundColor Yellow
-          Write-Host ""
-          Write-Host "This workflow will pause here to allow tenant administrators to" -ForegroundColor White
-          Write-Host "configure the required permissions in the Microsoft Fabric Admin Portal." -ForegroundColor White
-          Write-Host ""
-          Write-Host "Once configured, please RE-RUN this workflow or manually trigger" -ForegroundColor White
-          Write-Host "the deploy-fabric-artifacts job." -ForegroundColor White
-          Write-Host ""
-          Write-Host "To proceed automatically (for testing), set workflow input:" -ForegroundColor Cyan
-          Write-Host "  skip_tenant_check: true" -ForegroundColor Cyan
+          echo "Validating Bicep template syntax..."
+          cd deploy/infra/Bicep
           
-          # Exit this step successfully to allow workflow continuation
-          # Real workflow will pause here for manual intervention
-          exit 0
+          # Test bicep compilation without deployment
+          az bicep build --file main.bicep --outfile main-compiled.json
+          
+          # Basic syntax validation
+          if [ -f "main-compiled.json" ]; then
+            echo "✅ Bicep compilation successful"
+            ls -la main-compiled.json
+          else
+            echo "❌ Bicep compilation failed"
+            exit 1
+          fi
+          
+          echo "✅ Bicep files validated successfully"
 
-  # ORIGINAL: Deploy Fabric artifacts using Fabric CLI and the original shell script
-  deploy-fabric-artifacts:
-    name: Deploy Fabric Artifacts
-    needs: [unit-tests, deploy-infra, fetch-secrets, tenant-permissions-guide]
+  # PowerShell script validation
+  validate-scripts:
+    name: Validate PowerShell Scripts
     runs-on: ubuntu-latest
-    if: github.event.inputs.skip_deployment != 'true' && (github.event.inputs.skip_tenant_check == 'true' || always())
+    needs: [unit-tests]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Azure login (using Key Vault secrets)
-        uses: azure/login@v1
-        with:
-          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
-          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
-          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
 
       - name: Setup PowerShell
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0'
 
-      - name: Install Microsoft Fabric CLI (PowerShell)
+      - name: Validate PowerShell Scripts
         shell: pwsh
         run: |
-          Write-Host "Installing Microsoft Fabric CLI..."
+          Write-Host "Validating PowerShell scripts..." -ForegroundColor Green
           
-          # Upgrade pip first
-          python -m pip install --upgrade pip
+          # Find all PowerShell scripts
+          $scripts = Get-ChildItem -Path . -Name "*.ps1" -Recurse
+          $validationErrors = 0
           
-          # Install Fabric CLI with error handling
-          try {
-            pip install ms-fabric-cli --no-cache-dir
-            fab --version
+          foreach ($script in $scripts) {
+            Write-Host "Checking: $script" -ForegroundColor Cyan
             
-            # Verify installation
-            if (-not (Get-Command fab -ErrorAction SilentlyContinue)) {
-              throw "Fabric CLI command not found after installation"
+            try {
+              # Basic syntax validation
+              $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script -Raw), [ref]$null)
+              Write-Host "  ✅ Syntax OK" -ForegroundColor Green
             }
-            
-            Write-Host "✅ Fabric CLI installed successfully"
-          } catch {
-            Write-Error "❌ Fabric CLI installation failed: $_"
-            throw
+            catch {
+              Write-Host "  ❌ Syntax Error: $_" -ForegroundColor Red
+              $validationErrors++
+            }
           }
+          
+          if ($validationErrors -gt 0) {
+            Write-Host "❌ Found $validationErrors PowerShell syntax errors" -ForegroundColor Red
+            exit 1
+          }
+          
+          Write-Host "✅ All PowerShell scripts validated successfully" -ForegroundColor Green
 
-      - name: Deploy Fabric Artifacts (PowerShell)
-        shell: pwsh
-        env:
-          AZURE_CLIENT_ID: ${{ needs.fetch-secrets.outputs.azure-client-id }}
-          AZURE_CLIENT_SECRET: ${{ needs.fetch-secrets.outputs.azure-client-secret }}
-          AZURE_TENANT_ID: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
-        run: |
-          Write-Host "Deploying Fabric artifacts using PowerShell script..." -ForegroundColor Green
-          
-          # Set environment variables for the deployment script
-          $env:FABRIC_WORKSPACE_NAME = "fabric-otel-workspace"
-          $env:FABRIC_DATABASE_NAME = "otelobservabilitydb"
-          $env:RESOURCE_GROUP_NAME = "${{ env.RESOURCE_GROUP_NAME }}"
-          $env:LOCATION = "${{ env.LOCATION }}"
-          
-          # Export Azure credentials for service principal authentication (from Key Vault)
-          $env:AZURE_CLIENT_ID = "${{ needs.fetch-secrets.outputs.azure-client-id }}"
-          $env:AZURE_CLIENT_SECRET = "${{ needs.fetch-secrets.outputs.azure-client-secret }}"
-          $env:AZURE_TENANT_ID = "${{ needs.fetch-secrets.outputs.azure-tenant-id }}"
-          
-          # Use absolute path and verify script exists
-          $scriptPath = Join-Path $env:GITHUB_WORKSPACE "infra" "Deploy-FabricArtifacts.ps1"
-          
-          if (-not (Test-Path $scriptPath)) {
-            Write-Error "Deploy script not found at: $scriptPath"
-            throw "Script file missing"
-          }
-          
-          Write-Host "=================================================================" -ForegroundColor Cyan
-          Write-Host "🚀 STARTING FABRIC DEPLOYMENT" -ForegroundColor Yellow
-          Write-Host "=================================================================" -ForegroundColor Cyan
-          
-          # Check if tenant check was skipped
-          if ("${{ github.event.inputs.skip_tenant_check }}" -eq "true") {
-            Write-Host "⚠️  TENANT CHECK SKIPPED - Attempting deployment anyway" -ForegroundColor Yellow
-            Write-Host "If workspace creation fails, verify tenant settings manually." -ForegroundColor Yellow
-          } else {
-            Write-Host "✅ Tenant permissions guide completed" -ForegroundColor Green
-            Write-Host "Proceeding with Fabric deployment..." -ForegroundColor Green
-          }
-          
-          # Execute with enhanced error handling for tenant permission issues
-          try {
-            Write-Host "Executing script: $scriptPath" -ForegroundColor Cyan
-            & $scriptPath
-            
-            if ($LASTEXITCODE -ne 0) {
-              throw "Script exited with code: $LASTEXITCODE"
-            }
-            
-            Write-Host "=================================================================" -ForegroundColor Cyan
-            Write-Host "✅ FABRIC DEPLOYMENT COMPLETED SUCCESSFULLY" -ForegroundColor Green
-            Write-Host "=================================================================" -ForegroundColor Cyan
-            
-          } catch {
-            Write-Host "=================================================================" -ForegroundColor Red
-            Write-Host "❌ FABRIC DEPLOYMENT FAILED" -ForegroundColor Red
-            Write-Host "=================================================================" -ForegroundColor Red
-            Write-Error "Script execution failed: $_"
-            
-            # Provide specific guidance for workspace creation failures
-            if ($_.Exception.Message -match "Unauthorized|workspace|permission") {
-              Write-Host ""
-              Write-Host "🚨 TENANT PERMISSION ISSUE DETECTED" -ForegroundColor Yellow
-              Write-Host ""
-              Write-Host "This failure is likely due to insufficient tenant permissions." -ForegroundColor White
-              Write-Host "Please verify the following in Microsoft Fabric Admin Portal:" -ForegroundColor White
-              Write-Host ""
-              Write-Host "1. Service principals can access Fabric APIs = ENABLED" -ForegroundColor Cyan
-              Write-Host "2. Service principals can create workspaces = ENABLED" -ForegroundColor Cyan
-              Write-Host "3. Service Principal is in allowed security group" -ForegroundColor Cyan
-              Write-Host ""
-              Write-Host "📖 See: docs/TROUBLESHOOT_FABRIC_WORKSPACE_PERMISSIONS.md" -ForegroundColor Cyan
-              Write-Host ""
-              Write-Host "Re-run this workflow after configuring tenant settings." -ForegroundColor Yellow
-            }
-            
-            Write-Host "Continuing pipeline - Fabric deployment is optional for infrastructure validation" -ForegroundColor Yellow
-            exit 0  # Don't fail the entire pipeline for Fabric tenant permission issues
-          }
-
-  # ORIGINAL: Test using PowerShell script (Test-FabricIntegration.ps1)
-  test-fabric-deployment:
-    name: Test Fabric Deployment (PowerShell Scripts)
-    needs: [unit-tests, deploy-fabric-artifacts, fetch-secrets]
+  # DevContainer Documentation Check
+  validate-documentation:
+    name: Validate Documentation
     runs-on: ubuntu-latest
-    if: github.event.inputs.skip_deployment != 'true'
+    needs: [unit-tests]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure login (using Key Vault secrets)
-        uses: azure/login@v1
-        with:
-          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
-          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
-          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
-
-      - name: Setup PowerShell
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0'
-
-      - name: Install dependencies (PowerShell)
-        shell: pwsh
+      - name: Check Documentation Files
         run: |
-          Write-Host "Installing required tools..."
-          pip install ms-fabric-cli
+          echo "Checking essential documentation files..."
           
-          # Verify installations
-          fab --version
-          az --version
-          pwsh --version
-
-      - name: Run Fabric Integration Tests (PowerShell)
-        shell: pwsh
-        run: |
-          Write-Host "Running PowerShell Fabric integration tests..."
+          required_files=(
+            "README.md"
+            ".github/copilot-instructions.md"
+            "docs/LOCAL_DEVELOPMENT_SETUP.md"
+            ".devcontainer/devcontainer.json"
+          )
           
-          # Set environment variables
-          $env:FABRIC_WORKSPACE_NAME = "fabric-otel-workspace"
-          $env:FABRIC_DATABASE_NAME = "otelobservabilitydb"
-          $env:RESOURCE_GROUP_NAME = "${{ env.RESOURCE_GROUP_NAME }}"
-          $env:LOCATION = "${{ env.LOCATION }}"
+          missing_files=0
           
-          # Create test results directory
-          New-Item -ItemType Directory -Force -Path "test-results"
-          
-          # Use absolute path and verify script exists
-          $testScript = Join-Path $env:GITHUB_WORKSPACE "tests" "Test-FabricIntegration.ps1"
-          
-          if (-not (Test-Path $testScript)) {
-            Write-Error "Test script not found at: $testScript"
-            throw "Test script file missing"
-          }
-          
-          # Run the PowerShell comprehensive test suite with error handling
-          try {
-            Write-Host "Executing test script: $testScript"
-            & $testScript
-            
-            if ($LASTEXITCODE -ne 0) {
-              Write-Warning "Test script exited with code: $LASTEXITCODE"
-              Write-Host "Some tests may fail in CI/CD environment - this is expected"
-            }
-          } catch {
-            Write-Warning "Test execution had issues: $_"
-            Write-Host "Creating minimal test report for CI/CD pipeline"
-            
-            # Create minimal test results if script fails completely
-            $xmlContent = '<?xml version="1.0" encoding="UTF-8"?><testsuite name="fabric-integration-tests" tests="1" failures="0" errors="1" time="0"><testcase name="Integration.Tests.Attempted" classname="FabricIntegration" time="0"><error message="Test execution failed in CI/CD environment">Test script execution failed</error></testcase></testsuite>'
-            $xmlContent | Out-File -FilePath "test-results/junit.xml" -Encoding utf8
-          }
-
-      - name: Upload PowerShell Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: fabric-powershell-test-results
-          path: test-results/
-          retention-days: 30
-
-      - name: Publish PowerShell Test Results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Fabric Integration Tests (PowerShell)
-          path: test-results/junit.xml
-          reporter: java-junit
-          fail-on-error: false
-
-  # NEW: Additional .NET integration tests (runs in parallel with shell tests)
-  test-dotnet-integration:
-    name: Integration Tests (.NET xUnit)
-    needs: [unit-tests, deploy-fabric-artifacts, fetch-secrets] 
-    runs-on: ubuntu-latest
-    if: always() && (needs.unit-tests.result == 'success')
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0'
-
-      - name: Azure login (using Key Vault secrets)
-        uses: azure/login@v1
-        if: github.event.inputs.skip_deployment != 'true'
-        with:
-          client-id: ${{ needs.fetch-secrets.outputs.azure-client-id }}
-          tenant-id: ${{ needs.fetch-secrets.outputs.azure-tenant-id }}
-          subscription-id: ${{ needs.fetch-secrets.outputs.azure-subscription-id }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          echo "Installing required tools for .NET tests..."
-          pip install ms-fabric-cli
-          sudo apt-get update
-          sudo apt-get install -y jq bc
-          
-          # Verify installations
-          fab --version || echo "Fabric CLI not available"
-          az --version
-          jq --version
-          dotnet --version
-
-      - name: Restore Test Dependencies
-        run: dotnet restore tests/FabricObservability.IntegrationTests/FabricObservability.IntegrationTests.csproj
-
-      - name: Build Test Project
-        run: dotnet build tests/FabricObservability.IntegrationTests/FabricObservability.IntegrationTests.csproj --no-restore
-
-      - name: Run .NET Integration Tests
-        env:
-          RESOURCE_GROUP_NAME: ${{ env.RESOURCE_GROUP_NAME }}
-          FABRIC_WORKSPACE_NAME: ${{ env.FABRIC_WORKSPACE_NAME }}
-          FABRIC_DATABASE_NAME: ${{ env.FABRIC_DATABASE_NAME }}
-          DATA_COUNT: "25"
-          PERFORMANCE_THRESHOLD_MS: "10000"
-        run: |
-          echo "Running professional .NET xUnit integration tests..."
-          
-          # Create test results directory
-          mkdir -p test-results
-          
-          # Update test configuration with environment values
-          cat > tests/FabricObservability.IntegrationTests/appsettings.json << EOF
-          {
-            "ResourceGroupName": "${{ env.RESOURCE_GROUP_NAME }}",
-            "FabricWorkspaceName": "${{ env.FABRIC_WORKSPACE_NAME }}",
-            "FabricDatabaseName": "${{ env.FABRIC_DATABASE_NAME }}",
-            "DataCount": ${{ env.DATA_COUNT }},
-            "PerformanceThresholdMs": ${{ env.PERFORMANCE_THRESHOLD_MS }},
-            "TestConfiguration": {
-              "TimeoutSeconds": 300,
-              "RetryAttempts": 3,
-              "WaitBetweenRetriesMs": 5000
-            }
-          }
-          EOF
-          
-          # Determine test scope based on deployment status
-          if [ "${{ github.event.inputs.skip_deployment }}" == "true" ] || [ "${{ needs.deploy-fabric-artifacts.result }}" != "success" ]; then
-            echo "Running .NET tests in limited mode (deployment skipped or failed)..."
-            echo "Some tests may fail without full Azure infrastructure - this is expected"
-          else
-            echo "Running full .NET integration tests with Azure resources..."
-          fi
-          
-          # Run professional .NET tests with proper XML output
-          dotnet test tests/FabricObservability.IntegrationTests/FabricObservability.IntegrationTests.csproj \
-            --no-build \
-            --verbosity normal \
-            --logger "trx;LogFileName=dotnet-integration-results.trx" \
-            --logger "junit;LogFileName=dotnet-integration-results.xml" \
-            --results-directory ./test-results \
-            --collect:"XPlat Code Coverage" \
-            --configuration Release \
-            -- RunConfiguration.TreatNoTestsAsError=false \
-            || echo "Some .NET tests may fail without full Azure resources - this is expected"
-          
-          # Verify test results file exists
-          if [ -f "./test-results/dotnet-integration-results.xml" ]; then
-            echo "✅ Test results file generated successfully"
-            ls -la test-results/
-          else
-            echo "⚠️ Test results file not found, creating minimal report"
-            mkdir -p test-results
-            cat > test-results/dotnet-integration-results.xml << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <testsuite name="dotnet-integration-tests" tests="1" failures="0" errors="0" time="0">
-            <testcase name="Integration.Tests.Available" classname="FabricObservability.IntegrationTests" time="0"/>
-          </testsuite>
-          EOF
-          fi
-
-      - name: Upload .NET Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: dotnet-integration-test-results
-          path: |
-            test-results/
-            TestResults/
-          retention-days: 30
-
-      - name: Publish .NET Test Results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Professional .NET Integration Tests
-          path: test-results/dotnet-integration-results.xml
-          reporter: java-junit
-          fail-on-error: false
-
-      - name: Upload Coverage Reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: dotnet-coverage-reports
-          path: test-results/*/coverage.cobertura.xml
-          retention-days: 30
-
-  # ENHANCED: Final status report including both shell and .NET testing
-  report-status:
-    name: Report Overall Status
-    needs: [unit-tests, validate, deploy-infra, tenant-permissions-guide, deploy-fabric-artifacts, test-fabric-deployment, test-dotnet-integration, fetch-secrets]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Generate Summary Report
-        run: |
-          echo "## 🚀 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Comprehensive Build, Deploy & Test Pipeline**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Stage | Status | Details |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|---------|" >> $GITHUB_STEP_SUMMARY
-          echo "| .NET Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Framework |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bicep Validation | ${{ needs.validate.result == 'success' && '✅ Passed' || (needs.validate.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Infrastructure Template Validation |" >> $GITHUB_STEP_SUMMARY
-          echo "| Infrastructure Deployment | ${{ needs.deploy-infra.result == 'success' && '✅ Deployed' || (needs.deploy-infra.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Azure Resources via Bicep |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tenant Permissions Guide | ${{ needs.tenant-permissions-guide.result == 'success' && '✅ Completed' || (needs.tenant-permissions-guide.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Manual Fabric Tenant Configuration |" >> $GITHUB_STEP_SUMMARY
-          echo "| Fabric Artifacts Deployment | ${{ needs.deploy-fabric-artifacts.result == 'success' && '✅ Deployed' || (needs.deploy-fabric-artifacts.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | KQL Tables via Fabric CLI |" >> $GITHUB_STEP_SUMMARY
-          echo "| Shell Integration Tests | ${{ needs.test-fabric-deployment.result == 'success' && '✅ Passed' || (needs.test-fabric-deployment.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | PowerShell Scripts |" >> $GITHUB_STEP_SUMMARY
-          echo "| .NET Integration Tests | ${{ needs.test-dotnet-integration.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Tests |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Determine overall status
-          # Core success = unit tests + infrastructure deployment successful
-          # Fabric artifacts are optional (may fail in CI/CD environments)
-          CORE_SUCCESS="false"
-          INFRA_SUCCESS="false"
-          
-          # Check core infrastructure success
-          if [ "${{ needs.unit-tests.result }}" == "success" ] && ([ "${{ needs.deploy-infra.result }}" == "success" ] || [ "${{ needs.deploy-infra.result }}" == "skipped" ]); then
-            INFRA_SUCCESS="true"
-          fi
-          
-          # Overall success includes infrastructure + at least some testing working
-          if [ "$INFRA_SUCCESS" == "true" ] && ([ "${{ needs.test-dotnet-integration.result }}" == "success" ] || [ "${{ needs.test-fabric-deployment.result }}" == "success" ]); then
-            CORE_SUCCESS="true"
-          fi
-          
-          if [ "$CORE_SUCCESS" == "true" ]; then
-            echo "### 🎉 Overall Status: **SUCCESS** ✅" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Complete CI/CD pipeline executed successfully!**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ **BUILD**: Professional .NET testing framework" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ **DEPLOY**: Bicep infrastructure deployment" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ **TEST**: PowerShell scripts AND .NET xUnit integration tests" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ **VALIDATION**: Template validation + comprehensive testing" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Add status of optional components
-            if [ "${{ needs.deploy-fabric-artifacts.result }}" == "success" ]; then
-              echo "- ✅ **FABRIC**: Fabric CLI artifacts deployed successfully" >> $GITHUB_STEP_SUMMARY
+          for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ Found: $file"
             else
-              echo "- ⚠️ **FABRIC**: Fabric CLI deployment had issues (this is common in CI/CD)" >> $GITHUB_STEP_SUMMARY
+              echo "❌ Missing: $file"
+              missing_files=$((missing_files + 1))
+            fi
+          done
+          
+          if [ $missing_files -gt 0 ]; then
+            echo "❌ Missing $missing_files required documentation files"
+            exit 1
+          fi
+          
+          echo "✅ All required documentation files present"
+
+      - name: Validate DevContainer Configuration
+        run: |
+          echo "Validating DevContainer configuration..."
+          
+          if [ -f ".devcontainer/devcontainer.json" ]; then
+            # Basic JSON validation
+            if jq empty .devcontainer/devcontainer.json; then
+              echo "✅ DevContainer JSON is valid"
+            else
+              echo "❌ DevContainer JSON is invalid"
+              exit 1
             fi
             
-            if [ "${{ needs.tenant-permissions-guide.result }}" == "success" ]; then
-              echo "- ✅ **TENANT**: Manual tenant permissions guide completed" >> $GITHUB_STEP_SUMMARY
-            elif [ "${{ needs.tenant-permissions-guide.result }}" == "skipped" ]; then
-              echo "- ⏭️ **TENANT**: Tenant permissions check skipped (skip_tenant_check=true)" >> $GITHUB_STEP_SUMMARY
+            # Check for essential tools
+            if grep -q "azure-cli" .devcontainer/devcontainer.json; then
+              echo "✅ Azure CLI configured in DevContainer"
             else
-              echo "- ⚠️ **TENANT**: Tenant permissions guide had issues" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️  Azure CLI not explicitly configured in DevContainer"
             fi
-            
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "🏆 **End-to-end pipeline success: Build → Deploy → Test → Validate**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ❌ Overall Status: **FAILED**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "CI/CD pipeline failed. Please review the results above." >> $GITHUB_STEP_SUMMARY
+            echo "❌ DevContainer configuration missing"
             exit 1
           fi
 
-      - name: Report final status
+  # Final status report focused on development readiness
+  report-status:
+    name: Development Readiness Report
+    needs: [unit-tests, validate-templates, validate-scripts, validate-documentation]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Generate DevContainer-Focused Summary
         run: |
-          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
-            echo "✅ Complete CI/CD pipeline executed successfully"
-            echo "✅ BUILD: Professional .NET testing framework validated"
-            echo "✅ DEPLOY: Infrastructure deployment completed"  
-            echo "✅ TEST: Comprehensive testing suite passed"
+          echo "## 🛠️  DevContainer Development Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Main Branch - Local Development Focus**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| .NET Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} | Professional xUnit Framework |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bicep Templates | ${{ needs.validate-templates.result == 'success' && '✅ Valid' || '❌ Invalid' }} | Infrastructure Syntax Validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| PowerShell Scripts | ${{ needs.validate-scripts.result == 'success' && '✅ Valid' || '❌ Invalid' }} | Script Syntax Validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documentation | ${{ needs.validate-documentation.result == 'success' && '✅ Complete' || '❌ Incomplete' }} | DevContainer & Setup Docs |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine overall development readiness
+          if [ "${{ needs.unit-tests.result }}" == "success" ] && 
+             [ "${{ needs.validate-templates.result }}" == "success" ] && 
+             [ "${{ needs.validate-scripts.result }}" == "success" ] && 
+             [ "${{ needs.validate-documentation.result }}" == "success" ]; then
+            echo "### 🎉 Development Environment: **READY** ✅" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**DevContainer development environment validated successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **BUILD**: .NET project builds and tests pass" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **TEMPLATES**: Bicep infrastructure templates are valid" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **SCRIPTS**: PowerShell deployment scripts are syntactically correct" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **DOCS**: DevContainer setup documentation is complete" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚀 **Ready for DevContainer development!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. Open in DevContainer environment" >> $GITHUB_STEP_SUMMARY
+            echo "2. Run \`deploy/tools/Verify-DevEnvironment.ps1\` to validate local setup" >> $GITHUB_STEP_SUMMARY
+            echo "3. Use \`deploy/infra/Deploy-FabricArtifacts.ps1\` for manual deployment" >> $GITHUB_STEP_SUMMARY
+            echo "4. For CI/CD deployment, see \`ci-cd\` branch" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ CI/CD pipeline validation failed"
+            echo "### ❌ Development Environment: **NOT READY**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Some components failed validation. Please review the results above." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Failed Components:**" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+              echo "- ❌ .NET Unit Tests" >> $GITHUB_STEP_SUMMARY
+            fi
+            if [ "${{ needs.validate-templates.result }}" != "success" ]; then
+              echo "- ❌ Bicep Templates" >> $GITHUB_STEP_SUMMARY
+            fi
+            if [ "${{ needs.validate-scripts.result }}" != "success" ]; then
+              echo "- ❌ PowerShell Scripts" >> $GITHUB_STEP_SUMMARY
+            fi
+            if [ "${{ needs.validate-documentation.result }}" != "success" ]; then
+              echo "- ❌ Documentation" >> $GITHUB_STEP_SUMMARY
+            fi
+            exit 1
+          fi
+
+      - name: Report final development readiness
+        run: |
+          if [ "${{ needs.unit-tests.result }}" == "success" ] && 
+             [ "${{ needs.validate-templates.result }}" == "success" ] && 
+             [ "${{ needs.validate-scripts.result }}" == "success" ] && 
+             [ "${{ needs.validate-documentation.result }}" == "success" ]; then
+            echo "✅ DevContainer development environment ready"
+            echo "✅ BUILD: .NET project validated"
+            echo "✅ DEPLOY: Infrastructure templates validated"  
+            echo "✅ SCRIPTS: PowerShell scripts validated"
+            echo "✅ DOCS: DevContainer documentation complete"
+            echo ""
+            echo "🚀 Main branch focuses on DevContainer development"
+            echo "🔄 For full CI/CD deployment, use 'ci-cd' branch"
+          else
+            echo "❌ Development environment validation failed"
             exit 1
           fi

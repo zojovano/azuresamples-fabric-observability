@@ -146,7 +146,13 @@ function Invoke-KqlQuery {
     )
     
     try {
-        $result = fab kql execute --query $Query --output json 2>$null
+        # Use the same API approach as the deployment script
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        $Query | Out-File -FilePath $tempFile -Encoding UTF8
+        
+        $result = fab api "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --input "@$tempFile" 2>&1
+        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+        
         if ($LASTEXITCODE -eq 0 -and $result) {
             return $result | ConvertFrom-Json
         }
@@ -235,21 +241,31 @@ function Test-FabricWorkspace {
     Write-ColorOutput "Testing Fabric workspace..." $ColorInfo "🏗️"
     
     try {
-        fab workspace use --name $WorkspaceName >$null 2>&1
-        if ($LASTEXITCODE -ne 0) {
+        # List all workspaces and check if ours exists
+        $workspaceOutput = fab ls 2>&1
+        $workspaceExitCode = $LASTEXITCODE
+        
+        if ($workspaceExitCode -ne 0) {
             $duration = [int]((Get-Date) - $startTime).TotalSeconds
-            Write-TestResult "Fabric Workspace" "FAIL" "Cannot access workspace: $WorkspaceName" $duration
+            Write-TestResult "Fabric Workspace" "FAIL" "Cannot list workspaces" $duration
             return $false
         }
         
-        # Verify workspace exists
-        $workspaces = fab workspace list --output json 2>$null | ConvertFrom-Json
-        $workspace = $workspaces | Where-Object { $_.displayName -eq $WorkspaceName }
+        # Check if our workspace is in the list
+        $workspaceExists = $workspaceOutput | Select-String "$WorkspaceName.Workspace" -Quiet
         
-        if ($workspace) {
-            $duration = [int]((Get-Date) - $startTime).TotalSeconds
-            Write-TestResult "Fabric Workspace" "PASS" "Workspace '$WorkspaceName' exists and accessible" $duration
-            return $true
+        if ($workspaceExists) {
+            # Try to navigate to the workspace to verify access
+            $cdOutput = fab cd "$WorkspaceName.Workspace" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $duration = [int]((Get-Date) - $startTime).TotalSeconds
+                Write-TestResult "Fabric Workspace" "PASS" "Workspace '$WorkspaceName' exists and accessible" $duration
+                return $true
+            } else {
+                $duration = [int]((Get-Date) - $startTime).TotalSeconds
+                Write-TestResult "Fabric Workspace" "FAIL" "Cannot access workspace: $WorkspaceName" $duration
+                return $false
+            }
         } else {
             $duration = [int]((Get-Date) - $startTime).TotalSeconds
             Write-TestResult "Fabric Workspace" "FAIL" "Workspace '$WorkspaceName' not found" $duration
@@ -268,24 +284,23 @@ function Test-KqlDatabase {
     Write-ColorOutput "Testing KQL database..." $ColorInfo "🗄️"
     
     try {
-        fab kqldatabase use --name $DatabaseName >$null 2>&1
+        # First navigate to the workspace
+        $cdWorkspaceOutput = fab cd "$WorkspaceName.Workspace" 2>&1
         if ($LASTEXITCODE -ne 0) {
             $duration = [int]((Get-Date) - $startTime).TotalSeconds
-            Write-TestResult "KQL Database" "FAIL" "Cannot access database: $DatabaseName" $duration
+            Write-TestResult "KQL Database" "FAIL" "Cannot access workspace for database test" $duration
             return $false
         }
         
-        # Verify database exists
-        $databases = fab kqldatabase list --output json 2>$null | ConvertFrom-Json
-        $database = $databases | Where-Object { $_.displayName -eq $DatabaseName }
-        
-        if ($database) {
+        # Try to navigate to the database to verify it exists and is accessible
+        $cdDatabaseOutput = fab cd "$WorkspaceName.Workspace/$DatabaseName.KQLDatabase" 2>&1
+        if ($LASTEXITCODE -eq 0) {
             $duration = [int]((Get-Date) - $startTime).TotalSeconds
             Write-TestResult "KQL Database" "PASS" "Database '$DatabaseName' exists and accessible" $duration
             return $true
         } else {
             $duration = [int]((Get-Date) - $startTime).TotalSeconds
-            Write-TestResult "KQL Database" "FAIL" "Database '$DatabaseName' not found" $duration
+            Write-TestResult "KQL Database" "FAIL" "Cannot access database: $DatabaseName" $duration
             return $false
         }
         

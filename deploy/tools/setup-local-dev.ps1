@@ -12,8 +12,8 @@ if ($Help) {
 This script helps you quickly set up local development for Fabric deployments.
 
 Usage:
-  pwsh tools/setup-local-dev.ps1           # Interactive setup
-  pwsh tools/setup-local-dev.ps1 -Help     # Show this help
+  pwsh deploy/tools/setup-local-dev.ps1           # Interactive setup
+  pwsh deploy/tools/setup-local-dev.ps1 -Help     # Show this help
 
 What this script does:
 1. Builds the secret manager tool
@@ -121,8 +121,8 @@ switch ($choice) {
             Write-Success "User secrets configured!"
             Write-Host ""
             Write-Info "Next steps:"
-            Write-Host "1. Test authentication: pwsh tools/Test-FabricLocal.ps1 -TestAuth"
-            Write-Host "2. Run deployment: pwsh tools/Test-FabricLocal.ps1 -RunDeploy"
+            Write-Host "1. Test authentication: pwsh deploy/tools/Test-FabricLocal.ps1 -TestAuth"
+            Write-Host "2. Run deployment: pwsh deploy/tools/Test-FabricLocal.ps1 -RunDeploy"
         }
     }
     
@@ -144,8 +144,8 @@ switch ($choice) {
         Write-Host ""
         
         Write-Info "Next steps:"
-        Write-Host "1. Test authentication: pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName '$vaultName' -TestAuth"
-        Write-Host "2. Run deployment: pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName '$vaultName' -RunDeploy"
+        Write-Host "1. Test authentication: pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName '$vaultName' -TestAuth"
+        Write-Host "2. Run deployment: pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName '$vaultName' -RunDeploy"
     }
     
     "3" {
@@ -165,8 +165,8 @@ switch ($choice) {
         Write-Host ""
         Write-Info "Next steps:"
         Write-Host "1. Set the environment variables above"
-        Write-Host "2. Test authentication: pwsh tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth"
-        Write-Host "3. Run deployment: pwsh tools/Test-FabricLocal.ps1 -Mode Environment -RunDeploy"
+        Write-Host "2. Test authentication: pwsh deploy/tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth"
+        Write-Host "3. Run deployment: pwsh deploy/tools/Test-FabricLocal.ps1 -Mode Environment -RunDeploy"
     }
 }
 
@@ -174,4 +174,4 @@ Write-Host ""
 Write-Success "Setup complete!"
 Write-Host ""
 Write-Info "For detailed documentation, see: docs/LOCAL_DEVELOPMENT_SETUP.md"
-Write-Info "For secret management, use the tool at: tools/DevSecretManager/"
+Write-Info "For secret management, use the tool at: deploy/tools/DevSecretManager/"

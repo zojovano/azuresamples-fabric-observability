@@ -221,7 +221,7 @@ jobs:
         run: |
           az deployment sub create \
             --location ${{ github.event.inputs.location || 'swedencentral' }} \
-            --template-file infra/Bicep/main.bicep \
+            --template-file deploy/infra/Bicep/main.bicep \
             --parameters environmentName=sample
 
   deploy-fabric-artifacts:
@@ -230,7 +230,7 @@ jobs:
     steps:
       - name: Deploy Fabric Resources
         shell: pwsh
-        run: ./infra/Deploy-FabricArtifacts.ps1
+        run: ./deploy/infra/Deploy-FabricArtifacts.ps1
 ```
 
 ## 🚀 Quick Start
@@ -264,7 +264,7 @@ code .
 ### Option 2: Manual Setup
 ```powershell
 # Simple deployment (uses environment variables or shared Key Vault)
-cd infra/Bicep
+cd deploy/infra/Bicep
 ./deploy.ps1
 
 # Use specific shared Key Vault
@@ -326,7 +326,12 @@ azuresamples-fabric-observability/
 ├── app/                          # Sample applications
 │   ├── dotnet-client/           # .NET worker with OTEL
 │   └── otel-eh-receiver/        # OTEL Collector container
-├── infra/                       # Infrastructure as Code
+├── deploy/                      # Deployment and Infrastructure
+│   ├── infra/                   # Infrastructure as Code
+│   │   ├── Bicep/              # Azure Bicep templates
+│   │   ├── kql-definitions/    # KQL table definitions
+│   │   └── Deploy-FabricArtifacts.ps1
+│   └── tools/                   # Development and deployment tools
 │   ├── Bicep/                   # Azure Bicep templates
 │   ├── kql-definitions/         # Fabric table schemas
 │   └── Deploy-FabricArtifacts.ps1  # Fabric deployment script

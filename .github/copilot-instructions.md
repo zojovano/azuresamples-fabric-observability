@@ -21,10 +21,10 @@ This project **exclusively uses PowerShell scripts** - all Bash equivalents were
 
 ```powershell
 # Full infrastructure deployment
-cd infra/Bicep && .\deploy.ps1
+cd deploy/infra/Bicep && .\deploy.ps1
 
 # Fabric artifacts deployment (requires Fabric CLI)
-.\infra\Deploy-FabricArtifacts.ps1
+.\deploy\infra\Deploy-FabricArtifacts.ps1
 
 # Comprehensive testing
 .\tests\Test-FabricIntegration.ps1
@@ -41,7 +41,7 @@ fab auth whoami  # Always verify
 ```
 
 ### KQL Table Deployment Pattern
-Tables use `.create-merge` commands for idempotency. Schema example from `infra/kql-definitions/tables/otel-logs.kql`:
+Tables use `.create-merge` commands for idempotency. Schema example from `deploy/infra/kql-definitions/tables/otel-logs.kql`:
 ```kql
 .create-merge table OTELLogs (
     Timestamp:datetime, 
@@ -79,6 +79,14 @@ The project includes sophisticated OTEL data generators in `tests/FabricObservab
 
 ## Development Environment
 
+### **DevContainer-First Development Strategy**
+This main branch focuses **exclusively on DevContainer-based development and testing**. GitHub Actions workflows have been moved to a separate branch to maintain CI/CD capabilities while keeping the main branch focused on local development experience.
+
+**Branch Strategy:**
+- **`main` branch**: DevContainer-focused development, local testing, sample validation
+- **`ci-cd` branch**: GitHub Actions workflows and automated deployments
+- **Focus**: Manual deployment testing and sample validation within DevContainer environment
+
 ### DevContainer Requirements
 This project **exclusively runs within a DevContainer environment** on Linux. All commands, scripts, and tools are designed for Linux execution within the containerized development environment.
 
@@ -115,11 +123,13 @@ dotnet --version # .NET SDK
 - **Exporters**: `debug` + `azuredataexplorer`
 
 ### GitHub Actions Integration
-`ci-cd-pipeline.yml` orchestrates:
+`ci-cd-pipeline.yml` orchestrates automated deployments (maintained in separate `ci-cd` branch):
 1. Unit tests (.NET xUnit)
 2. Infrastructure deployment (Bicep)
 3. Fabric artifacts deployment (PowerShell + Fabric CLI)
 4. Integration testing (PowerShell + JUnit XML)
+
+**Important**: Main branch focuses on DevContainer development. GitHub Actions workflows are maintained in the `ci-cd` branch to preserve CI/CD capabilities while keeping main branch focused on local development experience.
 
 Key workflow pattern: Uses `shell: pwsh` for all PowerShell execution.
 
@@ -133,8 +143,8 @@ Infrastructure uses Azure Verified Modules pattern:
 
 ## Critical File Locations
 
-**Deployment Scripts**: `infra/Deploy-FabricArtifacts.ps1` (main), `infra/Install-FabricCLI.ps1`
-**KQL Definitions**: `infra/kql-definitions/tables/*.kql` (three files for logs/metrics/traces)
+**Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts.ps1` (main), `deploy/infra/Install-FabricCLI.ps1`
+**KQL Definitions**: `deploy/infra/kql-definitions/tables/*.kql` (three files for logs/metrics/traces)
 **Test Suite**: `tests/Test-FabricIntegration.ps1` (PowerShell), `tests/FabricObservability.IntegrationTests/` (.NET)
 **OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline)
 **Sample App**: `app/dotnet-client/OTELWorker/` (.NET worker with OTEL instrumentation)

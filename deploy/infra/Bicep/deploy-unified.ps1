@@ -11,7 +11,7 @@
     3. Interactive prompts (last resort)
     
     Note: This script uses existing shared infrastructure (Key Vault, service principals)
-    managed by the platform team. It does not create new Key Vaults.
+    managed by the platform         Write-ColorOutput "1. Deploy Fabric artifacts: ../Deploy-FabricArtifacts.ps1" $ColorInfo "  🔧"eam. It does not create new Key Vaults.
     
 .PARAMETER Location
     Azure region for deployment
@@ -470,7 +470,7 @@ if ($deploymentSuccess) {
     if ($config.Source -eq "KeyVault") {
         Write-ColorOutput "1. Configure GitHub repository secrets:" $ColorInfo "  📝"
         Write-ColorOutput "   SHARED_KEYVAULT_NAME: $($config.VaultName)" $ColorWarning "    •"
-        Write-ColorOutput "2. Deploy Fabric artifacts: ./infra/Deploy-FabricArtifacts.ps1" $ColorInfo "  🔧"
+        Write-ColorOutput "2. Deploy Fabric artifacts: ../Deploy-FabricArtifacts.ps1" $ColorInfo "  🔧"
     } else {
         Write-ColorOutput "1. Deploy Fabric artifacts: ./infra/Deploy-FabricArtifacts.ps1" $ColorInfo "  🔧"
         Write-ColorOutput "2. Run integration tests: ./tests/Test-FabricIntegration.ps1" $ColorInfo "  🧪"

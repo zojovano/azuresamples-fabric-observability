@@ -138,7 +138,7 @@ function Show-ManualWorkspaceInstructions {
     Write-ColorOutput "11. Click 'Add'" $ColorInfo
     Write-ColorOutput "" $ColorInfo
     Write-ColorOutput "After manual creation, run:" $ColorSuccess
-    Write-ColorOutput "  pwsh ./infra/Deploy-FabricArtifacts.ps1 -SkipWorkspaceCreation" $ColorSuccess
+    Write-ColorOutput "  pwsh ./deploy/infra/Deploy-FabricArtifacts.ps1 -SkipWorkspaceCreation" $ColorSuccess
 }
 
 function Show-TenantSettingsInstructions {

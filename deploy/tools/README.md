@@ -7,53 +7,53 @@ This directory contains development and deployment tools for the Microsoft Fabri
 ### Interactive Setup
 | Tool | Description | Usage |
 |------|-------------|-------|
-| [`setup-local-dev.ps1`](setup-local-dev.ps1) | Interactive local development setup wizard | `pwsh tools/setup-local-dev.ps1` |
+| [`setup-local-dev.ps1`](setup-local-dev.ps1) | Interactive local development setup wizard | `pwsh deploy/tools/setup-local-dev.ps1` |
 
 ### Testing & Validation
 | Tool | Description | Usage |
 |------|-------------|-------|
-| [`Verify-DevEnvironment.ps1`](Verify-DevEnvironment.ps1) | DevContainer environment verification (checks all required tools) | `pwsh tools/Verify-DevEnvironment.ps1` |
-| [`Test-FabricLocal.ps1`](Test-FabricLocal.ps1) | Comprehensive Fabric authentication and deployment testing | `pwsh tools/Test-FabricLocal.ps1 -TestAuth` |
-| [`test-fabric-auth.ps1`](test-fabric-auth.ps1) | Quick Fabric authentication test | `pwsh tools/test-fabric-auth.ps1` |
+| [`Verify-DevEnvironment.ps1`](Verify-DevEnvironment.ps1) | DevContainer environment verification (checks all required tools) | `pwsh deploy/tools/Verify-DevEnvironment.ps1` |
+| [`Test-FabricLocal.ps1`](Test-FabricLocal.ps1) | Comprehensive Fabric authentication and deployment testing | `pwsh deploy/tools/Test-FabricLocal.ps1 -TestAuth` |
+| [`test-fabric-auth.ps1`](test-fabric-auth.ps1) | Quick Fabric authentication test | `pwsh deploy/tools/test-fabric-auth.ps1` |
 
 ### .NET Development
 | Tool | Description | Usage |
 |------|-------------|-------|
-| [`DevSecretManager/`](DevSecretManager/) | .NET console app for secure credential management | `dotnet run --project tools/DevSecretManager` |
+| [`DevSecretManager/`](DevSecretManager/) | .NET console app for secure credential management | `dotnet run --project deploy/tools/DevSecretManager` |
 
 ## 🚀 Quick Start
 
 ### 0. Verify DevContainer Environment (Recommended First Step)
 ```powershell
 # Verify all required tools are installed in DevContainer
-pwsh tools/Verify-DevEnvironment.ps1
+pwsh deploy/tools/Verify-DevEnvironment.ps1
 
 # Include authentication check
-pwsh tools/Verify-DevEnvironment.ps1 -CheckAuth
+pwsh deploy/tools/Verify-DevEnvironment.ps1 -CheckAuth
 ```
 
 ### 1. Interactive Setup (Recommended)
 ```powershell
 # Run interactive setup wizard
-pwsh tools/setup-local-dev.ps1
+pwsh deploy/tools/setup-local-dev.ps1
 ```
 
 ### 2. Manual Configuration
 ```powershell
 # Set up User Secrets
-pwsh tools/Test-FabricLocal.ps1 -SetupSecrets
+pwsh deploy/tools/Test-FabricLocal.ps1 -SetupSecrets
 
 # Test authentication
-pwsh tools/Test-FabricLocal.ps1 -TestAuth
+pwsh deploy/tools/Test-FabricLocal.ps1 -TestAuth
 
 # Run deployment test
-pwsh tools/Test-FabricLocal.ps1 -RunDeploy
+pwsh deploy/tools/Test-FabricLocal.ps1 -RunDeploy
 ```
 
 ### 3. Using .NET Secret Manager
 ```powershell
 # Navigate to DevSecretManager
-cd tools/DevSecretManager
+cd deploy/tools/DevSecretManager
 
 # Set a secret
 dotnet run set --key "Azure:ClientId" --value "your-client-id"
@@ -98,10 +98,10 @@ DevContainer environment verification script that checks all required tools are 
 **Usage:**
 ```powershell
 # Basic verification
-pwsh tools/Verify-DevEnvironment.ps1
+pwsh deploy/tools/Verify-DevEnvironment.ps1
 
 # Include authentication check
-pwsh tools/Verify-DevEnvironment.ps1 -CheckAuth
+pwsh deploy/tools/Verify-DevEnvironment.ps1 -CheckAuth
 ```
 
 **Exit Codes:**
@@ -117,8 +117,8 @@ Interactive wizard that guides you through:
 
 **Options:**
 ```powershell
-pwsh tools/setup-local-dev.ps1           # Interactive mode
-pwsh tools/setup-local-dev.ps1 -Help     # Show help
+pwsh deploy/tools/setup-local-dev.ps1           # Interactive mode
+pwsh deploy/tools/setup-local-dev.ps1 -Help     # Show help
 ```
 
 ### Test-FabricLocal.ps1
@@ -127,25 +127,25 @@ Comprehensive testing tool with multiple modes:
 **Basic Usage:**
 ```powershell
 # Set up User Secrets interactively
-pwsh tools/Test-FabricLocal.ps1 -SetupSecrets
+pwsh deploy/tools/Test-FabricLocal.ps1 -SetupSecrets
 
 # Test authentication only
-pwsh tools/Test-FabricLocal.ps1 -TestAuth
+pwsh deploy/tools/Test-FabricLocal.ps1 -TestAuth
 
 # Run full deployment
-pwsh tools/Test-FabricLocal.ps1 -RunDeploy
+pwsh deploy/tools/Test-FabricLocal.ps1 -RunDeploy
 ```
 
 **Key Vault Mode:**
 ```powershell
 # Test with Key Vault
-pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-vault" -TestAuth
+pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-vault" -TestAuth
 ```
 
 **Environment Variable Mode:**
 ```powershell
 # Test with environment variables
-pwsh tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
+pwsh deploy/tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
 ```
 
 ### DevSecretManager
@@ -159,7 +159,7 @@ pwsh tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
 
 **Commands:**
 ```powershell
-cd tools/DevSecretManager
+cd deploy/tools/DevSecretManager
 
 # Basic operations
 dotnet run set --key "Azure:ClientId" --value "your-value"

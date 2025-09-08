@@ -491,7 +491,7 @@ function Deploy-KqlTables {
         
         # Determine KQL directory path
         $kqlDir = if ($env:GITHUB_WORKSPACE) {
-            Join-Path $env:GITHUB_WORKSPACE "infra/kql-definitions/tables"
+            Join-Path $env:GITHUB_WORKSPACE "deploy/infra/kql-definitions/tables"
         } else {
             Join-Path $PSScriptRoot "kql-definitions/tables"
         }

@@ -53,13 +53,13 @@ This comprehensive guide covers DevContainer setup, Git configuration, deploymen
    ./.devcontainer/setup-git-config.sh "Your Name" "your.email@example.com"
    ```
 
-3. **Verify Environment:**
+1. **Verify DevContainer Environment** (recommended first step):
    ```bash
-   # Run verification script
-   pwsh tools/Verify-DevEnvironment.ps1
+   # Verify all required tools are installed
+   pwsh deploy/tools/Verify-DevEnvironment.ps1
    
-   # Or with authentication check
-   pwsh tools/Verify-DevEnvironment.ps1 -CheckAuth
+   # Include authentication check  
+   pwsh deploy/tools/Verify-DevEnvironment.ps1 -CheckAuth
    ```
 
 ### What's Included
@@ -79,29 +79,29 @@ This comprehensive guide covers DevContainer setup, Git configuration, deploymen
 
 1. **Setup secrets interactively:**
    ```powershell
-   pwsh tools/Test-FabricLocal.ps1 -SetupSecrets
+   pwsh deploy/tools/Test-FabricLocal.ps1 -SetupSecrets
    ```
 
 2. **Test authentication:**
    ```powershell
-   pwsh tools/Test-FabricLocal.ps1 -TestAuth
+   pwsh deploy/tools/Test-FabricLocal.ps1 -TestAuth
    ```
 
 3. **Run deployment:**
    ```powershell
-   pwsh tools/Test-FabricLocal.ps1 -RunDeploy
+   pwsh deploy/tools/Test-FabricLocal.ps1 -RunDeploy
    ```
 
 ### Option 2: Azure Key Vault
 
 1. **Test with Key Vault:**
    ```powershell
-   pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -TestAuth
+   pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -TestAuth
    ```
 
 2. **Deploy with Key Vault:**
    ```powershell
-   pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -RunDeploy
+   pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -RunDeploy
    ```
 
 ### Option 3: Environment Variables
@@ -115,16 +115,16 @@ This comprehensive guide covers DevContainer setup, Git configuration, deploymen
 
 2. **Test with environment:**
    ```powershell
-   pwsh tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
+   pwsh deploy/tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
    ```
 
 ## 🔧 Secret Manager Tool
 
-The included .NET tool (`tools/DevSecretManager`) provides secure secret management:
+The included .NET tool (`deploy/tools/DevSecretManager`) provides secure secret management:
 
 ```bash
 # Build the tool
-cd tools/DevSecretManager
+cd deploy/tools/DevSecretManager
 dotnet build
 
 # Set secrets
@@ -236,7 +236,7 @@ After your local testing works:
 #### 1. Deploy Azure Infrastructure
 ```powershell
 # Navigate to Bicep directory
-cd infra/Bicep
+cd deploy/infra/Bicep
 
 # Deploy infrastructure
 ./deploy.ps1
@@ -245,7 +245,7 @@ cd infra/Bicep
 #### 2. Deploy Fabric Artifacts
 ```powershell
 # Deploy workspace, database, and tables
-./infra/Deploy-FabricArtifacts.ps1
+./deploy/infra/Deploy-FabricArtifacts.ps1
 ```
 
 #### 3. Validate Deployment
@@ -384,9 +384,9 @@ deployment_mode:
 ## 📋 Additional Resources
 
 ### Key Files
-- **Main Deployment Script**: `infra/Deploy-FabricArtifacts.ps1`
-- **Bicep Templates**: `infra/Bicep/main.bicep`
-- **KQL Table Definitions**: `infra/kql-definitions/tables/`
+- **Main Deployment Script**: `deploy/infra/Deploy-FabricArtifacts.ps1`
+- **Bicep Templates**: `deploy/infra/Bicep/main.bicep`
+- **KQL Table Definitions**: `deploy/infra/kql-definitions/tables/`
 - **Test Suite**: `tests/Test-FabricIntegration.ps1`
 - **DevContainer Config**: `.devcontainer/devcontainer.json`
 

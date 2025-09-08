@@ -209,8 +209,8 @@ function Test-FabricCLI {
 
 function Test-ProjectStructure {
     $requiredPaths = @(
-        @{ Path = "infra/Bicep/main.bicep"; Description = "Main Bicep template" },
-        @{ Path = "infra/Deploy-FabricArtifacts.ps1"; Description = "Fabric deployment script" },
+        @{ Path = "deploy/infra/Bicep/main.bicep"; Description = "Main Bicep template" },
+        @{ Path = "deploy/infra/Deploy-FabricArtifacts.ps1"; Description = "Fabric deployment script" },
         @{ Path = "app/otel-eh-receiver/config.yaml"; Description = "OTEL Collector config" },
         @{ Path = "tests/Test-FabricIntegration.ps1"; Description = "Integration tests" },
         @{ Path = ".devcontainer/devcontainer.json"; Description = "DevContainer configuration" }
@@ -314,7 +314,7 @@ if ($failedChecks -eq 0) {
 Write-Host ""
 Write-ColorOutput "🚀 Next Steps:" $ColorInfo
 Write-ColorOutput "1. Fix any issues shown above" $ColorInfo "  •"
-Write-ColorOutput "2. Run: pwsh tools/Test-FabricLocal.ps1 -SetupSecrets" $ColorInfo "  •"
-Write-ColorOutput "3. Run: cd infra/Bicep && ./deploy.ps1" $ColorInfo "  •"
+Write-ColorOutput "2. Run: pwsh deploy/tools/Test-FabricLocal.ps1 -SetupSecrets" $ColorInfo "  •"
+Write-ColorOutput "3. Run: cd deploy/infra/Bicep && ./deploy.ps1" $ColorInfo "  •"
 
 exit $failedChecks

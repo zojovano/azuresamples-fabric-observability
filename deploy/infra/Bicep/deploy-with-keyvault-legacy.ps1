@@ -253,7 +253,7 @@ try {
         Write-ColorOutput "==== Next Steps ====" $ColorInfo
         Write-ColorOutput "1. Add GitHub repository secrets shown above" $ColorWarning "📝"
         Write-ColorOutput "2. Update GitHub Actions workflow to use Key Vault: $($deployment.Outputs.keyVaultName.Value)" $ColorWarning "⚙️"
-        Write-ColorOutput "3. Test the deployment: pwsh tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName '$($deployment.Outputs.keyVaultName.Value)'" $ColorWarning "🧪"
+        Write-ColorOutput "3. Test the deployment: pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName '$($deployment.Outputs.keyVaultName.Value)'" $ColorWarning "🧪"
     } else {
         Write-ColorOutput "Deployment failed with state: $($deployment.ProvisioningState)" $ColorError "❌"
         exit 1

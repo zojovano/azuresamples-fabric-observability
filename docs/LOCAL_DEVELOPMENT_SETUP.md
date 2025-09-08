@@ -1,6 +1,15 @@
-# 🧪 Local Development Setup Guide
+# Local Development Setup and Troubleshooting Guide
 
-This comprehensive guide covers DevContainer setup, Git configuration, and secure Fabric testing for local development.
+This comprehensive guide covers DevContainer setup, Git configuration, deployment procedures, and troubleshooting for the Azure Fabric OTEL Observability sample.
+
+## 📖 Quick Navigation
+
+| Section | Purpose | When to Use |
+|---------|---------|-------------|
+| [🐳 **DevContainer Setup**](#-devcontainer-setup) | Development environment | Setting up development environment |
+| [🚀 **Local Development**](#-local-development) | Secret management and testing | Development and testing work |
+| [🏗️ **Deployment Procedures**](#-deployment-procedures) | Step-by-step deployment | Deploying the sample |
+| [🔧 **Troubleshooting**](#-troubleshooting) | Common issues and solutions | When encountering problems |
 
 ## 🐳 DevContainer Setup
 
@@ -62,7 +71,9 @@ This comprehensive guide covers DevContainer setup, Git configuration, and secur
 - **Git** with VS Code credential integration
 - **All VS Code extensions** for Azure, .NET, PowerShell development
 
-## 🚀 Quick Start
+## 🚀 Local Development
+
+### Secret Management Options
 
 ### Option 1: User Secrets (Recommended for Development)
 
@@ -186,3 +197,206 @@ After your local testing works:
 1. Verify the same service principal works in GitHub Actions
 2. Ensure GitHub Secrets match your local configuration
 3. Push your tested changes with confidence!
+
+---
+
+## 🏗️ Deployment Procedures
+
+### 🤖 Automated Deployment (Recommended)
+
+**GitHub Actions with Shared Key Vault Integration**
+
+#### Setup Requirements
+1. **Platform Team Prerequisites** (managed externally):
+   - Shared Azure Key Vault with access policies
+   - Project secrets populated in Key Vault
+   - Shared service principal with Key Vault permissions
+
+2. **Repository Configuration** (developer responsibility):
+   ```yaml
+   # Required GitHub Secrets (minimal)
+   SHARED_KEYVAULT_NAME: "platform-shared-keyvault"
+   AZURE_CLIENT_ID: "shared-sp-client-id"
+   AZURE_TENANT_ID: "azure-tenant-id"
+   AZURE_SUBSCRIPTION_ID: "azure-subscription-id"
+   ```
+
+#### Workflow Process
+1. **Fetch Secrets** - Retrieves project secrets from shared Key Vault
+2. **Deploy Infrastructure** - Bicep templates for Azure resources
+3. **Deploy Fabric Artifacts** - Fabric CLI for workspace, database, tables
+4. **Run Tests** - Validation and integration testing
+
+#### Triggering Deployment
+- **Automatic**: Push to `main` branch
+- **Manual**: Actions tab → "Run workflow" with optional parameters
+
+### 🛠️ Manual Deployment
+
+#### 1. Deploy Azure Infrastructure
+```powershell
+# Navigate to Bicep directory
+cd infra/Bicep
+
+# Deploy infrastructure
+./deploy.ps1
+```
+
+#### 2. Deploy Fabric Artifacts
+```powershell
+# Deploy workspace, database, and tables
+./infra/Deploy-FabricArtifacts.ps1
+```
+
+#### 3. Validate Deployment
+```powershell
+# Run integration tests
+./tests/Test-FabricIntegration.ps1
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### 🔐 Authentication Issues
+
+#### GitHub Actions Failures
+**Symptoms**: Authentication errors, missing secrets, invalid credentials
+
+**Solutions**:
+1. **Verify GitHub Secrets**: Settings → Secrets → Actions
+2. **Check Service Principal**: Ensure valid and not expired
+3. **Validate Key Vault Access**: Confirm shared service principal permissions
+
+```bash
+# Test service principal locally
+az login --service-principal \
+  --username $AZURE_CLIENT_ID \
+  --password $AZURE_CLIENT_SECRET \
+  --tenant $AZURE_TENANT_ID
+```
+
+#### Fabric CLI Authentication
+**Symptoms**: "fab: command not found", authentication failures
+
+**Solutions**:
+```powershell
+# Check installation
+fab --version
+
+# Re-authenticate
+fab auth logout
+fab auth login
+fab auth whoami
+```
+
+### 🏗️ Deployment Issues
+
+#### Bicep Template Failures
+**Common Issues**:
+- Resource naming conflicts
+- Permission errors
+- Quota exceeded
+
+**Solutions**:
+```bash
+# Validate templates
+az bicep build --file main.bicep
+
+# Check deployment
+az deployment sub show --name "your-deployment"
+```
+
+#### Fabric Workspace Permissions
+**Symptoms**: Cannot create workspace, capacity not found
+
+**Required Actions** (Fabric Administrator):
+1. **Enable Tenant Settings**: Allow workspace creation
+2. **Configure Security Groups**: Add service principal to appropriate groups
+3. **Assign Capacity Admin**: Grant admin permissions on Fabric capacity
+
+**Verification**:
+```powershell
+# Test workspace operations
+fab workspace list
+fab workspace create --display-name "test-workspace"
+```
+
+### 🐍 PowerShell and CLI Issues
+
+#### PowerShell Execution Problems
+**Symptoms**: Execution policy errors, script syntax issues
+
+**Solutions**:
+```yaml
+# Use PowerShell Core in workflows
+shell: pwsh
+run: |
+  # Use absolute paths
+  $scriptPath = Join-Path $env:GITHUB_WORKSPACE "infra" "Deploy-FabricArtifacts.ps1"
+  & $scriptPath
+```
+
+#### Tool Installation Failures
+**Solutions**:
+```powershell
+# Install Fabric CLI
+python -m pip install --upgrade pip
+pip install ms-fabric-cli --no-cache-dir
+
+# Verify installation
+fab --version
+```
+
+### 🚀 Quick Fix Actions
+
+1. **Check All Secrets**: Verify GitHub repository secrets are present
+2. **Test Locally**: Run scripts locally with `-WhatIf` parameter
+3. **Validate Templates**: Build Bicep templates before deployment
+4. **Check Permissions**: Ensure service principal has all required roles
+5. **Restart Workflow**: Sometimes temporary Azure service issues resolve themselves
+
+### 🔧 Emergency Workarounds
+
+**Skip Fabric Deployment Temporarily**:
+```yaml
+# Add to workflow inputs
+skip_fabric:
+  description: 'Skip Fabric CLI deployment'
+  default: false
+  type: boolean
+```
+
+**Infrastructure Only Mode**:
+```yaml
+deployment_mode:
+  description: 'Deployment mode'
+  default: 'full-deployment'
+  type: choice
+  options:
+  - infrastructure-only
+  - fabric-only
+  - full-deployment
+```
+
+---
+
+## 📋 Additional Resources
+
+### Key Files
+- **Main Deployment Script**: `infra/Deploy-FabricArtifacts.ps1`
+- **Bicep Templates**: `infra/Bicep/main.bicep`
+- **KQL Table Definitions**: `infra/kql-definitions/tables/`
+- **Test Suite**: `tests/Test-FabricIntegration.ps1`
+- **DevContainer Config**: `.devcontainer/devcontainer.json`
+
+### External Documentation
+- [Microsoft Fabric CLI Documentation](https://learn.microsoft.com/en-us/rest/api/fabric/articles/fabric-command-line-interface)
+- [Azure Bicep Documentation](https://docs.microsoft.com/azure/azure-resource-manager/bicep/)
+- [OpenTelemetry with Azure Data Explorer](https://learn.microsoft.com/azure/data-explorer/open-telemetry-connector)
+- [GitHub Actions Documentation](https://docs.github.com/actions)
+
+### Support
+- **Issues**: Use GitHub Issues for bug reports
+- **Discussions**: Use GitHub Discussions for questions
+- **Local Development**: Follow this guide for development setup

@@ -38,7 +38,7 @@ az extension add --name azure-devops
 
 # Install Microsoft Fabric CLI (minimal Python installation)
 echo "🎯 Installing Microsoft Fabric CLI..."
-pip3 install --user fabric-cli
+pip3 install --user ms-fabric-cli
 
 # Ensure the local bin directory is in PATH
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
@@ -93,7 +93,10 @@ echo "✅ Validating installations..."
 echo "Azure CLI version: $(az version --output tsv --query '"azure-cli"' 2>/dev/null || echo 'Not available')"
 echo ".NET version: $(dotnet --version 2>/dev/null || echo 'Not available')"
 echo "PowerShell version: $(pwsh --version 2>/dev/null || echo 'Not available')"
-echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Installing...')"
+
+# Check Fabric CLI with PATH update
+export PATH="$HOME/.local/bin:$PATH"
+echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Installation pending - restart terminal')"
 
 # Verify PowerShell 7.5.2 installation
 if pwsh -Command "if (\$PSVersionTable.PSVersion -ge [Version]'7.5.2') { Write-Host 'PowerShell 7.5.2+ confirmed' } else { Write-Host 'PowerShell version check failed' }" 2>/dev/null; then
@@ -133,7 +136,7 @@ echo "Available tools:"
 echo "  - Azure CLI: $(az version --output tsv --query '"azure-cli"')"
 echo "  - .NET: $(dotnet --version)"
 echo "  - PowerShell: $(pwsh --version)"
-echo "  - Fabric CLI: $(fab --version 2>/dev/null || echo 'Run: fab auth login')"
+echo "  - Fabric CLI: $($HOME/.local/bin/fab --version 2>/dev/null || echo 'Run: fab auth login')"
 echo ""
 echo "Getting started:"
 echo "  1. Login to Azure: az login"

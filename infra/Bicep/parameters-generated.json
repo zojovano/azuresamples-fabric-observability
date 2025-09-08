@@ -1,0 +1,58 @@
+{
+  "contentVersion": "1.0.0.0",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "parameters": {
+    "eventHubSku": {
+      "value": "Standard"
+    },
+    "eventHubNamespaceName": {
+      "value": "evhns-otel"
+    },
+    "appServiceName": {
+      "value": "app-otel-sample"
+    },
+    "containerName": {
+      "value": "otel-collector"
+    },
+    "resourceGroupName": {
+      "value": "azuresamples-platformobservabilty-fabric"
+    },
+    "tags": {
+      "value": {
+        "environment": "prod",
+        "project": "OTEL Observability",
+        "owner": "Platform Team"
+      }
+    },
+    "fabricDatabaseName": {
+      "value": "otelobservabilitydb"
+    },
+    "fabricWorkspaceName": {
+      "value": "azuresamples-platformobservabilty-fabric"
+    },
+    "adminObjectId": {
+      "value": "12345678-1234-1234-1234-123456789012"
+    },
+    "location": {
+      "value": "swedencentral"
+    },
+    "eventHubName": {
+      "value": "evh-otel-diagnostics"
+    },
+    "appServicePlanName": {
+      "value": "asp-otel-sample"
+    },
+    "fabricCapacityName": {
+      "value": "fabriccapacityobservability"
+    },
+    "containerImage": {
+      "value": "otel/opentelemetry-collector-contrib:latest"
+    },
+    "containerGroupName": {
+      "value": "ci-otel-collector"
+    },
+    "fabricCapacitySku": {
+      "value": "F2"
+    }
+  }
+}

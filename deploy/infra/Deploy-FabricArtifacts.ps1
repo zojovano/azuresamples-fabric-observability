@@ -16,7 +16,7 @@
     Name of the KQL database (overrides configuration)
 
 .PARAMETER ResourceGroupName
-    Azure resource group name (overrides configuration)
+    Azure resource group name (ov                    $executeOutput = fab api --resource-path "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --body "@$tempFile" 2>&1rrides configuration)
 
 .PARAMETER Location
     Azure region (overrides configuration)
@@ -509,21 +509,57 @@ function Deploy-KqlTables {
             Write-ColorOutput "Deploying table: $tableName" $ColorInfo "📋"
             
             try {
-                # Read KQL commands from file and execute them
+                # Read KQL commands from file
                 $kqlContent = Get-Content $kqlFile.FullName -Raw
-                Write-ColorOutput "Executing KQL commands for $tableName" $ColorInfo "🔧"
                 
-                # Use a query command or direct execution depending on Fabric CLI version
-                # First try to execute the KQL content directly
-                $executeOutput = $kqlContent | fab query 2>&1
-                $executeExitCode = $LASTEXITCODE
+                # Check if table already exists by trying to query it
+                $tableCheckQuery = "OTELLogs | count"
+                if ($tableName -eq "otel-metrics") { $tableCheckQuery = "OTELMetrics | count" }
+                if ($tableName -eq "otel-traces") { $tableCheckQuery = "OTELTraces | count" }
                 
-                if ($executeExitCode -eq 0) {
-                    Write-ColorOutput "Successfully deployed table: $tableName" $ColorSuccess "✅"
+                Write-ColorOutput "Checking if table exists for $tableName" $ColorInfo "�"
+                
+                # Try to execute a simple count query to check if table exists
+                $tableExists = $false
+                try {
+                    # Use the API approach to check table existence using temp file
+                    $tempCheckFile = [System.IO.Path]::GetTempFileName()
+                    $tableCheckQuery | Out-File -FilePath $tempCheckFile -Encoding UTF8
+                    
+                    $checkOutput = fab api "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --input "@$tempCheckFile" 2>&1
+                    Remove-Item $tempCheckFile -Force -ErrorAction SilentlyContinue
+                    
+                    if ($LASTEXITCODE -eq 0) {
+                        $tableExists = $true
+                        Write-ColorOutput "Table already exists for $tableName" $ColorSuccess "✅"
+                    }
+                } catch {
+                    # Table doesn't exist, which is expected for new deployments
+                    $tableExists = $false
+                }
+                
+                if (-not $tableExists) {
+                    Write-ColorOutput "Creating table for $tableName" $ColorInfo "🔧"
+                    
+                    # Execute the KQL create table command using temp file to avoid pipe issues
+                    $tempFile = [System.IO.Path]::GetTempFileName()
+                    $kqlContent | Out-File -FilePath $tempFile -Encoding UTF8
+                    
+                    $executeOutput = fab api "v1/workspaces/${WorkspaceName}/kqldatabases/${DatabaseName}/query" --method post --input "@$tempFile" 2>&1
+                    $executeExitCode = $LASTEXITCODE
+                    
+                    # Clean up temp file
+                    Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+                    
+                    if ($executeExitCode -eq 0) {
+                        Write-ColorOutput "Successfully created table: $tableName" $ColorSuccess "✅"
+                    } else {
+                        Write-ColorOutput "Failed to create table: $tableName" $ColorWarning "⚠️"
+                        Write-ColorOutput "Execute output:" $ColorWarning "🔍"
+                        $executeOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+                    }
                 } else {
-                    Write-ColorOutput "Table deployment may have failed for: $tableName (table might already exist)" $ColorWarning "⚠️"
-                    Write-ColorOutput "Execute output:" $ColorWarning "🔍"
-                    $executeOutput | ForEach-Object { Write-ColorOutput "  $_" $ColorWarning }
+                    Write-ColorOutput "Skipping table creation for $tableName (already exists)" $ColorInfo "⏭️"
                 }
             } catch {
                 Write-ColorOutput "Failed to deploy table $tableName : $_" $ColorWarning "⚠️"

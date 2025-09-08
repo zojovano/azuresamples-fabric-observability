@@ -240,6 +240,15 @@ This ensures all changes are immediately saved and available to the team. Write 
 ❌ Making changes without checking git status first  
 ❌ Forgetting to document significant architectural decisions  
 ❌ Creating README-Topic-Specific.md files instead of updating docs/README.md  
+❌ **Using command chaining with `&&` or `;`** - makes debugging impossible when failures occur
+❌ **Complex multi-command terminal operations** - execute commands individually to trace failures
+
+### **Terminal Command Best Practices**
+✅ **Execute commands individually** - one command per `run_in_terminal` call  
+✅ **Check exit codes separately** - use `$LASTEXITCODE` or `$?` after each command  
+✅ **Provide clear explanations** - each command should have a specific purpose  
+✅ **Use absolute paths** - avoid relative path dependencies between commands  
+✅ **Test command validity** - verify commands work before combining into scripts  
 
 ### **Validation Commands Before Major Changes**
 ```bash

@@ -42,7 +42,19 @@ Your Key Vault must contain these secrets:
 ### Complete Deployment
 ```powershell
 # Deploy everything using existing Key Vault
-./Deploy-Complete.ps1 -KeyVaultName "my-project-keyvault"
+## 🚀 Quick Start
+
+The simplest deployment uses the centralized configuration:
+
+```powershell
+# Complete deployment (uses config/project-config.json)
+./Deploy-Complete.ps1
+```
+
+The script automatically loads:
+- **KeyVault name**: `azuresamplesdevopskeys` (from config)
+- **All Azure settings**: Resource group, location, subscription
+- **All Fabric settings**: Workspace, database, capacity names
 ```
 
 ### Create Service Principals and Deploy

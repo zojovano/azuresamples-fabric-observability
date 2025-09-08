@@ -5,7 +5,10 @@
 Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This script consolidates all deployment functionality into a single, easy-to-use PowerShell script.
 
 ```powershell
-# Complete deployment using Key Vault
+# Complete deployment (uses config/project-config.json for KeyVault name)
+./Deploy-Complete.ps1
+
+# Or specify a different KeyVault
 ./Deploy-Complete.ps1 -KeyVaultName "your-keyvault-name"
 ```
 
@@ -29,20 +32,22 @@ Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This scri
 
 ### Simple Deployment
 ```powershell
-# 1. Complete deployment
-./Deploy-Complete.ps1 -KeyVaultName "my-project-kv"
+# 1. Complete deployment (auto-detects KeyVault from config)
+./Deploy-Complete.ps1
 
 # 2. Infrastructure only
-./Deploy-Complete.ps1 -KeyVaultName "my-kv" -SkipFabricArtifacts
+./Deploy-Complete.ps1 -SkipFabricArtifacts
 
 # 3. Fabric artifacts only  
-./Deploy-Complete.ps1 -KeyVaultName "my-kv" -SkipInfrastructure
+./Deploy-Complete.ps1 -SkipInfrastructure
 
 # 4. Preview mode
-./Deploy-Complete.ps1 -KeyVaultName "my-kv" -WhatIf
+./Deploy-Complete.ps1 -WhatIf
 ```
 
 ## Required Key Vault Secrets
+
+The KeyVault name is automatically loaded from `config/project-config.json` (currently: **`azuresamplesdevopskeys`**).
 
 Your Key Vault must contain:
 - `azure-subscription-id` (required)
@@ -81,8 +86,10 @@ All functionality has been consolidated into the single `Deploy-Complete.ps1` sc
 
 ```powershell
 # Replace any old deployment command with:
-./Deploy-Complete.ps1 -KeyVaultName "your-kv"
+./Deploy-Complete.ps1
 ```
+
+The script automatically loads all configuration from `config/project-config.json` including the KeyVault name.
 
 ## Directory Structure
 

@@ -17,7 +17,7 @@
     Azure region for deployment (default: swedencentral)
     
 .PARAMETER KeyVaultName
-    Name of the existing Key Vault containing project secrets
+    Name of the Key Vault containing project secrets (optional, uses config/project-config.json if not provided)
     
 .PARAMETER AdminUserEmail
     Email of the admin user for Fabric capacity (optional, uses current user if not provided)
@@ -36,6 +36,9 @@
     
 .PARAMETER WhatIf
     Show what would be deployed without actually deploying
+    
+.EXAMPLE
+    ./Deploy-Complete.ps1
     
 .EXAMPLE
     ./Deploy-Complete.ps1 -KeyVaultName "my-project-keyvault"
@@ -72,8 +75,8 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$Location = "swedencentral",
     
-    [Parameter(Mandatory = $true)]
-    [string]$KeyVaultName,
+    [Parameter(Mandatory = $false)]
+    [string]$KeyVaultName = "",
     
     [Parameter(Mandatory = $false)]
     [string]$AdminUserEmail = "",
@@ -95,6 +98,28 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Load centralized project configuration
+Write-Host "📋 Loading project configuration..." -ForegroundColor $ColorInfo
+$configModulePath = Join-Path $PSScriptRoot "../../config/ProjectConfig.psm1"
+if (-not (Test-Path $configModulePath)) {
+    Write-Error "❌ Configuration module not found at: $configModulePath"
+    exit 1
+}
+
+Import-Module $configModulePath -Force
+$projectConfig = Get-ProjectConfig
+
+# Use KeyVault from configuration if not provided as parameter
+if ([string]::IsNullOrEmpty($KeyVaultName)) {
+    $KeyVaultName = $projectConfig.keyVault.vaultName
+    Write-Host "✅ Using KeyVault from configuration: $KeyVaultName" -ForegroundColor $ColorSuccess
+} else {
+    Write-Host "✅ Using KeyVault from parameter: $KeyVaultName" -ForegroundColor $ColorSuccess
+}
+
+# Display configuration summary
+Write-ConfigSummary -Config $projectConfig
 
 # Colors for output
 $ColorSuccess = "Green"

@@ -173,3 +173,43 @@ git push origin main
 ```
 
 This ensures all changes are immediately saved and available to the team. Write meaningful commit messages that describe the specific changes made (e.g., "Update OTEL collector config for improved error handling" or "Add validation for Fabric workspace creation").
+
+## Development Best Practices & Context Management
+
+### **DevContainer-First Approach**
+- **All required libraries and tools** must be configured in DevContainer setup, not installed via separate scripts
+- **Never create install scripts** - if tools are missing, update `.devcontainer/devcontainer.json` or `.devcontainer/post-create.sh` instead
+- **Fabric CLI, Azure CLI, PowerShell, .NET, Git** are pre-installed via DevContainer configuration
+- **Installation scripts are anti-pattern** - they violate the DevContainer-only approach
+
+### **Git Repository Status Validation**
+- **Always check current git status** before making assumptions about file structure
+- **Deleted files may persist in IDE cache** - verify actual file existence with `ls` or `file_search` tools
+- **Repository state changes frequently** - don't assume files exist based on previous conversations
+- **Use `list_dir` and `grep_search`** to validate current project structure before making changes
+
+### **Context Preservation**
+- **Document significant architectural decisions** in this copilot-instructions.md file
+- **Include change history** when patterns are established or modified
+- **Reference previous decisions** explicitly when building on existing work
+- **Maintain decision trail** for future context (what was changed and why)
+
+### **Common Anti-Patterns to Avoid**
+❌ Creating installation scripts for tools (use DevContainer instead)  
+❌ Assuming file structure without verification  
+❌ Ignoring established patterns from previous work  
+❌ Making changes without checking git status first  
+❌ Forgetting to document significant architectural decisions  
+
+### **Validation Commands Before Major Changes**
+```bash
+# Check current directory structure
+ls -la /workspaces/azuresamples-fabric-observability/
+
+# Verify git status and recent changes
+git status
+git log --oneline -5
+
+# Validate DevContainer tools
+az --version && pwsh --version && dotnet --version && fab --version
+```

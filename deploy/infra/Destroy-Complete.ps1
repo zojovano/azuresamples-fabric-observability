@@ -170,7 +170,7 @@ function Test-AzureConnection {
 
 function Test-FabricConnection {
     Write-ColorOutput "Checking Fabric CLI authentication..." $ColorInfo "🔍"
-    $fabricAuth = fab auth whoami 2>$null
+    $fabricAuth = fab auth status 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-ColorOutput "❌ Please authenticate with Fabric CLI first: fab auth login" $ColorError
         exit 1

@@ -43,11 +43,19 @@ export PERFORMANCE_THRESHOLD_MS="5000"    # Query performance threshold
 .\tests\Test-FabricIntegration.ps1
 ```
 
-Both scripts provide:
+**Key Features**:
 - ✅ Comprehensive validation of Fabric deployment
 - 📊 JUnit XML output for GitHub Actions
 - 🎯 GitHub step summary generation
 - 🔍 Detailed error reporting
+- ⚡ **Smart Early Exit**: Skips time-consuming EventHub tests (300s timeout) when critical prerequisites fail
+
+**Performance Optimization**:
+The test script includes intelligent early exit logic that prevents long wait times:
+- **Prerequisites Check**: Requires 4 critical tests to pass before running EventHub tests
+- **Required Tests**: Prerequisites, Workspace, Database, and Tables must all pass
+- **Benefits**: Avoids 300-second EventHub streaming timeouts when foundational issues exist
+- **Clear Feedback**: Shows exactly which prerequisites failed and why tests were skipped
 
 ### 2. Test Data Generator
 
@@ -207,6 +215,7 @@ cat fabric-test-results.xml
 - **Data Ingestion**: 1-5 minutes for small datasets
 - **Query Execution**: < 5 seconds for basic queries
 - **End-to-End Latency**: < 10 minutes for test data
+- **Early Exit Optimization**: Test failures detected in < 30 seconds (vs 300s without optimization)
 
 ### Monitoring
 Tests include performance monitoring for:

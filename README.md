@@ -237,8 +237,20 @@ jobs:
 
 ### Prerequisites
 - Azure subscription with Fabric capacity quota
+- **Shared infrastructure** (managed by platform team):
+  - Shared Azure Key Vault with project secrets
+  - Service principal with appropriate permissions
+  - Access policies configured for development team
 - GitHub repository for automation (optional)
-- Service principal with appropriate permissions
+
+**Environment Variables** (for local development):
+```bash
+AZURE_SUBSCRIPTION_ID="your-subscription-id"
+AZURE_TENANT_ID="your-tenant-id"
+AZURE_CLIENT_ID="your-client-id"
+AZURE_CLIENT_SECRET="your-client-secret"
+SHARED_KEYVAULT_NAME="platform-shared-keyvault"  # Optional
+```
 
 ### Option 1: DevContainer (Recommended)
 ```bash
@@ -251,12 +263,12 @@ code .
 
 ### Option 2: Manual Setup
 ```powershell
-# Simple deployment (uses environment variables or prompts)
+# Simple deployment (uses environment variables or shared Key Vault)
 cd infra/Bicep
 ./deploy.ps1
 
-# Or create full Key Vault setup with service principals
-./deploy.ps1 -CreateKeyVault
+# Use specific shared Key Vault
+./deploy.ps1 -SharedKeyVaultName "platform-shared-keyvault"
 
 # Preview deployment without executing
 ./deploy.ps1 -WhatIf

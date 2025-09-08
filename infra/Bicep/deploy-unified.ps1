@@ -7,10 +7,11 @@
 .DESCRIPTION
     Intelligent deployment script that automatically chooses configuration source:
     1. Environment variables (default, fastest)
-    2. Key Vault secrets (fallback, enterprise)
+    2. Shared Key Vault secrets (enterprise pattern)
     3. Interactive prompts (last resort)
     
-    Can also create service principals and Key Vault if needed.
+    Note: This script uses existing shared infrastructure (Key Vault, service principals)
+    managed by the platform team. It does not create new Key Vaults.
     
 .PARAMETER Location
     Azure region for deployment
@@ -18,17 +19,14 @@
 .PARAMETER SubscriptionId
     Azure subscription ID (uses current context if not provided)
     
-.PARAMETER KeyVaultName
-    Key Vault name to use for secrets (auto-detected if not provided)
+.PARAMETER SharedKeyVaultName
+    Name of the shared Key Vault managed by platform team (auto-detected if not provided)
     
 .PARAMETER AdminUserEmail
     Email of the admin user for Fabric capacity (optional, will use current user if not provided)
     
-.PARAMETER CreateKeyVault
-    Create new Key Vault and service principals if they don't exist
-    
 .PARAMETER ForceKeyVault
-    Force using Key Vault even if environment variables are available
+    Force using shared Key Vault even if environment variables are available
     
 .PARAMETER ParameterFile
     Path to parameters file for basic deployment (default: parameters.json)
@@ -38,19 +36,25 @@
     
 .EXAMPLE
     ./deploy-unified.ps1
-    # Uses environment variables if available, otherwise prompts
+    # Uses environment variables if available, otherwise checks shared Key Vault
     
 .EXAMPLE
-    ./deploy-unified.ps1 -CreateKeyVault -AdminUserEmail "admin@company.com"
-    # Creates full Key Vault setup with service principals
+    ./deploy-unified.ps1 -SharedKeyVaultName "platform-shared-keyvault"
+    # Uses specific shared Key Vault
     
 .EXAMPLE
-    ./deploy-unified.ps1 -KeyVaultName "my-fabric-kv" -ForceKeyVault
-    # Forces Key Vault usage even if env vars exist
+    ./deploy-unified.ps1 -ForceKeyVault
+    # Forces shared Key Vault usage even if env vars exist
     
 .EXAMPLE
     ./deploy-unified.ps1 -WhatIf
     # Preview deployment without executing
+    
+.NOTES
+    Prerequisites (managed by platform team):
+    - Shared Azure Key Vault with access policies
+    - Project secrets populated in Key Vault
+    - Shared service principal with Key Vault permissions
 #>
 
 [CmdletBinding()]
@@ -62,13 +66,10 @@ param(
     [string]$SubscriptionId = "",
     
     [Parameter(Mandatory = $false)]
-    [string]$KeyVaultName = "",
+    [string]$SharedKeyVaultName = "",
     
     [Parameter(Mandatory = $false)]
     [string]$AdminUserEmail = "",
-    
-    [Parameter(Mandatory = $false)]
-    [switch]$CreateKeyVault,
     
     [Parameter(Mandatory = $false)]
     [switch]$ForceKeyVault,
@@ -140,57 +141,74 @@ function Get-EnvironmentVariables {
     }
 }
 
-function Find-KeyVault {
+function Find-SharedKeyVault {
     param($PreferredName = "")
     
     try {
         if (-not [string]::IsNullOrEmpty($PreferredName)) {
             $kv = Get-AzKeyVault -VaultName $PreferredName -ErrorAction SilentlyContinue
             if ($kv) {
-                Write-ColorOutput "Using specified Key Vault: $PreferredName" $ColorSuccess "✅"
+                Write-ColorOutput "Using specified shared Key Vault: $PreferredName" $ColorSuccess "✅"
+                return $kv.VaultName
+            } else {
+                Write-ColorOutput "Specified Key Vault not found: $PreferredName" $ColorWarning "⚠️"
+            }
+        }
+        
+        # Check environment variable for shared Key Vault
+        $sharedKvName = $env:SHARED_KEYVAULT_NAME
+        if (-not [string]::IsNullOrEmpty($sharedKvName)) {
+            $kv = Get-AzKeyVault -VaultName $sharedKvName -ErrorAction SilentlyContinue
+            if ($kv) {
+                Write-ColorOutput "Using shared Key Vault from environment: $sharedKvName" $ColorSuccess "✅"
                 return $kv.VaultName
             }
         }
         
-        # Look for fabric-related Key Vaults
-        $kvs = Get-AzKeyVault | Where-Object { $_.VaultName -match "fabric|otel" }
+        # Look for platform/shared Key Vaults (common naming patterns)
+        $kvs = Get-AzKeyVault | Where-Object { 
+            $_.VaultName -match "platform|shared|fabric.*otel|otel.*fabric" 
+        }
         if ($kvs -and $kvs.Count -gt 0) {
             $selectedKv = $kvs[0].VaultName
-            Write-ColorOutput "Auto-detected Key Vault: $selectedKv" $ColorSuccess "✅"
+            Write-ColorOutput "Auto-detected shared Key Vault: $selectedKv" $ColorSuccess "✅"
             return $selectedKv
         }
         
-        Write-ColorOutput "No suitable Key Vault found" $ColorWarning "⚠️"
+        Write-ColorOutput "No shared Key Vault found. Check with platform team." $ColorWarning "⚠️"
+        Write-ColorOutput "Expected Key Vault naming: platform-*, shared-*, *fabric*otel*" $ColorInfo "💡"
         return $null
     }
     catch {
-        Write-ColorOutput "Error finding Key Vault: $($_.Exception.Message)" $ColorError "❌"
+        Write-ColorOutput "Error finding shared Key Vault: $($_.Exception.Message)" $ColorError "❌"
         return $null
     }
 }
 
-function Get-KeyVaultSecrets {
+function Get-SharedKeyVaultSecrets {
     param($VaultName)
     
     try {
-        Write-ColorOutput "Retrieving secrets from Key Vault: $VaultName" $ColorInfo "🔐"
+        Write-ColorOutput "Retrieving secrets from shared Key Vault: $VaultName" $ColorInfo "🔐"
         
         $secrets = @{}
+        # Standard secret names for fabric-otel project in shared Key Vault
         $secretNames = @(
-            "AZURE-SUBSCRIPTION-ID",
-            "AZURE-TENANT-ID", 
-            "AZURE-CLIENT-ID",
-            "AZURE-CLIENT-SECRET",
-            "FABRIC-WORKSPACE-NAME",
-            "FABRIC-DATABASE-NAME",
-            "RESOURCE-GROUP-NAME"
+            "fabric-otel-azure-subscription-id",
+            "fabric-otel-azure-tenant-id", 
+            "fabric-otel-azure-client-id",
+            "fabric-otel-azure-client-secret",
+            "fabric-otel-workspace-name",
+            "fabric-otel-database-name",
+            "fabric-otel-resource-group-name"
         )
         
         foreach ($secretName in $secretNames) {
             try {
                 $secret = Get-AzKeyVaultSecret -VaultName $VaultName -Name $secretName -AsPlainText -ErrorAction SilentlyContinue
                 if ($secret) {
-                    $key = $secretName.Replace("-", "")
+                    # Convert to internal key format
+                    $key = $secretName.Replace("fabric-otel-", "").Replace("-", "").ToUpper()
                     $secrets[$key] = $secret
                     Write-ColorOutput "Retrieved: $secretName" $ColorSuccess "  ✅"
                 } else {
@@ -205,17 +223,23 @@ function Get-KeyVaultSecrets {
         $hasRequired = -not [string]::IsNullOrEmpty($secrets.AZURESUBSCRIPTIONID) -and
                        -not [string]::IsNullOrEmpty($secrets.AZURETENANTID)
         
+        if (-not $hasRequired) {
+            Write-ColorOutput "Platform team may need to populate project secrets in shared Key Vault" $ColorWarning "⚠️"
+            Write-ColorOutput "Expected secret names: fabric-otel-azure-subscription-id, fabric-otel-azure-tenant-id, etc." $ColorInfo "💡"
+        }
+        
         return @{
-            Source = "KeyVault"
+            Source = "SharedKeyVault"
             VaultName = $VaultName
             HasCredentials = $hasRequired
             Data = $secrets
         }
     }
     catch {
-        Write-ColorOutput "Error retrieving Key Vault secrets: $($_.Exception.Message)" $ColorError "❌"
+        Write-ColorOutput "Error retrieving shared Key Vault secrets: $($_.Exception.Message)" $ColorError "❌"
+        Write-ColorOutput "Contact platform team to verify Key Vault access permissions" $ColorInfo "💡"
         return @{
-            Source = "KeyVault"
+            Source = "SharedKeyVault"
             VaultName = $VaultName
             HasCredentials = $false
             Data = @{}
@@ -225,6 +249,7 @@ function Get-KeyVaultSecrets {
 
 function Get-InteractiveConfiguration {
     Write-ColorOutput "Gathering configuration interactively..." $ColorInfo "💬"
+    Write-ColorOutput "Note: For production, use environment variables or shared Key Vault" $ColorWarning "⚠️"
     
     $config = @{}
     
@@ -256,93 +281,23 @@ function Get-InteractiveConfiguration {
     }
 }
 
-function New-ServicePrincipalIfNotExists {
-    param($DisplayName, $Role = "Contributor", $Scope)
-    
-    try {
-        $existingSp = Get-AzADServicePrincipal -DisplayName $DisplayName -ErrorAction SilentlyContinue
-        
-        if ($existingSp) {
-            Write-ColorOutput "Service principal '$DisplayName' already exists" $ColorWarning "⚠️"
-            
-            $credentials = Get-AzADServicePrincipalCredential -ObjectId $existingSp.Id -ErrorAction SilentlyContinue
-            if (-not $credentials -or $credentials.Count -eq 0) {
-                Write-ColorOutput "Creating new credential for existing service principal" $ColorInfo "🔧"
-                $credential = New-AzADServicePrincipalCredential -ObjectId $existingSp.Id
-                $clientSecret = $credential.SecretText
-            } else {
-                Write-ColorOutput "Using existing credential" $ColorWarning "⚠️"
-                $clientSecret = "EXISTING_CREDENTIAL_SECRET_NOT_RETRIEVABLE"
-            }
-            
-            return @{
-                AppId = $existingSp.AppId
-                ObjectId = $existingSp.Id
-                ClientSecret = $clientSecret
-                IsExisting = $true
-            }
-        }
-        else {
-            Write-ColorOutput "Creating service principal: $DisplayName" $ColorInfo "🔧"
-            $sp = New-AzADServicePrincipal -DisplayName $DisplayName -Role $Role -Scope $Scope
-            
-            return @{
-                AppId = $sp.AppId
-                ObjectId = $sp.Id
-                ClientSecret = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sp.PasswordCredentials.SecretText))
-                IsExisting = $false
-            }
-        }
-    }
-    catch {
-        Write-ColorOutput "Error with service principal: $($_.Exception.Message)" $ColorError "❌"
-        throw
-    }
-}
-
-function New-KeyVaultWithSecrets {
-    param($VaultName, $Location, $AdminObjectId, $Secrets)
-    
-    try {
-        Write-ColorOutput "Creating Key Vault: $VaultName" $ColorInfo "🏗️"
-        
-        # Check if Key Vault already exists
-        $existingKv = Get-AzKeyVault -VaultName $VaultName -ErrorAction SilentlyContinue
-        if ($existingKv) {
-            Write-ColorOutput "Key Vault already exists: $VaultName" $ColorWarning "⚠️"
-        } else {
-            # Create resource group for Key Vault if needed
-            $kvResourceGroup = "rg-keyvault-$Location"
-            $rg = Get-AzResourceGroup -Name $kvResourceGroup -ErrorAction SilentlyContinue
-            if (-not $rg) {
-                Write-ColorOutput "Creating resource group for Key Vault: $kvResourceGroup" $ColorInfo "📁"
-                New-AzResourceGroup -Name $kvResourceGroup -Location $Location | Out-Null
-            }
-            
-            # Create Key Vault
-            $kv = New-AzKeyVault -VaultName $VaultName -ResourceGroupName $kvResourceGroup -Location $Location
-            Write-ColorOutput "Key Vault created successfully" $ColorSuccess "✅"
-        }
-        
-        # Set secrets
-        Write-ColorOutput "Storing secrets in Key Vault..." $ColorInfo "🔐"
-        foreach ($secret in $Secrets.GetEnumerator()) {
-            $secretName = $secret.Key -replace "_", "-"
-            try {
-                Set-AzKeyVaultSecret -VaultName $VaultName -Name $secretName -SecretValue (ConvertTo-SecureString $secret.Value -AsPlainText -Force) | Out-Null
-                Write-ColorOutput "Stored: $secretName" $ColorSuccess "  ✅"
-            }
-            catch {
-                Write-ColorOutput "Failed to store: $secretName - $($_.Exception.Message)" $ColorWarning "  ⚠️"
-            }
-        }
-        
-        return $VaultName
-    }
-    catch {
-        Write-ColorOutput "Error creating Key Vault: $($_.Exception.Message)" $ColorError "❌"
-        throw
-    }
+function Show-PrerequisitesInfo {
+    Write-ColorOutput "📋 Platform Team Prerequisites (if using shared Key Vault):" $ColorInfo
+    Write-ColorOutput "=" * 60 $ColorInfo
+    Write-ColorOutput "✅ Shared Azure Key Vault with access policies" $ColorInfo "  •"
+    Write-ColorOutput "✅ Project secrets populated with naming: fabric-otel-*" $ColorInfo "  •"
+    Write-ColorOutput "✅ Shared service principal with Key Vault permissions" $ColorInfo "  •"
+    Write-ColorOutput "✅ Required GitHub secrets configured" $ColorInfo "  •"
+    Write-Host ""
+    Write-ColorOutput "💡 Expected Key Vault secret names:" $ColorInfo
+    Write-ColorOutput "   fabric-otel-azure-subscription-id" $ColorWarning "  •"
+    Write-ColorOutput "   fabric-otel-azure-tenant-id" $ColorWarning "  •"
+    Write-ColorOutput "   fabric-otel-azure-client-id" $ColorWarning "  •"
+    Write-ColorOutput "   fabric-otel-azure-client-secret" $ColorWarning "  •"
+    Write-ColorOutput "   fabric-otel-workspace-name" $ColorWarning "  •"
+    Write-ColorOutput "   fabric-otel-database-name" $ColorWarning "  •"
+    Write-ColorOutput "   fabric-otel-resource-group-name" $ColorWarning "  •"
+    Write-Host ""
 }
 
 function Invoke-Deployment {
@@ -461,65 +416,37 @@ Write-Host ""
 # Configuration discovery and priority
 $config = $null
 
-if ($CreateKeyVault) {
-    # Create new Key Vault setup
-    Write-ColorOutput "🏗️ Creating new Key Vault setup..." $ColorInfo
+if ($ForceKeyVault -or (-not [string]::IsNullOrEmpty($SharedKeyVaultName))) {
+    # Use shared Key Vault (enterprise pattern)
+    Write-ColorOutput "🔐 Using shared Key Vault configuration..." $ColorInfo
     
-    # Generate Key Vault name if not provided
-    if ([string]::IsNullOrEmpty($KeyVaultName)) {
-        $uniqueString = (Get-Random -Maximum 99999).ToString().PadLeft(5, '0')
-        $KeyVaultName = "fabric-otel-kv-$uniqueString"
+    $vaultName = if ([string]::IsNullOrEmpty($SharedKeyVaultName)) { 
+        Find-SharedKeyVault 
+    } else { 
+        $SharedKeyVaultName 
     }
     
-    # Get admin object ID
-    if ([string]::IsNullOrEmpty($AdminUserEmail)) {
-        $currentUser = Get-AzADUser -SignedIn -ErrorAction SilentlyContinue
-        $adminObjectId = $currentUser.Id
-    } else {
-        $adminUser = Get-AzADUser -UserPrincipalName $AdminUserEmail -ErrorAction SilentlyContinue
-        $adminObjectId = $adminUser.Id
-    }
-    
-    # Create service principals
-    $githubSp = New-ServicePrincipalIfNotExists -DisplayName "github-actions-fabric-otel" -Role "Contributor" -Scope "/subscriptions/$subscriptionId"
-    $appSp = New-ServicePrincipalIfNotExists -DisplayName "fabric-otel-app" -Role "Contributor" -Scope "/subscriptions/$subscriptionId"
-    
-    # Prepare secrets for Key Vault
-    $secrets = @{
-        "AZURE-SUBSCRIPTION-ID" = $subscriptionId
-        "AZURE-TENANT-ID" = $tenantId
-        "AZURE-CLIENT-ID" = $appSp.AppId
-        "AZURE-CLIENT-SECRET" = $appSp.ClientSecret
-        "FABRIC-WORKSPACE-NAME" = "fabric-otel-workspace"
-        "FABRIC-DATABASE-NAME" = "otelobservabilitydb"
-        "RESOURCE-GROUP-NAME" = "azuresamples-platformobservabilty-fabric"
-    }
-    
-    # Create Key Vault and store secrets
-    $createdVaultName = New-KeyVaultWithSecrets -VaultName $KeyVaultName -Location $Location -AdminObjectId $adminObjectId -Secrets $secrets
-    
-    # Use Key Vault configuration
-    $config = Get-KeyVaultSecrets -VaultName $createdVaultName
-    
-} elseif ($ForceKeyVault -or (-not [string]::IsNullOrEmpty($KeyVaultName))) {
-    # Force Key Vault or specific Key Vault provided
-    Write-ColorOutput "🔐 Using Key Vault configuration..." $ColorInfo
-    
-    $vaultName = if ([string]::IsNullOrEmpty($KeyVaultName)) { Find-KeyVault } else { $KeyVaultName }
     if ($vaultName) {
-        $config = Get-KeyVaultSecrets -VaultName $vaultName
+        $config = Get-SharedKeyVaultSecrets -VaultName $vaultName
+    } else {
+        Write-ColorOutput "Contact platform team to set up shared Key Vault access" $ColorError "❌"
+        Show-PrerequisitesInfo
+        exit 1
     }
 } else {
-    # Try environment variables first
+    # Try environment variables first (development pattern)
     Write-ColorOutput "🌍 Checking environment variables..." $ColorInfo
     $config = Get-EnvironmentVariables
     
     if (-not $config.HasCredentials) {
-        # Fallback to Key Vault
-        Write-ColorOutput "🔐 Falling back to Key Vault..." $ColorInfo
-        $vaultName = Find-KeyVault
+        # Fallback to shared Key Vault
+        Write-ColorOutput "🔐 Falling back to shared Key Vault..." $ColorInfo
+        $vaultName = Find-SharedKeyVault
         if ($vaultName) {
-            $config = Get-KeyVaultSecrets -VaultName $vaultName
+            $config = Get-SharedKeyVaultSecrets -VaultName $vaultName
+            if (-not $config.HasCredentials) {
+                Show-PrerequisitesInfo
+            }
         }
     }
 }

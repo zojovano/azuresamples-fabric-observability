@@ -123,15 +123,27 @@ dotnet --version # .NET SDK
 - **Exporters**: `debug` + `azuredataexplorer`
 
 ### GitHub Actions Integration
-`ci-cd-pipeline.yml` orchestrates automated deployments (maintained in separate `ci-cd` branch):
-1. Unit tests (.NET xUnit)
-2. Infrastructure deployment (Bicep)
-3. Fabric artifacts deployment (PowerShell + Fabric CLI)
-4. Integration testing (PowerShell + JUnit XML)
+**Main Branch Strategy (Updated September 2024)**: DevContainer-focused validation workflow that eliminates Key Vault dependencies that were causing consistent failures.
 
-**Important**: Main branch focuses on DevContainer development. GitHub Actions workflows are maintained in the `ci-cd` branch to preserve CI/CD capabilities while keeping main branch focused on local development experience.
+**Cleaned Up Workflow (ci-cd-pipeline.yml)**:
+1. **Unit Tests**: .NET xUnit professional testing framework (no Azure dependencies)
+2. **Template Validation**: Bicep syntax validation without deployment
+3. **Script Validation**: PowerShell script syntax checking
+4. **Documentation Validation**: DevContainer setup and essential docs verification
 
-Key workflow pattern: Uses `shell: pwsh` for all PowerShell execution.
+**Removed Components** (moved to `ci-cd` branch pattern):
+- Key Vault secret retrieval (was failing due to "Public network access disabled")
+- Azure infrastructure deployment via Bicep
+- Fabric artifacts deployment via Fabric CLI
+- Azure authentication dependencies
+- Integration testing requiring live Azure resources
+
+**Key Benefits of Cleanup**:
+- Eliminates cascade failures from Key Vault network restrictions
+- Focuses on development environment validation
+- Provides immediate feedback on code quality and syntax
+- Aligns with DevContainer-first development approach
+- Maintains professional testing standards without enterprise dependencies
 
 ### Bicep Module Structure
 Infrastructure uses Azure Verified Modules pattern:
@@ -203,6 +215,12 @@ This ensures all changes are immediately saved and available to the team. Write 
 - **Include change history** when patterns are established or modified
 - **Reference previous decisions** explicitly when building on existing work
 - **Maintain decision trail** for future context (what was changed and why)
+
+**Recent Architectural Changes (September 2024)**:
+- **GitHub Actions Cleanup**: Removed Key Vault dependencies that were causing "Public network access disabled" failures across all deployment jobs
+- **DevContainer Focus**: Simplified main branch workflow to focus on local development validation rather than full CI/CD deployment
+- **Folder Consolidation**: Moved `infra/` → `deploy/infra/` and `tools/` → `deploy/tools/` to create unified deployment structure
+- **Branch Strategy Clarification**: Main branch for DevContainer development, `ci-cd` branch for enterprise deployment patterns
 
 ### **Common Anti-Patterns to Avoid**
 ❌ Creating installation scripts for tools (use DevContainer instead)  

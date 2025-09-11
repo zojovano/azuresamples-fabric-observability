@@ -1,38 +1,36 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Deploy Microsoft Fabric OTEL artifacts using Git integration approach
+    Deploy Microsoft Fabric OTEL artifacts using Git integration
 .DESCRIPTION
-    This script deploys Microsoft Fabric workspace and KQL database using 
-    Git integration instead of complex API calls. This approach is more reliable
-    and follows Microsoft's recommended patterns.
+    This script manages the Git-based deployment of OTEL table definitions to Microsoft Fabric.
+    It verifies the Git folder structure and provides guidance for Git integration setup.
     
-    Use -CompleteDeployment when the workspace is already connected to Git
-    and you need to complete the table deployment process.
+    Git integration eliminates complex API calls and provides reliable deployment.
 .PARAMETER WorkspaceName
     Name of the Fabric workspace (default: fabric-otel-workspace)
 .PARAMETER DatabaseName  
     Name of the KQL database (default: otelobservabilitydb)
-.PARAMETER GitFolder
-    Folder in the repository to connect to (default: fabric-artifacts, resolves to deploy/fabric-artifacts)
 .PARAMETER WhatIf
     Show what would be deployed without actually deploying
-.PARAMETER CompleteDeployment
-    Use this when workspace is already connected to Git and you need to complete table deployment
+.PARAMETER TriggerSync
+    Attempt to trigger Git sync via Azure CLI (requires Azure CLI and proper authentication)
+.EXAMPLE
+    ./Deploy-FabricArtifacts-Git.ps1
+    # Shows Git integration setup guidance
+.EXAMPLE  
+    ./Deploy-FabricArtifacts-Git.ps1 -TriggerSync
+    # Attempts automated Git sync
 .EXAMPLE
     ./Deploy-FabricArtifacts-Git.ps1 -WhatIf
-.EXAMPLE  
-    ./Deploy-FabricArtifacts-Git.ps1 -WorkspaceName "my-workspace"
-.EXAMPLE
-    ./Deploy-FabricArtifacts-Git.ps1 -CompleteDeployment
+    # Shows what would be done without executing
 #>
 
 param(
     [string]$WorkspaceName = "fabric-otel-workspace",
-    [string]$DatabaseName = "otelobservabilitydb", 
-    [string]$GitFolder = "fabric-artifacts",
+    [string]$DatabaseName = "otelobservabilitydb",
     [switch]$WhatIf,
-    [switch]$CompleteDeployment
+    [switch]$TriggerSync
 )
 
 # Color definitions for output
@@ -54,26 +52,10 @@ function Write-ColorOutput {
     }
 }
 
-function Test-FabricAuthentication {
-    Write-ColorOutput "Checking Fabric authentication..." $ColorInfo "🔐"
-    
-    $null = fab auth status 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-ColorOutput "Not authenticated with Fabric CLI" $ColorError "❌"
-        Write-ColorOutput "Please run: fab auth login" $ColorInfo "💡"
-        return $false
-    }
-    
-    Write-ColorOutput "Fabric CLI authentication successful" $ColorSuccess "✅"
-    return $true
-}
-
 function Test-GitFolderStructure {
-    param([string]$GitFolder)
+    Write-ColorOutput "Verifying Git folder structure..." $ColorInfo "�"
     
-    Write-ColorOutput "Verifying Git folder structure..." $ColorInfo "📁"
-    
-    $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) $GitFolder
+    $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) "fabric-artifacts"
     $tablesPath = Join-Path $gitFolderPath "tables"
     
     if (-not (Test-Path $gitFolderPath)) {
@@ -106,6 +88,174 @@ function Test-GitFolderStructure {
     
     Write-ColorOutput "Git folder structure verified" $ColorSuccess "✅"
     return $true
+}
+
+function Show-TableDefinitions {
+    Write-ColorOutput "Table definitions in Git folder:" $ColorInfo "�"
+    
+    $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) "fabric-artifacts"
+    $tablesPath = Join-Path $gitFolderPath "tables"
+    
+    $tableFiles = @("otel-logs.kql", "otel-metrics.kql", "otel-traces.kql")
+    
+    foreach ($file in $tableFiles) {
+        $filePath = Join-Path $tablesPath $file
+        if (Test-Path $filePath) {
+            Write-ColorOutput "" $ColorInfo
+            Write-ColorOutput "📄 ${file}:" $ColorInfo
+            Write-ColorOutput "$(('-' * 50))" $ColorInfo
+            $content = Get-Content $filePath -Raw
+            Write-Host $content -ForegroundColor White
+        }
+    }
+}
+
+function Show-GitIntegrationGuidance {
+    param(
+        [string]$WorkspaceName,
+        [string]$DatabaseName
+    )
+    
+    $repoUrl = try { git remote get-url origin 2>$null } catch { "https://github.com/your-org/azuresamples-fabric-observability.git" }
+    
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "🎯 Git Integration Deployment Process" $ColorSuccess "🎉"
+    Write-ColorOutput "============================================" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "✅ Table definitions are ready in Git folder" $ColorSuccess
+    Write-ColorOutput "✅ KQL files: OTELLogs, OTELMetrics, OTELTraces" $ColorSuccess
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "📋 Complete the Git Integration Setup:" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 1: Open Fabric Portal" $ColorInfo "1️⃣"
+    Write-ColorOutput "   👉 Navigate to: https://app.fabric.microsoft.com" $ColorInfo
+    Write-ColorOutput "   👉 Go to workspace: $WorkspaceName" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 2: Set up Git Integration (if not done)" $ColorInfo "2️⃣"
+    Write-ColorOutput "   👉 Click: Workspace Settings > Git Integration" $ColorInfo
+    Write-ColorOutput "   👉 Provider: GitHub" $ColorInfo
+    Write-ColorOutput "   👉 Repository: $repoUrl" $ColorInfo
+    Write-ColorOutput "   👉 Branch: main" $ColorInfo
+    Write-ColorOutput "   👉 Folder: deploy/fabric-artifacts" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 3: Create KQL Database (if not exists)" $ColorInfo "3️⃣"
+    Write-ColorOutput "   👉 Click: New > More options > KQL Database" $ColorInfo
+    Write-ColorOutput "   👉 Name: $DatabaseName" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 4: Deploy Tables via Git Sync" $ColorInfo "4️⃣"
+    Write-ColorOutput "   👉 In workspace Source Control panel" $ColorInfo
+    Write-ColorOutput "   👉 Click: Update from Git" $ColorInfo
+    Write-ColorOutput "   👉 This imports table definitions automatically" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 5: Verify Tables Created" $ColorInfo "5️⃣"
+    Write-ColorOutput "   👉 Open KQL database: $DatabaseName" $ColorInfo
+    Write-ColorOutput "   👉 Run query: .show tables" $ColorInfo
+    Write-ColorOutput "   👉 Expected tables:" $ColorInfo
+    Write-ColorOutput "      • OTELLogs (log data)" $ColorSuccess
+    Write-ColorOutput "      • OTELMetrics (metrics data)" $ColorSuccess  
+    Write-ColorOutput "      • OTELTraces (trace data)" $ColorSuccess
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "🔍 Test Table Schemas:" $ColorInfo "6️⃣"
+    Write-ColorOutput "   OTELLogs | getschema" $ColorInfo "   📝"
+    Write-ColorOutput "   OTELMetrics | getschema" $ColorInfo "   📝"
+    Write-ColorOutput "   OTELTraces | getschema" $ColorInfo "   📝"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "💡 Git Integration Benefits:" $ColorSuccess
+    Write-ColorOutput "   ✅ No complex API authentication" $ColorSuccess
+    Write-ColorOutput "   ✅ Automatic version control" $ColorSuccess
+    Write-ColorOutput "   ✅ Easy collaborative development" $ColorSuccess
+    Write-ColorOutput "   ✅ Visual Git status in Fabric portal" $ColorSuccess
+    Write-ColorOutput "   ✅ Simple rollback via Git history" $ColorSuccess
+}
+
+function Invoke-GitSync {
+    param([string]$WorkspaceName)
+    
+    Write-ColorOutput "Attempting automated Git sync..." $ColorInfo "🔄"
+    
+    if ($WhatIf) {
+        Write-ColorOutput "[WHATIF] Would attempt to trigger Git sync via Azure CLI" $ColorWarning "⚠️"
+        return $true
+    }
+    
+    try {
+        # Check if Azure CLI is available
+        $null = az version 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "Azure CLI not available - manual sync required" $ColorWarning "⚠️"
+            return $false
+        }
+        
+        # Try to find workspace ID via Fabric CLI
+        $workspaceId = $null
+        try {
+            $workspacesResult = fab api "workspaces" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                $workspaces = ($workspacesResult | ConvertFrom-Json).value
+                $targetWorkspace = $workspaces | Where-Object { $_.displayName -eq $WorkspaceName }
+                if ($targetWorkspace) {
+                    $workspaceId = $targetWorkspace.id
+                    Write-ColorOutput "Found workspace ID: $workspaceId" $ColorSuccess "✅"
+                }
+            }
+        } catch {
+            Write-ColorOutput "Could not retrieve workspace ID" $ColorWarning "⚠️"
+        }
+        
+        if (-not $workspaceId) {
+            Write-ColorOutput "Cannot perform automated sync - workspace ID not found" $ColorWarning "⚠️"
+            Write-ColorOutput "Please sync manually in Fabric portal" $ColorInfo "👉"
+            return $false
+        }
+        
+        # Check Git status
+        $gitStatusResult = az rest --method get --url "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/git/status" --resource "https://api.fabric.microsoft.com" 2>$null
+        
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "Could not check Git status - manual sync required" $ColorWarning "⚠️"
+            return $false
+        }
+        
+        $gitStatus = $gitStatusResult | ConvertFrom-Json
+        
+        if ($gitStatus.changes.Count -eq 0) {
+            Write-ColorOutput "Workspace is already up to date with Git" $ColorSuccess "✅"
+            return $true
+        }
+        
+        Write-ColorOutput "Found $($gitStatus.changes.Count) pending changes from Git" $ColorInfo "📝"
+        
+        # Trigger Git sync
+        $syncBody = @{
+            remoteCommitHash = $gitStatus.remoteCommitHash
+            workspaceHead = $gitStatus.workspaceHead
+            options = @{ allowOverrideItems = $true }
+        } | ConvertTo-Json -Depth 3
+        
+        $null = az rest --method post --url "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/git/updateFromGit" --resource "https://api.fabric.microsoft.com" --body $syncBody 2>$null
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-ColorOutput "Git sync completed successfully!" $ColorSuccess "✅"
+            Write-ColorOutput "Tables should now be deployed in KQL database" $ColorSuccess "🎉"
+            return $true
+        } else {
+            Write-ColorOutput "Automated Git sync failed - manual sync required" $ColorWarning "⚠️"
+            return $false
+        }
+        
+    } catch {
+        Write-ColorOutput "Error during automated sync: $_" $ColorError "❌"
+        Write-ColorOutput "Please sync manually in Fabric portal" $ColorInfo "👉"
+        return $false
+    }
 }
 
 function Show-TableContents {
@@ -188,148 +338,151 @@ function Show-GitDeploymentInstructions {
     Write-ColorOutput "   - No complex authentication issues" $ColorSuccess "   ✅"
 }
 
-function Copy-KqlDefinitionsToGitFolder {
-    param(
-        [string]$GitFolder
-    )
-    
-    Write-ColorOutput "Copying KQL definitions to Git folder..." $ColorInfo "📁"
-    
-    $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) $GitFolder
-    $kqlDefinitionsPath = Join-Path $PSScriptRoot "kql-definitions"
-    
-    if (-not (Test-Path $gitFolderPath)) {
-        New-Item -ItemType Directory -Path $gitFolderPath -Force | Out-Null
-        Write-ColorOutput "Created Git folder: $gitFolderPath" $ColorSuccess "✅"
-    }
-    
-    if (Test-Path $kqlDefinitionsPath) {
-        # Copy KQL table definitions
-        $tableDefinitionsPath = Join-Path $kqlDefinitionsPath "tables"
-        if (Test-Path $tableDefinitionsPath) {
-            $gitTablesPath = Join-Path $gitFolderPath "tables"
-            if (-not (Test-Path $gitTablesPath)) {
-                New-Item -ItemType Directory -Path $gitTablesPath -Force | Out-Null
-            }
-            
-            if ($WhatIf) {
-                Write-ColorOutput "[WHATIF] Would copy KQL table definitions to: $gitTablesPath" $ColorWarning "⚠️"
-            } else {
-                Copy-Item -Path "$tableDefinitionsPath/*" -Destination $gitTablesPath -Force
-                Write-ColorOutput "Copied KQL table definitions to Git folder" $ColorSuccess "✅"
-            }
-        }
-        
-        # Create README for Git folder
-        $readmeContent = @"
-# Fabric OTEL Observability - Git Integration
-
-This folder contains Microsoft Fabric artifacts that are synchronized with the workspace via Git integration.
-
-## Structure
-
-- `tables/` - KQL table definitions for OTEL data (Logs, Metrics, Traces)
-
-## Deployment Process
-
-1. KQL tables are defined in `.kql` files
-2. Workspace is connected to this Git repository folder
-3. Changes are committed from Fabric workspace to Git
-4. Updates flow from Git to workspace automatically
-
-## Tables
-
-- **OTELLogs** - OpenTelemetry log data
-- **OTELMetrics** - OpenTelemetry metrics data  
-- **OTELTraces** - OpenTelemetry trace data
-
-## Usage
-
-Use Fabric portal to:
-1. Edit KQL database items
-2. Commit changes to Git
-3. Update workspace from Git when changes are made externally
-"@
-        
-        $readmePath = Join-Path $gitFolderPath "README.md"
-        if ($WhatIf) {
-            Write-ColorOutput "[WHATIF] Would create README.md in Git folder" $ColorWarning "⚠️"
-        } else {
-            $readmeContent | Out-File -FilePath $readmePath -Encoding UTF8
-            Write-ColorOutput "Created README.md in Git folder" $ColorSuccess "✅"
-        }
-    }
-    
-    return $true
-}
-
-function Show-NextSteps {
+function Sync-WorkspaceFromGit {
     param(
         [string]$WorkspaceName,
-        [string]$DatabaseName,
-        [string]$GitFolder
+        [string]$WorkspaceId
     )
     
-    Write-ColorOutput "" $ColorInfo
-    Write-ColorOutput "🎯 Git Integration Setup Complete!" $ColorSuccess "🎉"
-    Write-ColorOutput "" $ColorInfo
-    Write-ColorOutput "Next Steps:" $ColorInfo "📋"
-    Write-ColorOutput "1. Open Fabric portal: https://app.fabric.microsoft.com" $ColorInfo "👉"
-    Write-ColorOutput "2. Navigate to workspace: $WorkspaceName" $ColorInfo "👉"
-    Write-ColorOutput "3. Create KQL database: $DatabaseName" $ColorInfo "👉"
-    Write-ColorOutput "4. Go to Workspace Settings > Git Integration" $ColorInfo "👉"
-    Write-ColorOutput "5. Connect to GitHub repository: $(git remote get-url origin 2>/dev/null)" $ColorInfo "👉"
-    Write-ColorOutput "6. Set folder to: deploy/$GitFolder" $ColorInfo "👉"
-    Write-ColorOutput "7. Sync workspace with Git (commit/update as needed)" $ColorInfo "👉"
-    Write-ColorOutput "" $ColorInfo
-    Write-ColorOutput "Benefits of Git Integration:" $ColorSuccess "💡"
-    Write-ColorOutput "- Automatic versioning and backup" $ColorSuccess "✅"
-    Write-ColorOutput "- Reliable deployment process" $ColorSuccess "✅"
-    Write-ColorOutput "- No complex API calls needed" $ColorSuccess "✅"
-    Write-ColorOutput "- Visual Git status in Fabric portal" $ColorSuccess "✅"
-    Write-ColorOutput "- Branch-based development workflows" $ColorSuccess "✅"
+    Write-ColorOutput "Triggering Git sync for workspace..." $ColorInfo "🔄"
+    
+    if ($WhatIf) {
+        Write-ColorOutput "[WHATIF] Would sync workspace from Git repository" $ColorWarning "⚠️"
+        return $true
+    }
+    
+    try {
+        # Get current Git status
+        Write-ColorOutput "Checking Git status..." $ColorInfo "📋"
+        $gitStatusResult = az rest --method get --url "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/git/status" --resource "https://api.fabric.microsoft.com" 2>$null
+        
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "Could not check Git status - workspace may not be connected to Git" $ColorWarning "⚠️"
+            return $false
+        }
+        
+        $gitStatus = $gitStatusResult | ConvertFrom-Json
+        
+        if ($gitStatus.changes.Count -eq 0) {
+            Write-ColorOutput "Workspace is already up to date with Git" $ColorSuccess "✅"
+            return $true
+        }
+        
+        Write-ColorOutput "Found $($gitStatus.changes.Count) pending changes from Git" $ColorInfo "📝"
+        
+        # Trigger Git sync
+        Write-ColorOutput "Syncing from Git repository..." $ColorInfo "🔄"
+        $syncBody = @{
+            remoteCommitHash = $gitStatus.remoteCommitHash
+            workspaceHead = $gitStatus.workspaceHead
+            options = @{
+                allowOverrideItems = $true
+            }
+        } | ConvertTo-Json -Depth 3
+        
+        $null = az rest --method post --url "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/git/updateFromGit" --resource "https://api.fabric.microsoft.com" --body $syncBody 2>$null
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-ColorOutput "Git sync completed successfully" $ColorSuccess "✅"
+            Write-ColorOutput "Tables should now be deployed in the KQL database" $ColorSuccess "🎉"
+            return $true
+        } else {
+            Write-ColorOutput "Git sync failed - manual sync required" $ColorWarning "⚠️"
+            return $false
+        }
+        
+    } catch {
+        Write-ColorOutput "Error during Git sync: $_" $ColorError "❌"
+        return $false
+    }
+}
+
+function Test-TablesDeployment {
+    param(
+        [string]$WorkspaceName,
+        [string]$WorkspaceId,
+        [string]$DatabaseName
+    )
+    
+    Write-ColorOutput "Verifying table deployment..." $ColorInfo "🔍"
+    
+    try {
+        # Get KQL databases in workspace
+        $itemsResult = fab api "workspaces/$WorkspaceId/items" 2>$null
+        
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput "Could not retrieve workspace items" $ColorError "❌"
+            return $false
+        }
+        
+        $items = ($itemsResult | ConvertFrom-Json).value
+        $kqlDatabases = $items | Where-Object { $_.type -eq "KQLDatabase" }
+        
+        if ($kqlDatabases.Count -eq 0) {
+            Write-ColorOutput "No KQL databases found in workspace" $ColorError "❌"
+            return $false
+        }
+        
+        Write-ColorOutput "Found KQL databases:" $ColorInfo "📊"
+        foreach ($db in $kqlDatabases) {
+            Write-ColorOutput "  - $($db.displayName) (ID: $($db.id))" $ColorInfo "    📋"
+        }
+        
+        $targetDb = $kqlDatabases | Where-Object { $_.displayName -like "*$DatabaseName*" }
+        
+        if ($targetDb) {
+            Write-ColorOutput "Found target database: $($targetDb.displayName)" $ColorSuccess "✅"
+            Write-ColorOutput "Manual verification steps:" $ColorInfo "📋"
+            Write-ColorOutput "1. Open Fabric portal: https://app.fabric.microsoft.com" $ColorInfo "👉"
+            Write-ColorOutput "2. Navigate to workspace: $WorkspaceName" $ColorInfo "👉"
+            Write-ColorOutput "3. Open database: $($targetDb.displayName)" $ColorInfo "👉"
+            Write-ColorOutput "4. Run query: .show tables" $ColorInfo "👉"
+            Write-ColorOutput "5. Verify tables: OTELLogs, OTELMetrics, OTELTraces" $ColorInfo "👉"
+            return $true
+        } else {
+            Write-ColorOutput "Target database '$DatabaseName' not found" $ColorWarning "⚠️"
+            return $false
+        }
+        
+    } catch {
+        Write-ColorOutput "Error during verification: $_" $ColorError "❌"
+        return $false
+    }
 }
 
 # Main execution
 try {
-    Write-ColorOutput "🚀 Starting Fabric OTEL Artifacts Deployment (Git Integration)" $ColorInfo
-    Write-ColorOutput "================================================================" $ColorInfo
+    Write-ColorOutput "🚀 Fabric OTEL Artifacts - Git Integration Deployment" $ColorInfo "🎯"
+    Write-ColorOutput "========================================================" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
     
-    # Test authentication
-    if (-not (Test-FabricAuthentication)) {
-        throw "Fabric authentication failed"
-    }
-    
-    # Verify Git folder structure
-    if (-not (Test-GitFolderStructure -GitFolder $GitFolder)) {
+    # Step 1: Verify Git folder structure
+    if (-not (Test-GitFolderStructure)) {
         throw "Git folder structure verification failed"
     }
     
-    if ($CompleteDeployment) {
-        Write-ColorOutput "🎯 Completing table deployment..." $ColorInfo
-        
-        # Show table contents for review
-        Show-TableContents -GitFolder $GitFolder
-        
-        # Show deployment instructions
-        Show-GitDeploymentInstructions -WorkspaceName $WorkspaceName -DatabaseName $DatabaseName -GitFolder $GitFolder
-        
-    } else {
-        # Original setup logic for first-time Git integration
-        
-        # Copy KQL definitions to Git folder (if needed)
-        if (-not (Copy-KqlDefinitionsToGitFolder -GitFolder $GitFolder)) {
-            throw "Failed to copy KQL definitions to Git folder"
-        }
-        
-        # Show next steps for initial setup
-        Show-NextSteps -WorkspaceName $WorkspaceName -DatabaseName $DatabaseName -GitFolder $GitFolder
+    # Step 2: Show table definitions
+    Show-TableDefinitions
+    
+    # Step 3: Provide deployment guidance
+    Show-GitIntegrationGuidance -WorkspaceName $WorkspaceName -DatabaseName $DatabaseName
+    
+    # Step 4: Optional automated sync
+    if ($TriggerSync) {
+        Write-ColorOutput "" $ColorInfo
+        Write-ColorOutput "🔄 Attempting automated Git sync..." $ColorInfo "⚡"
+        Invoke-GitSync -WorkspaceName $WorkspaceName
     }
     
     Write-ColorOutput "" $ColorInfo
-    Write-ColorOutput "✅ Git integration deployment guidance complete!" $ColorSuccess "🎉"
+    Write-ColorOutput "✅ Git integration deployment complete!" $ColorSuccess "🎉"
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "📚 For detailed documentation:" $ColorInfo "📖"
+    Write-ColorOutput "   👉 See: deploy/README.md" $ColorInfo
+    Write-ColorOutput "   👉 Git folder: deploy/fabric-artifacts/" $ColorInfo
     
 } catch {
-    Write-ColorOutput "❌ Deployment failed: $_" $ColorError
+    Write-ColorOutput "❌ Deployment failed: $_" $ColorError "💥"
+    Write-ColorOutput "📋 Check the error above and refer to documentation" $ColorInfo "👆"
     exit 1
 }

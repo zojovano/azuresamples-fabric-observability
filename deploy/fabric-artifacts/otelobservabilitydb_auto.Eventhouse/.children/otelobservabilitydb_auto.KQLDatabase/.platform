@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "KQLDatabase",
+    "displayName": "otelobservabilitydb_auto",
+    "description": "otelobservabilitydb_auto"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "6e883263-6f02-881c-4620-726ca132c247"
+  }
+}

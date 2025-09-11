@@ -6,6 +6,9 @@
     This script deploys Microsoft Fabric workspace and KQL database using 
     Git integration instead of complex API calls. This approach is more reliable
     and follows Microsoft's recommended patterns.
+    
+    Use -CompleteDeployment when the workspace is already connected to Git
+    and you need to complete the table deployment process.
 .PARAMETER WorkspaceName
     Name of the Fabric workspace (default: fabric-otel-workspace)
 .PARAMETER DatabaseName  
@@ -14,17 +17,22 @@
     Folder in the repository to connect to (default: fabric-artifacts, resolves to deploy/fabric-artifacts)
 .PARAMETER WhatIf
     Show what would be deployed without actually deploying
+.PARAMETER CompleteDeployment
+    Use this when workspace is already connected to Git and you need to complete table deployment
 .EXAMPLE
     ./Deploy-FabricArtifacts-Git.ps1 -WhatIf
 .EXAMPLE  
     ./Deploy-FabricArtifacts-Git.ps1 -WorkspaceName "my-workspace"
+.EXAMPLE
+    ./Deploy-FabricArtifacts-Git.ps1 -CompleteDeployment
 #>
 
 param(
     [string]$WorkspaceName = "fabric-otel-workspace",
     [string]$DatabaseName = "otelobservabilitydb", 
     [string]$GitFolder = "fabric-artifacts",
-    [switch]$WhatIf
+    [switch]$WhatIf,
+    [switch]$CompleteDeployment
 )
 
 # Color definitions for output
@@ -49,7 +57,7 @@ function Write-ColorOutput {
 function Test-FabricAuthentication {
     Write-ColorOutput "Checking Fabric authentication..." $ColorInfo "🔐"
     
-    $authOutput = fab auth status 2>&1
+    $null = fab auth status 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-ColorOutput "Not authenticated with Fabric CLI" $ColorError "❌"
         Write-ColorOutput "Please run: fab auth login" $ColorInfo "💡"
@@ -60,39 +68,124 @@ function Test-FabricAuthentication {
     return $true
 }
 
-function Connect-WorkspaceToGit {
-    param(
-        [string]$WorkspaceName,
-        [string]$GitFolder
-    )
+function Test-GitFolderStructure {
+    param([string]$GitFolder)
     
-    Write-ColorOutput "Setting up Git integration for workspace..." $ColorInfo "🔗"
+    Write-ColorOutput "Verifying Git folder structure..." $ColorInfo "📁"
     
-    if ($WhatIf) {
-        Write-ColorOutput "[WHATIF] Would connect workspace '$WorkspaceName' to Git folder '$GitFolder'" $ColorWarning "⚠️"
-        return $true
-    }
+    $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) $GitFolder
+    $tablesPath = Join-Path $gitFolderPath "tables"
     
-    # Navigate to workspace using Fabric CLI navigation
-    $workspaceExists = fab ls | Select-String "$WorkspaceName.Workspace" -Quiet
-    if (-not $workspaceExists) {
-        Write-ColorOutput "Workspace '$WorkspaceName' not found. Creating workspace first..." $ColorWarning "⚠️"
-        
-        # In a real scenario, you'd create the workspace here
-        # For now, we'll assume it exists or needs to be created manually
-        Write-ColorOutput "Please create workspace '$WorkspaceName' manually in Fabric portal first" $ColorError "❌"
+    if (-not (Test-Path $gitFolderPath)) {
+        Write-ColorOutput "Git folder not found: $gitFolderPath" $ColorError "❌"
         return $false
     }
     
-    Write-ColorOutput "Found workspace '$WorkspaceName'" $ColorSuccess "✅"
-    Write-ColorOutput "To complete Git integration:" $ColorInfo "📋"
-    Write-ColorOutput "1. Navigate to workspace '$WorkspaceName' in Fabric portal" $ColorInfo "👉"
-    Write-ColorOutput "2. Go to Workspace Settings > Git Integration" $ColorInfo "👉"
-    Write-ColorOutput "3. Connect to this GitHub repository" $ColorInfo "👉"
-    Write-ColorOutput "4. Set folder to: 'deploy/$GitFolder'" $ColorInfo "👉"
-    Write-ColorOutput "5. Commit the workspace items to Git" $ColorInfo "👉"
+    if (-not (Test-Path $tablesPath)) {
+        Write-ColorOutput "Tables folder not found: $tablesPath" $ColorError "❌"
+        return $false
+    }
     
+    # Check for required KQL files
+    $requiredFiles = @("otel-logs.kql", "otel-metrics.kql", "otel-traces.kql")
+    $missingFiles = @()
+    
+    foreach ($file in $requiredFiles) {
+        $filePath = Join-Path $tablesPath $file
+        if (-not (Test-Path $filePath)) {
+            $missingFiles += $file
+        } else {
+            Write-ColorOutput "Found: $file" $ColorSuccess "✅"
+        }
+    }
+    
+    if ($missingFiles.Count -gt 0) {
+        Write-ColorOutput "Missing KQL files: $($missingFiles -join ', ')" $ColorError "❌"
+        return $false
+    }
+    
+    Write-ColorOutput "Git folder structure verified" $ColorSuccess "✅"
     return $true
+}
+
+function Show-TableContents {
+    param([string]$GitFolder)
+    
+    Write-ColorOutput "Reviewing table definitions..." $ColorInfo "📋"
+    
+    $gitFolderPath = Join-Path (Split-Path $PSScriptRoot -Parent) $GitFolder
+    $tablesPath = Join-Path $gitFolderPath "tables"
+    
+    $tableFiles = @("otel-logs.kql", "otel-metrics.kql", "otel-traces.kql")
+    
+    foreach ($file in $tableFiles) {
+        $filePath = Join-Path $tablesPath $file
+        if (Test-Path $filePath) {
+            Write-ColorOutput "" $ColorInfo
+            Write-ColorOutput "📄 ${file}:" $ColorInfo
+            Write-ColorOutput "$(('-' * 50))" $ColorInfo
+            $content = Get-Content $filePath -Raw
+            Write-Host $content -ForegroundColor White
+        }
+    }
+}
+
+function Show-GitDeploymentInstructions {
+    param(
+        [string]$WorkspaceName,
+        [string]$DatabaseName,
+        [string]$GitFolder
+    )
+    
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "🎯 Complete Table Deployment via Git Integration" $ColorSuccess "🎉"
+    Write-ColorOutput "================================================================" $ColorInfo
+    Write-ColorOutput "" $ColorInfo
+    Write-ColorOutput "Since you've already connected the workspace to Git, follow these steps:" $ColorInfo "📋"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 1: Open Fabric Portal" $ColorInfo "1️⃣"
+    Write-ColorOutput "   Navigate to: https://app.fabric.microsoft.com" $ColorInfo "   👉"
+    Write-ColorOutput "   Go to workspace: $WorkspaceName" $ColorInfo "   👉"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 2: Create KQL Database (if not exists)" $ColorInfo "2️⃣"
+    Write-ColorOutput "   Click: New > More options > KQL Database" $ColorInfo "   👉"
+    Write-ColorOutput "   Name: $DatabaseName" $ColorInfo "   👉"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 3: Update from Git" $ColorInfo "3️⃣"
+    Write-ColorOutput "   In workspace, look for Source Control panel" $ColorInfo "   👉"
+    Write-ColorOutput "   Click: Update from Git" $ColorInfo "   👉"
+    Write-ColorOutput "   This will import the table definitions from Git" $ColorInfo "   �"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 4: Verify Tables Created" $ColorInfo "4️⃣"
+    Write-ColorOutput "   Open the KQL database: $DatabaseName" $ColorInfo "   👉"
+    Write-ColorOutput "   Verify these tables exist:" $ColorInfo "   👉"
+    Write-ColorOutput "      - OTELLogs" $ColorSuccess "      ✅"
+    Write-ColorOutput "      - OTELMetrics" $ColorSuccess "      ✅"
+    Write-ColorOutput "      - OTELTraces" $ColorSuccess "      ✅"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "STEP 5: Test Tables" $ColorInfo "5️⃣"
+    Write-ColorOutput "   Run test queries in KQL editor:" $ColorInfo "   👉"
+    Write-ColorOutput "   OTELLogs | getschema" $ColorInfo "   👉"
+    Write-ColorOutput "   OTELMetrics | getschema" $ColorInfo "   👉"
+    Write-ColorOutput "   OTELTraces | getschema" $ColorInfo "   👉"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "🔄 Alternative: If Update from Git doesn't work" $ColorWarning "⚠️"
+    Write-ColorOutput "   1. Copy table definitions manually from deploy/$GitFolder/tables/" $ColorWarning "   👉"
+    Write-ColorOutput "   2. Paste each .kql file content into KQL editor" $ColorWarning "   👉"
+    Write-ColorOutput "   3. Execute the .create-merge table commands" $ColorWarning "   👉"
+    Write-ColorOutput "" $ColorInfo
+    
+    Write-ColorOutput "💡 Benefits of Git Integration:" $ColorSuccess
+    Write-ColorOutput "   - Automatic version control for schema changes" $ColorSuccess "   ✅"
+    Write-ColorOutput "   - Easy rollback and branching" $ColorSuccess "   ✅"
+    Write-ColorOutput "   - Collaborative development" $ColorSuccess "   ✅"
+    Write-ColorOutput "   - No complex authentication issues" $ColorSuccess "   ✅"
 }
 
 function Copy-KqlDefinitionsToGitFolder {
@@ -207,21 +300,34 @@ try {
         throw "Fabric authentication failed"
     }
     
-    # Copy KQL definitions to Git folder
-    if (-not (Copy-KqlDefinitionsToGitFolder -GitFolder $GitFolder)) {
-        throw "Failed to copy KQL definitions to Git folder"
+    # Verify Git folder structure
+    if (-not (Test-GitFolderStructure -GitFolder $GitFolder)) {
+        throw "Git folder structure verification failed"
     }
     
-    # Set up Git integration guidance
-    if (-not (Connect-WorkspaceToGit -WorkspaceName $WorkspaceName -GitFolder $GitFolder)) {
-        throw "Failed to set up Git integration"
+    if ($CompleteDeployment) {
+        Write-ColorOutput "🎯 Completing table deployment..." $ColorInfo
+        
+        # Show table contents for review
+        Show-TableContents -GitFolder $GitFolder
+        
+        # Show deployment instructions
+        Show-GitDeploymentInstructions -WorkspaceName $WorkspaceName -DatabaseName $DatabaseName -GitFolder $GitFolder
+        
+    } else {
+        # Original setup logic for first-time Git integration
+        
+        # Copy KQL definitions to Git folder (if needed)
+        if (-not (Copy-KqlDefinitionsToGitFolder -GitFolder $GitFolder)) {
+            throw "Failed to copy KQL definitions to Git folder"
+        }
+        
+        # Show next steps for initial setup
+        Show-NextSteps -WorkspaceName $WorkspaceName -DatabaseName $DatabaseName -GitFolder $GitFolder
     }
-    
-    # Show next steps
-    Show-NextSteps -WorkspaceName $WorkspaceName -DatabaseName $DatabaseName -GitFolder $GitFolder
     
     Write-ColorOutput "" $ColorInfo
-    Write-ColorOutput "✅ Git integration setup completed successfully!" $ColorSuccess "🎉"
+    Write-ColorOutput "✅ Git integration deployment guidance complete!" $ColorSuccess "🎉"
     
 } catch {
     Write-ColorOutput "❌ Deployment failed: $_" $ColorError

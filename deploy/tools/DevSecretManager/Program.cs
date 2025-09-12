@@ -229,13 +229,13 @@ $env:FABRIC_DATABASE_NAME = '{_configuration?["Fabric:DatabaseName"] ?? "otelobs
 $env:RESOURCE_GROUP_NAME = '{_configuration?["Azure:ResourceGroupName"] ?? "azuresamples-platformobservabilty-fabric"}'
 
 Write-Host ""🔑 Environment variables set for Fabric testing"" -ForegroundColor Green
-Write-Host ""You can now run: .\infra\Deploy-FabricArtifacts.ps1 -SkipPrereqs"" -ForegroundColor Cyan
+Write-Host ""You can now run: .\infra\Deploy-FabricArtifacts-Git.ps1"" -ForegroundColor Cyan
 ");
 
             Console.WriteLine($"✅ Environment script created: {exportScript}");
             Console.WriteLine("💡 To test Fabric deployment:");
             Console.WriteLine($"   1. Run: pwsh -File \"{exportScript}\"");
-            Console.WriteLine("   2. Then: .\\infra\\Deploy-FabricArtifacts.ps1 -SkipPrereqs");
+            Console.WriteLine("   2. Then: .\\infra\\Deploy-FabricArtifacts-Git.ps1");
         }
         catch (Exception ex)
         {

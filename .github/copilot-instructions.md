@@ -101,7 +101,7 @@ This project **exclusively uses PowerShell scripts** - all Bash equivalents were
 cd deploy/infra/Bicep && .\deploy.ps1
 
 # Fabric artifacts deployment (requires Fabric CLI)
-.\deploy\infra\Deploy-FabricArtifacts.ps1
+.\deploy\infra\Deploy-FabricArtifacts-Git.ps1
 
 # Comprehensive testing
 .\tests\Test-FabricIntegration.ps1
@@ -232,7 +232,7 @@ Infrastructure uses Azure Verified Modules pattern:
 
 ## Critical File Locations
 
-**Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts.ps1` (legacy API), `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Install-FabricCLI.ps1`
+**Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Install-FabricCLI.ps1` (legacy helper)
 **KQL Definitions**: `deploy/infra/kql-definitions/tables/*.kql` (source), `deploy/fabric-artifacts/tables/*.kql` (Git integration)
 **Test Suite**: `tests/Test-FabricIntegration.ps1` (legacy API), `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
 **OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline)

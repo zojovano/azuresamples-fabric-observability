@@ -269,7 +269,7 @@ jobs:
             echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
             echo "1. Open in DevContainer environment" >> $GITHUB_STEP_SUMMARY
             echo "2. Run \`deploy/tools/Verify-DevEnvironment.ps1\` to validate local setup" >> $GITHUB_STEP_SUMMARY
-            echo "3. Use \`deploy/infra/Deploy-FabricArtifacts.ps1\` for manual deployment" >> $GITHUB_STEP_SUMMARY
+            echo "3. Use Git integration script: deploy/infra/Deploy-FabricArtifacts-Git.ps1" >> $GITHUB_STEP_SUMMARY
             echo "4. For CI/CD deployment, see \`ci-cd\` branch" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Development Environment: **NOT READY**" >> $GITHUB_STEP_SUMMARY

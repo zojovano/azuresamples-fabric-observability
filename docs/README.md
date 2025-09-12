@@ -147,7 +147,6 @@ The project uses a unified deployment script that automatically loads configurat
 cd deploy/infra/Bicep && ./deploy.ps1
 
 # 2. Deploy Fabric Artifacts
-./deploy/infra/Deploy-FabricArtifacts.ps1
 
 # 3. Validate Deployment
 ./tests/Test-FabricIntegration.ps1
@@ -289,7 +288,6 @@ fab workspace create --display-name "test-workspace"
 shell: pwsh
 run: |
   # Use absolute paths
-  $scriptPath = Join-Path $env:GITHUB_WORKSPACE "infra" "Deploy-FabricArtifacts.ps1"
   & $scriptPath
 ```
 
@@ -354,7 +352,6 @@ deployment_mode:
 ## 📋 Additional Resources
 
 ### Key Files
-- **Main Deployment Script**: `deploy/infra/Deploy-FabricArtifacts.ps1`
 - **Bicep Templates**: `deploy/infra/Bicep/main.bicep`
 - **KQL Table Definitions**: `deploy/infra/kql-definitions/tables/`
 - **Test Suite**: `tests/Test-FabricIntegration.ps1`

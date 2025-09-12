@@ -230,7 +230,6 @@ jobs:
     steps:
       - name: Deploy Fabric Resources
         shell: pwsh
-        run: ./deploy/infra/Deploy-FabricArtifacts.ps1
 ```
 
 ## 🚀 Quick Start
@@ -330,11 +329,9 @@ azuresamples-fabric-observability/
 │   ├── infra/                   # Infrastructure as Code
 │   │   ├── Bicep/              # Azure Bicep templates
 │   │   ├── kql-definitions/    # KQL table definitions
-│   │   └── Deploy-FabricArtifacts.ps1
 │   └── tools/                   # Development and deployment tools
 │   ├── Bicep/                   # Azure Bicep templates
 │   ├── kql-definitions/         # Fabric table schemas
-│   └── Deploy-FabricArtifacts.ps1  # Fabric deployment script
 ├── tests/                       # Integration tests
 ├── docs/                        # Setup and troubleshooting
 └── .devcontainer/              # Development environment

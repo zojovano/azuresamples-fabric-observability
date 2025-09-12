@@ -22,7 +22,7 @@ Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This scri
 |--------|--------|---------|
 | **`Deploy-Complete.ps1`** | ✅ **RECOMMENDED** | Single script for all deployment scenarios |
 | **`Destroy-Complete.ps1`** | ⚠️ **DESTRUCTIVE** | Complete infrastructure removal |
-| `Deploy-FabricArtifacts.ps1` | ✅ Active | Fabric-only deployment (used by Deploy-Complete.ps1) |
+| (Removed) Deploy-FabricArtifacts.ps1 | ❌ Deprecated | Replaced by Git-based `Deploy-FabricArtifacts-Git.ps1` |
 | `Setup-Authentication.ps1` | ✅ Active | Authentication helper |
 
 ## Quick Start
@@ -115,7 +115,6 @@ The script automatically loads all configuration from `config/project-config.jso
 deploy/infra/
 ├── Deploy-Complete.ps1              # 🎯 Single unified deployment script
 ├── Destroy-Complete.ps1             # 🔥 Complete infrastructure removal
-├── Deploy-FabricArtifacts.ps1      # Fabric-specific deployment
 ├── Setup-Authentication.ps1        # Authentication helper
 ├── Bicep/                          # Infrastructure templates
 │   ├── main.bicep                  # Main Bicep template

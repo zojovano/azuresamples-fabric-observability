@@ -206,7 +206,7 @@ function Start-FabricDeployment {
         $hasWorkspacePermissions = $false
     }
     
-    $deployScript = Join-Path $PSScriptRoot ".." "infra" "Deploy-FabricArtifacts.ps1"
+    $deployScript = Join-Path $PSScriptRoot ".." "infra" "Deploy-FabricArtifacts-Git.ps1"
     
     if ($hasWorkspacePermissions) {
         Write-ColorOutput "Workspace permissions verified! Running full deployment..." $ColorSuccess "✅"

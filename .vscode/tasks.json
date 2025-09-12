@@ -1,0 +1,106 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🧹 Pre-Restart Cleanup",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "echo '🧹 Starting pre-restart cleanup...' && git status --porcelain | wc -l | xargs -I {} echo 'Found {} uncommitted changes' && if [ $(git status --porcelain | wc -l) -gt 0 ]; then echo '📝 Committing changes...' && git add -A && git commit -m \"Auto-commit before restart: $(date)\" && git push && echo '✅ Changes committed and pushed'; else echo '✅ No changes to commit'; fi && echo '🗑️ Clearing GitHub Copilot cache...' && rm -rf ~/.vscode-server/data/User/globalStorage/github.copilot* && echo '🗑️ Clearing VS Code workspace storage...' && rm -rf ~/.vscode-server/data/User/workspaceStorage/* && echo '🗑️ Clearing extension caches...' && rm -rf ~/.vscode-server/data/User/globalStorage/*/cache && echo '✅ Pre-restart cleanup completed successfully!' && echo '🔄 You can now safely restart VS Code/DevContainer'"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Commits changes, clears caches, and prepares for safe restart"
+        },
+        {
+            "label": "🔍 Check File Restoration Issues",
+            "type": "shell", 
+            "command": "bash",
+            "args": [
+                "-c",
+                "echo '🔍 Checking for potential file restoration issues...' && echo '' && echo '📊 Git Status:' && git status --short && echo '' && echo '📁 Recently Modified Files (last 5 minutes):' && find . -type f -mmin -5 -not -path './.git/*' -not -path './node_modules/*' -not -path './.vscode-server/*' | head -10 && echo '' && echo '🗂️ VS Code Workspace Storage:' && ls -la ~/.vscode-server/data/User/workspaceStorage/ 2>/dev/null | wc -l | xargs -I {} echo '{} workspace storage entries' && echo '' && echo '🤖 GitHub Copilot Cache:' && ls -la ~/.vscode-server/data/User/globalStorage/github.copilot* 2>/dev/null | wc -l | xargs -I {} echo '{} Copilot cache entries' && echo '' && echo '✅ Check completed'"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Diagnose potential causes of file restoration after restart"
+        },
+        {
+            "label": "🚨 Emergency File Cleanup",
+            "type": "shell",
+            "command": "bash", 
+            "args": [
+                "-c",
+                "echo '🚨 EMERGENCY: Cleaning up restored files...' && echo '📋 Files that appeared after restart:' && git status --porcelain && echo '' && read -p '❓ Do you want to REMOVE these files? (y/N): ' confirm && if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then echo '🗑️ Removing restored files...' && git status --porcelain | grep '^??' | cut -c4- | xargs -I {} rm -rf '{}' && git checkout -- . && echo '✅ Restored files removed'; else echo '❌ Cleanup cancelled by user'; fi"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always", 
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Emergency cleanup of files that reappeared after restart (USE WITH CAUTION)"
+        },
+        {
+            "label": "⚙️ Configure Anti-Restoration Settings",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "echo '⚙️ Configuring VS Code settings to prevent file restoration...' && echo '{' > .vscode/settings.temp && echo '    \"dotnet.defaultSolution\": \"OTELWorker.sln\",' >> .vscode/settings.temp && echo '    \"files.hotExit\": \"off\",' >> .vscode/settings.temp && echo '    \"files.autoSave\": \"off\",' >> .vscode/settings.temp && echo '    \"git.autofetch\": false,' >> .vscode/settings.temp && echo '    \"git.autofetchPeriod\": 0,' >> .vscode/settings.temp && echo '    \"workbench.editor.restoreViewState\": false,' >> .vscode/settings.temp && echo '    \"workbench.editor.enablePreview\": false,' >> .vscode/settings.temp && echo '    \"github.copilot.enable\": {' >> .vscode/settings.temp && echo '        \"*\": true,' >> .vscode/settings.temp && echo '        \"yaml\": false,' >> .vscode/settings.temp && echo '        \"plaintext\": false' >> .vscode/settings.temp && echo '    }' >> .vscode/settings.temp && echo '}' >> .vscode/settings.temp && mv .vscode/settings.temp .vscode/settings.json && echo '✅ Anti-restoration settings configured' && echo '📝 Committing settings...' && git add .vscode/settings.json && git commit -m \"Configure VS Code anti-restoration settings\" && git push && echo '✅ Settings committed and pushed'"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Configure VS Code settings to prevent file restoration issues"
+        },
+        {
+            "label": "🧹 Pre-Restart Cleanup (PowerShell)",
+            "type": "shell",
+            "command": "pwsh",
+            "args": [
+                "-File",
+                ".vscode/pre-restart-cleanup.ps1",
+                "-Force"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "PowerShell version with robust error handling and detailed logging"
+        }
+    ]
+}

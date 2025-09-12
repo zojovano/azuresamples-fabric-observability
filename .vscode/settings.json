@@ -1,3 +1,14 @@
 {
-    "dotnet.defaultSolution": "OTELWorker.sln"
+    "dotnet.defaultSolution": "OTELWorker.sln",
+    "files.hotExit": "off",
+    "files.autoSave": "off",
+    "git.autofetch": false,
+    "git.autofetchPeriod": 0,
+    "workbench.editor.restoreViewState": false,
+    "workbench.editor.enablePreview": false,
+    "github.copilot.enable": {
+        "*": true,
+        "yaml": false,
+        "plaintext": false
+    }
 }

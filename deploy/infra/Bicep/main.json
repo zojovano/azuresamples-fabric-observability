@@ -235,7 +235,7 @@
                   "schema": "TraceID:string, SpanID:string, ParentID:string, SpanName:string, SpanStatus:string, SpanKind:string, StartTime:datetime, EndTime:datetime, ResourceAttributes:dynamic, TraceAttributes:dynamic, Events:dynamic, Links:dynamic"
                 }
               ],
-              "instructions": "After deployment, manually create a Fabric workspace and KQL database using the provided parameters. Use the KQL scripts in deploy/infra/kql-definitions/ to create the required tables."
+              "instructions": "After deployment, manually create a Fabric workspace and KQL database using the provided parameters. Use the KQL scripts in deploy/fabric-artifacts/tables to create the required tables via Git integration."
             }
           },
           "resources": [],

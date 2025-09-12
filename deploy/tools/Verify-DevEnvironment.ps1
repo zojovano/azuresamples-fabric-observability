@@ -212,7 +212,7 @@ function Test-ProjectStructure {
         @{ Path = "deploy/infra/Bicep/main.bicep"; Description = "Main Bicep template" },
     @{ Path = "deploy/infra/Deploy-FabricArtifacts-Git.ps1"; Description = "Fabric Git integration deployment guidance" },
         @{ Path = "app/otel-eh-receiver/config.yaml"; Description = "OTEL Collector config" },
-        @{ Path = "tests/Test-FabricIntegration.ps1"; Description = "Integration tests" },
+
         @{ Path = ".devcontainer/devcontainer.json"; Description = "DevContainer configuration" }
     )
     

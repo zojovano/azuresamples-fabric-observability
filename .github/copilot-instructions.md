@@ -104,7 +104,7 @@ cd deploy/infra/Bicep && .\deploy.ps1
 .\deploy\infra\Deploy-FabricArtifacts-Git.ps1
 
 # Comprehensive testing
-.\tests\Test-FabricIntegration.ps1
+.\tests\Test-FabricIntegration-Git.ps1
 ```
 
 ### Fabric CLI Authentication Pattern
@@ -118,7 +118,7 @@ fab auth whoami  # Always verify
 ```
 
 ### KQL Table Deployment Pattern
-Tables use `.create-merge` commands for idempotency. Schema example from `deploy/infra/kql-definitions/tables/otel-logs.kql`:
+Tables use `.create-merge` commands for idempotency. Schema example from `deploy/fabric-artifacts/tables/otel-logs.kql`:
 ```kql
 .create-merge table OTELLogs (
     Timestamp:datetime, 
@@ -233,8 +233,8 @@ Infrastructure uses Azure Verified Modules pattern:
 ## Critical File Locations
 
 **Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Install-FabricCLI.ps1` (legacy helper)
-**KQL Definitions**: `deploy/infra/kql-definitions/tables/*.kql` (source), `deploy/fabric-artifacts/tables/*.kql` (Git integration)
-**Test Suite**: `tests/Test-FabricIntegration.ps1` (legacy API), `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
+**KQL Definitions**: `deploy/fabric-artifacts/tables/*.kql` (Git integration)
+**Test Suite**: `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
 **OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline)
 **Sample App**: `app/dotnet-client/OTELWorker/` (.NET worker with OTEL instrumentation)
 **Git Integration**: `deploy/fabric-artifacts/` folder for Fabric workspace sync, `deploy/fabric-artifacts/README.md` (setup guide)
@@ -264,7 +264,7 @@ az resource list --resource-group $resourceGroupName --resource-type "Microsoft.
 ```bash
 # 1. ALWAYS TEST FIRST - Execute relevant test scripts
 ./tests/Test-FabricIntegration-Git.ps1  # For Git integration changes
-./tests/Test-FabricIntegration.ps1      # For API-based changes
+
 pwsh -c "script-name.ps1 -WhatIf"       # For deployment scripts
 
 # 2. VERIFY FUNCTIONALITY - Ensure all tests pass and functionality works

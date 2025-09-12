@@ -119,7 +119,7 @@ deploy/infra/
 ├── Bicep/                          # Infrastructure templates
 │   ├── main.bicep                  # Main Bicep template
 │   └── modules/                    # Bicep modules
-├── kql-definitions/                # KQL table definitions
+
 │   └── tables/                     # OTEL table schemas
 └── data/                          # Sample data files
 ```

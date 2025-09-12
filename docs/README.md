@@ -149,7 +149,7 @@ cd deploy/infra/Bicep && ./deploy.ps1
 # 2. Deploy Fabric Artifacts
 
 # 3. Validate Deployment
-./tests/Test-FabricIntegration.ps1
+./tests/Test-FabricIntegration-Git.ps1
 ```
 
 ---
@@ -353,8 +353,8 @@ deployment_mode:
 
 ### Key Files
 - **Bicep Templates**: `deploy/infra/Bicep/main.bicep`
-- **KQL Table Definitions**: `deploy/infra/kql-definitions/tables/`
-- **Test Suite**: `tests/Test-FabricIntegration.ps1`
+- **KQL Table Definitions**: `deploy/fabric-artifacts/tables/`
+- **Test Suite**: `tests/Test-FabricIntegration-Git.ps1`
 - **DevContainer Config**: `.devcontainer/devcontainer.json`
 
 ### External Documentation

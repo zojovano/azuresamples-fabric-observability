@@ -40,7 +40,7 @@ export PERFORMANCE_THRESHOLD_MS="5000"    # Query performance threshold
 
 **PowerShell Version** (Cross-platform):
 ```powershell
-.\tests\Test-FabricIntegration.ps1
+.\tests\Test-FabricIntegration-Git.ps1
 ```
 
 **Key Features**:
@@ -126,7 +126,7 @@ Tests are automatically executed in GitHub Actions workflows with:
 ```yaml
 - name: Run Fabric Integration Tests
   shell: pwsh
-  run: .\tests\Test-FabricIntegration.ps1
+  run: .\tests\Test-FabricIntegration-Git.ps1
 
 - name: Upload Test Results
   uses: actions/upload-artifact@v4
@@ -196,7 +196,7 @@ Tests generate standard JUnit XML format for integration with:
 Enable verbose output:
 ```powershell
 $env:TEST_DEBUG = "true"
-.\tests\Test-FabricIntegration.ps1
+.\tests\Test-FabricIntegration-Git.ps1
 ```
 
 Check test logs:

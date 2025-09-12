@@ -328,10 +328,10 @@ azuresamples-fabric-observability/
 ├── deploy/                      # Deployment and Infrastructure
 │   ├── infra/                   # Infrastructure as Code
 │   │   ├── Bicep/              # Azure Bicep templates
-│   │   ├── kql-definitions/    # KQL table definitions
+
 │   └── tools/                   # Development and deployment tools
 │   ├── Bicep/                   # Azure Bicep templates
-│   ├── kql-definitions/         # Fabric table schemas
+
 ├── tests/                       # Integration tests
 ├── docs/                        # Setup and troubleshooting
 └── .devcontainer/              # Development environment

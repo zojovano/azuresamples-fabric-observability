@@ -4,10 +4,7 @@ This directory contains development and deployment tools for the Microsoft Fabri
 
 ## 🛠️ Available Tools
 
-### Interactive Setup
-| Tool | Description | Usage |
-|------|-------------|-------|
-| [`setup-local-dev.ps1`](setup-local-dev.ps1) | Interactive local development setup wizard | `pwsh deploy/tools/setup-local-dev.ps1` |
+
 
 ### Testing & Validation
 | Tool | Description | Usage |
@@ -32,13 +29,7 @@ pwsh deploy/tools/Verify-DevEnvironment.ps1
 pwsh deploy/tools/Verify-DevEnvironment.ps1 -CheckAuth
 ```
 
-### 1. Interactive Setup (Recommended)
-```powershell
-# Run interactive setup wizard
-pwsh deploy/tools/setup-local-dev.ps1
-```
-
-### 2. Manual Configuration
+### 1. Manual Configuration
 ```powershell
 # Set up User Secrets
 pwsh deploy/tools/Test-FabricLocal.ps1 -SetupSecrets
@@ -108,19 +99,6 @@ pwsh deploy/tools/Verify-DevEnvironment.ps1 -CheckAuth
 - `0`: All required tools verified successfully
 - `1`: One or more required tools missing or failed verification
 
-### setup-local-dev.ps1
-Interactive wizard that guides you through:
-- Choosing authentication method
-- Configuring secrets
-- Testing the setup
-- Providing next steps
-
-**Options:**
-```powershell
-pwsh deploy/tools/setup-local-dev.ps1           # Interactive mode
-pwsh deploy/tools/setup-local-dev.ps1 -Help     # Show help
-```
-
 ### Test-FabricLocal.ps1
 Comprehensive testing tool with multiple modes:
 
@@ -180,7 +158,6 @@ dotnet run import-from-keyvault --vault-name "vault" --secret-name "secret"
 ## 💡 Tips
 
 - **Start with `Verify-DevEnvironment.ps1`** to ensure your DevContainer environment is properly configured
-- **Use `setup-local-dev.ps1`** for the easiest setup experience after environment verification
 - **Use User Secrets** for local development (most secure and convenient)
 - **Use Key Vault** for team environments and production
 - **Use Environment Variables** for CI/CD and automated testing

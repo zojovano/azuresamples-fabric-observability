@@ -11,6 +11,56 @@ The company now wouldl like to leverage Microsoft Fabric investments
 We will use [OTEL Gateway Deployment pattern](https://opentelemetry.io/docs/collector/deployment/gateway/) with containerized version of OTEL Collector.
 ![alt text](./docs/assets/image005.png)
 
+```mermaid
+graph TD
+    subgraph "Azure Environment"
+        AS[Azure Services<br/>App Services, VMs, etc.]
+        EH[Azure Event Hub<br/>Diagnostic Logs]
+        ACI[Azure Container Instance<br/>OTEL Collector Gateway]
+    end
+    
+    subgraph "Microsoft Fabric"
+        direction TB
+        RTI[Real-Time Intelligence<br/>Eventhouse]
+        KQL[(KQL Database)]
+        
+        subgraph "OTEL Tables"
+            direction LR
+            LOGS[OTELLogs]
+            METRICS[OTELMetrics] 
+            TRACES[OTELTraces]
+        end
+        
+        RTI --> KQL
+        KQL --> LOGS
+        KQL --> METRICS
+        KQL --> TRACES
+    end
+    
+    subgraph "Data Sources"
+        APPS[Sample Applications<br/>with OTEL SDK]
+        DIAG[Azure Diagnostic<br/>Settings]
+    end
+    
+    %% Data Flow
+    AS -->|Diagnostic Logs| EH
+    APPS -->|OTLP gRPC/HTTP| ACI
+    EH -->|Event Stream| ACI
+    DIAG -->|Configure| AS
+    ACI -->|Processed Telemetry| RTI
+    
+    %% Styling
+    classDef azureService fill:#0078d4,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef fabricService fill:#742774,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef otelService fill:#f9ab00,stroke:#ffffff,stroke-width:2px,color:#000000
+    classDef dataStore fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    
+    class AS,EH azureService
+    class RTI,KQL fabricService
+    class ACI,APPS otelService
+    class LOGS,METRICS,TRACES dataStore
+```
+
 Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container instance (with OTELContrib Collector) => Microsoft Fabric Real-Time Intelligence (KQL Database)
 
 ## Summary of Steps

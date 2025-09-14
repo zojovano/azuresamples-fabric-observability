@@ -217,12 +217,17 @@ The OpenTelemetry Collector serves as the central processing gateway in this sol
 
 > **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Deploy a container instance in Azure using the Azure portal](https://learn.microsoft.com/en-us/azure/container-instances/container-instances-quickstart-portal)
 
-[OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) distribution will be configured and deployed as a Azure Container Instance as a OTEL Collector Gateway. 
-Docker image "otel/opentelemetry-collector-contrib" 
+This solution uses a custom-built container image that includes the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) distribution with a pre-configured OTEL configuration file.
 
-We will use [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) which is part of the "OpenTelemetry Collector Contrib" distribution.
+#### 1. Build Custom OTEL Collector Container
 
-#### 1. Create Azure Container Instance
+The custom container is built with the OTEL configuration embedded. The configuration includes:
+
+- [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) for processing Azure diagnostic logs
+- [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md) for sending data to Microsoft Fabric
+- OTLP Receiver for direct application telemetry
+
+#### 2. Create Azure Container Instance
 
 1. In the Azure portal, select **Create a resource** → **Containers** → **Container Instances**
 2. On the **Basics** page, configure:
@@ -230,15 +235,15 @@ We will use [Azure Event Hub Receiver](https://github.com/open-telemetry/opentel
    - **Resource group**: Select the same resource group as your Event Hub
    - **Container name**: Enter `otel-collector-gateway`
    - **Region**: Select the same region as your Event Hub
-   - **Image source**: Select **Other registry**
-   - **Image type**: **Public**
-   - **Image**: `otel/opentelemetry-collector-contrib:latest`
+   - **Image source**: Select **Azure Container Registry** (if using ACR) or **Other registry**
+   - **Image type**: **Private** (if in ACR) or **Public** (if in public registry)
+   - **Image**: Your custom OTEL collector image (e.g., `your-registry/otel-collector-custom:latest`)
    - **OS type**: **Linux**
    - **Size**: 
      - **CPU**: **2 cores**
      - **Memory**: **4 GB**
 
-#### 2. Configure Networking
+#### 3. Configure Networking
 
 1. Select the **Networking** tab
 2. Configure networking:
@@ -249,25 +254,17 @@ We will use [Azure Event Hub Receiver](https://github.com/open-telemetry/opentel
      - **Port 2**: `8888` (TCP) - Metrics endpoint (optional)
      - **Port 3**: `13133` (TCP) - Health check endpoint (optional)
 
-#### 3. Configure Advanced Settings
+#### 4. Configure Environment Variables
 
 1. Select the **Advanced** tab
 2. Set **Restart policy**: **Always**
-3. Configure **Environment variables** (if needed for authentication)
-4. **Command override**: Leave empty to use default OTEL Collector startup
-
-#### 4. Add Configuration File
-
-Before deployment, you need to create a configuration file. You can either:
-
-**Option A: Use Azure File Share**
-1. Create an Azure Storage Account and File Share
-2. Upload your `config.yaml` file to the file share
-3. Mount the file share to the container at `/etc/otelcol-contrib/config.yaml`
-
-**Option B: Use init container or sidecar pattern**
-1. Build a custom image with your configuration included
-2. Use the custom image instead of the base collector image
+3. Configure **Environment variables** for dynamic configuration:
+   - **EVENTHUB_CONNECTION_STRING**: Your Event Hub connection string
+   - **FABRIC_CLUSTER_URI**: Your Microsoft Fabric cluster URI
+   - **FABRIC_DATABASE_NAME**: Your KQL database name
+   - **AZURE_CLIENT_ID**: Service principal client ID (if using)
+   - **AZURE_CLIENT_SECRET**: Service principal secret (if using)
+   - **AZURE_TENANT_ID**: Azure tenant ID
 
 #### 5. Deploy and Verify
 
@@ -280,12 +277,12 @@ Before deployment, you need to create a configuration file. You can either:
 
 ### Configuration Summary
 
-The OTEL Collector deployment includes:
-- **Image**: `otel/opentelemetry-collector-contrib:latest`
+The custom OTEL Collector deployment includes:
+- **Custom Image**: Pre-built with embedded OTEL configuration
 - **Compute**: 2 CPU cores, 4 GB memory
 - **Networking**: Public endpoint with OTLP gRPC on port 4317
 - **Components**: Azure Event Hub receiver and Azure Data Explorer exporter
-- **Restart policy**: Always restart on failure
+- **Configuration**: Embedded config file with environment variable overrides
 
 ![alt text](./docs/assets/image010.png)
 
@@ -295,7 +292,9 @@ and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemet
 
 You can search for available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
 
-Following is the full OTEL config.yaml content:
+### OTEL Collector Configuration
+
+The custom container uses the following OTEL configuration (config.yaml):
 
 ```yml
 extensions:

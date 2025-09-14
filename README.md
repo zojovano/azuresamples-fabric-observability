@@ -92,9 +92,99 @@ The following sections describe Azure Portal deployment and configuration based 
 > **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#-infrastructure-as-code-bicep-deployment)
 
 
+## Deploy telemetry sample Azure services
+
+Deploy Azure App Services that will generate diagnostic logs and send them to the configured Azure Event Hub. These services serve as sample data sources to demonstrate the observability solution in action.
+
+> **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Deploy a Python web app to Azure App Service](https://learn.microsoft.com/en-us/azure/app-service/quickstart-python)
+
+#### 1. Create First App Service
+
+1. In the Azure portal, search for **App Services** and select **App Services**
+2. Select **Create** → **Web App**
+3. On the **Basics** tab, configure:
+   - **Subscription**: Select your Azure subscription
+   - **Resource group**: Select the same resource group as your other resources
+   - **Name**: Enter `otel-sample-app-01-{suffix}` (must be globally unique)
+   - **Publish**: **Code**
+   - **Runtime stack**: **Python 3.12** (or your preferred stack)
+   - **Operating System**: **Linux**
+   - **Region**: Select the same region as your other resources
+   - **App Service Plan**: 
+     - **Create new**: `otel-sample-plan`
+     - **Pricing tier**: **Basic B1** (for diagnostic logging support)
+4. Select **Review + create** → **Create**
+
+#### 2. Create Second App Service
+
+1. Repeat the same process for a second App Service
+2. Use name: `otel-sample-app-02-{suffix}`
+3. Use the **same App Service Plan** created above to save costs
+
+#### 3. Configure Diagnostic Settings for App Service 1
+
+1. Navigate to your first App Service
+2. In the left menu, select **Monitoring** → **Diagnostic settings**
+3. Select **Add diagnostic setting**
+4. Configure the diagnostic setting:
+   - **Diagnostic setting name**: `send-to-eventhub`
+   - **Logs**: Select the following categories:
+     - ✅ **AppServiceHTTPLogs**
+     - ✅ **AppServiceConsoleLogs**
+     - ✅ **AppServiceAppLogs**
+     - ✅ **AppServicePlatformLogs**
+   - **Destination details**: 
+     - ✅ **Stream to an event hub**
+     - **Event hub namespace**: Select your created Event Hub namespace
+     - **Event hub name**: Select your created event hub
+     - **Event hub policy name**: **RootManageSharedAccessKey**
+5. Select **Save**
+
+
+![alt text](./docs/assets/image012.png)
+
+![alt text](./docs/assets/image013.png)
+
+#### 4. Configure Diagnostic Settings for App Service 2
+
+1. Navigate to your second App Service
+2. Repeat the same diagnostic settings configuration as App Service 1
+3. Use the same Event Hub namespace and event hub for consistency
+
+#### 5. Generate Sample Traffic
+
+1. Navigate to both App Services
+2. Copy the **URL** from the Overview page of each app
+3. Open the URLs in your browser to generate HTTP requests
+4. Refresh the pages multiple times to create diagnostic log entries
+5. The diagnostic logs will automatically flow to your Event Hub
+
+#### 6. Verify Diagnostic Log Flow
+
+1. Navigate to your Event Hub namespace
+2. Go to **Monitoring** → **Metrics**
+3. Check for **Incoming Messages** to confirm diagnostic data is flowing
+4. In your OTEL Collector logs, you should see events being processed
+
+### Configuration Summary
+
+The sample App Services setup includes:
+- **Two App Services**: Running on Basic B1 tier for diagnostic logging support
+- **Diagnostic Settings**: Configured to send HTTP, Console, App, and Platform logs
+- **Event Hub Integration**: All diagnostic logs stream to the central Event Hub
+- **Sample Traffic**: Manual browsing generates realistic log data for testing
+
+
+
 ## Deploy Azure Event Hub
 
 Azure Event Hub serves as the central ingestion point for diagnostic logs from Azure services in this observability solution. The OTEL Collector will connect to Event Hub to receive and process diagnostic data before forwarding it to Microsoft Fabric.
+
+![alt text](./docs/assets/image006.png)
+
+![alt text](./docs/assets/image007.png)
+
+![alt text](./docs/assets/image008.png)
 
 > **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Create an event hub using Azure portal](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create)
 
@@ -148,11 +238,6 @@ The Event Hub setup will include:
 
 ### Sample Event Hub Record
 
-![alt text](./docs/assets/image006.png)
-
-![alt text](./docs/assets/image007.png)
-
-![alt text](./docs/assets/image008.png)
 
 Sample Event Hub diagnostic record from Azure App Service
 
@@ -332,88 +417,6 @@ Deployed Azure Container with OTEL Collector
 ![alt text](./docs/assets/image009.png)
 
 
-
-
-## Deploy telemetry sample Azure services
-
-Deploy Azure App Services that will generate diagnostic logs and send them to the configured Azure Event Hub. These services serve as sample data sources to demonstrate the observability solution in action.
-
-> **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Deploy a Python web app to Azure App Service](https://learn.microsoft.com/en-us/azure/app-service/quickstart-python)
-
-#### 1. Create First App Service
-
-1. In the Azure portal, search for **App Services** and select **App Services**
-2. Select **Create** → **Web App**
-3. On the **Basics** tab, configure:
-   - **Subscription**: Select your Azure subscription
-   - **Resource group**: Select the same resource group as your other resources
-   - **Name**: Enter `otel-sample-app-01-{suffix}` (must be globally unique)
-   - **Publish**: **Code**
-   - **Runtime stack**: **Python 3.12** (or your preferred stack)
-   - **Operating System**: **Linux**
-   - **Region**: Select the same region as your other resources
-   - **App Service Plan**: 
-     - **Create new**: `otel-sample-plan`
-     - **Pricing tier**: **Basic B1** (for diagnostic logging support)
-4. Select **Review + create** → **Create**
-
-#### 2. Create Second App Service
-
-1. Repeat the same process for a second App Service
-2. Use name: `otel-sample-app-02-{suffix}`
-3. Use the **same App Service Plan** created above to save costs
-
-#### 3. Configure Diagnostic Settings for App Service 1
-
-1. Navigate to your first App Service
-2. In the left menu, select **Monitoring** → **Diagnostic settings**
-3. Select **Add diagnostic setting**
-4. Configure the diagnostic setting:
-   - **Diagnostic setting name**: `send-to-eventhub`
-   - **Logs**: Select the following categories:
-     - ✅ **AppServiceHTTPLogs**
-     - ✅ **AppServiceConsoleLogs**
-     - ✅ **AppServiceAppLogs**
-     - ✅ **AppServicePlatformLogs**
-   - **Destination details**: 
-     - ✅ **Stream to an event hub**
-     - **Event hub namespace**: Select your created Event Hub namespace
-     - **Event hub name**: Select your created event hub
-     - **Event hub policy name**: **RootManageSharedAccessKey**
-5. Select **Save**
-
-#### 4. Configure Diagnostic Settings for App Service 2
-
-1. Navigate to your second App Service
-2. Repeat the same diagnostic settings configuration as App Service 1
-3. Use the same Event Hub namespace and event hub for consistency
-
-#### 5. Generate Sample Traffic
-
-1. Navigate to both App Services
-2. Copy the **URL** from the Overview page of each app
-3. Open the URLs in your browser to generate HTTP requests
-4. Refresh the pages multiple times to create diagnostic log entries
-5. The diagnostic logs will automatically flow to your Event Hub
-
-#### 6. Verify Diagnostic Log Flow
-
-1. Navigate to your Event Hub namespace
-2. Go to **Monitoring** → **Metrics**
-3. Check for **Incoming Messages** to confirm diagnostic data is flowing
-4. In your OTEL Collector logs, you should see events being processed
-
-### Configuration Summary
-
-The sample App Services setup includes:
-- **Two App Services**: Running on Basic B1 tier for diagnostic logging support
-- **Diagnostic Settings**: Configured to send HTTP, Console, App, and Platform logs
-- **Event Hub Integration**: All diagnostic logs stream to the central Event Hub
-- **Sample Traffic**: Manual browsing generates realistic log data for testing
-
-![alt text](./docs/assets/image012.png)
-
-![alt text](./docs/assets/image013.png)
 
 ## Deploy Microsoft Fabric for OTEL Observability
 

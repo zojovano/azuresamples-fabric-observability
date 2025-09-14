@@ -291,72 +291,13 @@ The custom container is built with the OTEL configuration embedded. The configur
 - [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md) for sending data to Microsoft Fabric
 - OTLP Receiver for direct application telemetry
 
-#### 2. Create Azure Container Instance
-
-1. In the Azure portal, select **Create a resource** → **Containers** → **Container Instances**
-2. On the **Basics** page, configure:
-   - **Subscription**: Select your Azure subscription
-   - **Resource group**: Select the same resource group as your Event Hub
-   - **Container name**: Enter `otel-collector-gateway`
-   - **Region**: Select the same region as your Event Hub
-   - **Image source**: Select **Azure Container Registry** (if using ACR) or **Other registry**
-   - **Image type**: **Private** (if in ACR) or **Public** (if in public registry)
-   - **Image**: Your custom OTEL collector image (e.g., `your-registry/otel-collector-custom:latest`)
-   - **OS type**: **Linux**
-   - **Size**: 
-     - **CPU**: **2 cores**
-     - **Memory**: **4 GB**
-
-#### 3. Configure Networking
-
-1. Select the **Networking** tab
-2. Configure networking:
-   - **Networking type**: **Public**
-   - **DNS name label**: Enter a unique label (e.g., `otel-collector-{suffix}`)
-   - **Ports**: Configure the following ports:
-     - **Port 1**: `4317` (TCP) - OTLP gRPC receiver
-     - **Port 2**: `8888` (TCP) - Metrics endpoint (optional)
-     - **Port 3**: `13133` (TCP) - Health check endpoint (optional)
-
-#### 4. Configure Environment Variables
-
-1. Select the **Advanced** tab
-2. Set **Restart policy**: **Always**
-3. Configure **Environment variables** for dynamic configuration:
-   - **EVENTHUB_CONNECTION_STRING**: Your Event Hub connection string
-   - **FABRIC_CLUSTER_URI**: Your Microsoft Fabric cluster URI
-   - **FABRIC_DATABASE_NAME**: Your KQL database name
-   - **AZURE_CLIENT_ID**: Service principal client ID (if using)
-   - **AZURE_CLIENT_SECRET**: Service principal secret (if using)
-   - **AZURE_TENANT_ID**: Azure tenant ID
-
-#### 5. Deploy and Verify
-
-1. Select **Review + create** → **Create**
-2. Wait for deployment completion
-3. Navigate to the container instance resource
-4. Verify the container status shows **Running**
-5. Check the **Logs** tab to ensure OTEL Collector started successfully
-6. Test connectivity to the OTLP endpoint: `http://<dns-name>.<region>.azurecontainer.io:4317`
-
-### Configuration Summary
-
-The custom OTEL Collector deployment includes:
-- **Custom Image**: Pre-built with embedded OTEL configuration
-- **Compute**: 2 CPU cores, 4 GB memory
-- **Networking**: Public endpoint with OTLP gRPC on port 4317
-- **Components**: Azure Event Hub receiver and Azure Data Explorer exporter
-- **Configuration**: Embedded config file with environment variable overrides
-
 ![alt text](./docs/assets/image010.png)
 
 and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md)
 
 ![alt text](./docs/assets/image011.png)
 
-You can search for available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
-
-### OTEL Collector Configuration
+You can search for other available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
 
 The custom container uses the following OTEL configuration (config.yaml):
 
@@ -413,9 +354,68 @@ service:
       exporters: [debug,azuredataexplorer]
 ```
 
-Deployed Azure Container with OTEL Collector
+
+#### 2. Create Azure Container Instance
+
+1. In the Azure portal, select **Create a resource** → **Containers** → **Container Instances**
+2. On the **Basics** page, configure:
+   - **Subscription**: Select your Azure subscription
+   - **Resource group**: Select the same resource group as your Event Hub
+   - **Container name**: Enter `otel-collector-gateway`
+   - **Region**: Select the same region as your Event Hub
+   - **Image source**: Select **Azure Container Registry** (if using ACR) or **Other registry**
+   - **Image type**: **Private** (if in ACR) or **Public** (if in public registry)
+   - **Image**: Your custom OTEL collector image (e.g., `your-registry/otel-collector-custom:latest`)
+   - **OS type**: **Linux**
+   - **Size**: 
+     - **CPU**: **2 cores**
+     - **Memory**: **4 GB**
+
+#### 3. Configure Networking
+
+1. Select the **Networking** tab
+2. Configure networking:
+   - **Networking type**: **Public**
+   - **DNS name label**: Enter a unique label (e.g., `otel-collector-{suffix}`)
+   - **Ports**: Configure the following ports:
+     - **Port 1**: `4317` (TCP) - OTLP gRPC receiver
+     - **Port 2**: `8888` (TCP) - Metrics endpoint (optional)
+     - **Port 3**: `13133` (TCP) - Health check endpoint (optional)
+
+#### 4. Configure Environment Variables
+
+1. Select the **Advanced** tab
+2. Set **Restart policy**: **Always**
+3. Configure **Environment variables** for dynamic configuration:
+   - **EVENTHUB_CONNECTION_STRING**: Your Event Hub connection string
+   - **FABRIC_CLUSTER_URI**: Your Microsoft Fabric cluster URI
+   - **FABRIC_DATABASE_NAME**: Your KQL database name
+   - **AZURE_CLIENT_ID**: Service principal client ID (if using)
+   - **AZURE_CLIENT_SECRET**: Service principal secret (if using)
+   - **AZURE_TENANT_ID**: Azure tenant ID
+
+#### 5. Deploy and Verify
+
+1. Select **Review + create** → **Create**
+2. Wait for deployment completion
+3. Navigate to the container instance resource
+4. Verify the container status shows **Running**
+5. Check the **Logs** tab to ensure OTEL Collector started successfully
+6. Test connectivity to the OTLP endpoint: `http://<dns-name>.<region>.azurecontainer.io:4317`
 
 ![alt text](./docs/assets/image009.png)
+
+### Configuration Summary
+
+The custom OTEL Collector deployment includes:
+- **Custom Image**: Pre-built with embedded OTEL configuration
+- **Compute**: 2 CPU cores, 4 GB memory
+- **Networking**: Public endpoint with OTLP gRPC on port 4317
+- **Components**: Azure Event Hub receiver and Azure Data Explorer exporter
+- **Configuration**: Embedded config file with environment variable overrides
+
+
+
 
 
 

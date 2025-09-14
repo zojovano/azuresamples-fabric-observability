@@ -337,7 +337,7 @@ This ensures code quality and prevents introducing untested changes to the repos
 - **Folder Consolidation**: Moved `infra/` → `deploy/infra/` and `tools/` → `deploy/tools/` to create unified deployment structure
 - **Branch Strategy Clarification**: Main branch for DevContainer development, `ci-cd` branch for enterprise deployment patterns
 - **Documentation Consolidation Strategy**: All detailed documentation moved to `docs/README.md` - removed per-topic files like README-Deploy-Complete.md, README-Destroy-Complete.md in favor of single comprehensive guide
-- **Unified Deployment Scripts**: Created Deploy-Complete.ps1 and Destroy-Complete.ps1 with centralized configuration integration
+- **Unified Deployment Scripts**: Created Deploy-All.ps1 and Destroy-All.ps1 with centralized configuration integration
 - **Git Integration Approach (September 2025)**: Replaced complex API-based deployment with Microsoft Fabric Git integration pattern using `fabric-artifacts/` folder, eliminating authentication and API complexity issues
 - **Folder Organization (September 2025)**: Restructured testing scripts to maintain clear separation between deployment and testing artifacts
 
@@ -348,7 +348,7 @@ This ensures code quality and prevents introducing untested changes to the repos
   - `deploy/infra/` - Infrastructure deployment (Bicep templates, deployment scripts)
   - `deploy/fabric-artifacts/` - Fabric artifacts for Git integration
   - `deploy/tools/` - Development tools and utilities (NOT testing scripts)
-  - Examples: `Deploy-Complete.ps1`, `Destroy-Complete.ps1`, `DevSecretManager`, `Diagnose-FabricPermissions.ps1`
+  - Examples: `Deploy-All.ps1`, `Destroy-All.ps1`, `DevSecretManager`, `Diagnose-FabricPermissions.ps1`
 
 - **`/tests` folder**: All automated testing artifacts
   - `tests/` - PowerShell testing scripts and test data generation

@@ -260,14 +260,18 @@ The project uses a unified deployment script that automatically loads configurat
 #### Complete Deployment
 ```powershell
 # Simple deployment - uses centralized configuration
-./deploy/infra/Deploy-Complete.ps1
+#### Complete Deployment
+```bash
+# Navigate to infrastructure directory and run deployment
+cd /workspaces/azuresamples-fabric-observability/deploy/infra
+./Deploy-All.ps1
 
-# Preview what will be deployed
-./deploy/infra/Deploy-Complete.ps1 -WhatIf
+# Or run with preview mode first
+./Deploy-All.ps1 -WhatIf
 
-# Skip specific components
-./deploy/infra/Deploy-Complete.ps1 -SkipFabricArtifacts    # Infrastructure only
-./deploy/infra/Deploy-Complete.ps1 -SkipInfrastructure    # Fabric only
+# Infrastructure only (skip Fabric artifacts)  
+./Deploy-All.ps1 -SkipFabricArtifacts    # Infrastructure only
+./Deploy-All.ps1 -SkipInfrastructure    # Fabric only
 ```
 
 #### Legacy Individual Components
@@ -287,28 +291,28 @@ cd deploy/infra/Bicep && ./deploy.ps1
 
 ### ⚠️ DESTRUCTIVE OPERATION WARNING
 
-The `Destroy-Complete.ps1` script **PERMANENTLY REMOVES** all project resources. Use with extreme caution!
+The `Destroy-All.ps1` script **PERMANENTLY REMOVES** all project resources. Use with extreme caution!
 
 #### Safe Preview (RECOMMENDED)
 ```powershell
 # ALWAYS preview first to see what will be removed
-./deploy/infra/Destroy-Complete.ps1 -WhatIf
+./deploy/infra/Destroy-All.ps1 -WhatIf
 ```
 
 #### Complete Destruction
 ```powershell
 # Complete removal with confirmation prompt
-./deploy/infra/Destroy-Complete.ps1
+./deploy/infra/Destroy-All.ps1
 
 # Partial removal options
-./deploy/infra/Destroy-Complete.ps1 -SkipFabricArtifacts  # Keep Fabric data
-./deploy/infra/Destroy-Complete.ps1 -SkipInfrastructure   # Keep Azure resources
+./deploy/infra/Destroy-All.ps1 -SkipFabricArtifacts  # Keep Fabric data
+./deploy/infra/Destroy-All.ps1 -SkipInfrastructure   # Keep Azure resources
 
 # Include service principals (VERY DESTRUCTIVE)
-./deploy/infra/Destroy-Complete.ps1 -RemoveServicePrincipals
+./deploy/infra/Destroy-All.ps1 -RemoveServicePrincipals
 
 # Automated destruction (DANGEROUS - no prompts)
-./deploy/infra/Destroy-Complete.ps1 -Force
+./deploy/infra/Destroy-All.ps1 -Force
 ```
 
 #### What Gets Removed

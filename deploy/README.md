@@ -5,7 +5,22 @@ This folder contains deployment scripts and art**OR manually in Fabric portal:**
 
 ### Fabric Artifacts Structure
 
-The `fabric-artifacts/` folder contains KQL table definitions that are synchronized with the workspace via Git integration:
+The `fabric-artifacts/` folder contains KQL table#### Create Service Principals Automatically
+```powershell
+# Creates service principals and populates Key Vault secrets
+./infra/Deploy-All.ps1 -KeyVaultName "my-kv" -CreateServicePrincipals
+```
+
+#### Skip Workspace Creation (Tenant Permissions Issues)
+```powershell
+# Skip if tenant admin hasn't configured Fabric permissions
+./infra/Deploy-All.ps1 -KeyVaultName "my-kv" -SkipWorkspaceCreation
+```
+
+#### Specify Admin User
+```powershell
+# Specify admin user for Fabric capacity
+./infra/Deploy-All.ps1 -KeyVaultName "my-kv" -AdminUserEmail "admin@company.com"t are synchronized with the workspace via Git integration:
 
 - **tables/** - KQL table definitions for OTEL data
   - `otel-logs.kql` - OTELLogs table schema
@@ -54,8 +69,8 @@ deploy/
 │   │   └── otel-traces.kql   # OTELTraces table schema
 │   └── otelobservabilitydb_auto.Eventhouse/  # Fabric-generated structure
 ├── infra/                    # Infrastructure deployment scripts
-│   ├── Deploy-Complete.ps1                   # Unified deployment script
-│   ├── Destroy-Complete.ps1                  # Complete infrastructure removal
+│   ├── Deploy-All.ps1                       # Unified deployment script
+│   ├── Destroy-All.ps1                      # Complete infrastructure removal
 │   ├── Deploy-FabricArtifacts-Git.ps1       # Git integration script
 │   ├── Setup-Authentication.ps1              # Authentication helper
 │   └── Bicep/                # Azure infrastructure templates
@@ -172,22 +187,22 @@ pwsh deploy/tools/Diagnose-FabricPermissions.ps1 -SkipWorkspaceCreation
 
 ### Unified Deployment Script (Recommended)
 
-Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This script consolidates all deployment functionality into a single, easy-to-use PowerShell script.
+Use the **`Deploy-All.ps1`** script for all deployment scenarios. This script consolidates all deployment functionality into a single, easy-to-use PowerShell script.
 
 ```powershell
 # Complete deployment (uses deploy/config/project-config.json for KeyVault name)
-./infra/Deploy-Complete.ps1
+./infra/Deploy-All.ps1
 
 # Or specify a different KeyVault
-./infra/Deploy-Complete.ps1 -KeyVaultName "your-keyvault-name"
+./infra/Deploy-All.ps1 -KeyVaultName "your-keyvault-name"
 ```
 
 ### Infrastructure Scripts Overview
 
 | Script | Status | Purpose |
 |--------|--------|---------|
-| **`Deploy-Complete.ps1`** | ✅ **RECOMMENDED** | Single script for all deployment scenarios |
-| **`Destroy-Complete.ps1`** | ⚠️ **DESTRUCTIVE** | Complete infrastructure removal |
+| **`Deploy-All.ps1`** | ✅ **RECOMMENDED** | Single script for all deployment scenarios |
+| **`Destroy-All.ps1`** | ⚠️ **DESTRUCTIVE** | Complete infrastructure removal |
 | `Deploy-FabricArtifacts-Git.ps1` | ✅ Active | Git integration setup and guidance |
 | `Setup-Authentication.ps1` | ✅ Active | Authentication helper |
 
@@ -202,29 +217,29 @@ Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This scri
 #### Simple Deployment
 ```powershell
 # 1. Complete deployment (auto-detects KeyVault from config)
-./infra/Deploy-Complete.ps1
+./infra/Deploy-All.ps1
 
 # 2. Infrastructure only
-./infra/Deploy-Complete.ps1 -SkipFabricArtifacts
+./infra/Deploy-All.ps1 -SkipFabricArtifacts
 
 # 3. Fabric artifacts only  
-./infra/Deploy-Complete.ps1 -SkipInfrastructure
+./infra/Deploy-All.ps1 -SkipInfrastructure
 
 # 4. Preview mode
-./infra/Deploy-Complete.ps1 -WhatIf
+./infra/Deploy-All.ps1 -WhatIf
 ```
 
 #### Complete Removal (DESTRUCTIVE)
 ```powershell
 # ⚠️ PREVIEW what will be destroyed (RECOMMENDED FIRST)
-./infra/Destroy-Complete.ps1 -WhatIf
+./infra/Destroy-All.ps1 -WhatIf
 
 # 🔥 Complete destruction (requires confirmation)
-./infra/Destroy-Complete.ps1
+./infra/Destroy-All.ps1
 
 # Partial removal options
-./infra/Destroy-Complete.ps1 -SkipFabricArtifacts  # Keep Fabric data
-./infra/Destroy-Complete.ps1 -SkipInfrastructure   # Keep Azure resources
+./infra/Destroy-All.ps1 -SkipFabricArtifacts  # Keep Fabric data
+./infra/Destroy-All.ps1 -SkipInfrastructure   # Keep Azure resources
 ```
 
 ### Required Key Vault Secrets

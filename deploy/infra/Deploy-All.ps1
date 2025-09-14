@@ -44,19 +44,19 @@
     Show what would be deployed without actually deploying
     
 .EXAMPLE
-    ./Deploy-Complete.ps1
+    ./Deploy-All.ps1
     
 .EXAMPLE
-    ./Deploy-Complete.ps1 -KeyVaultName "my-project-keyvault"
+    ./Deploy-All.ps1 -KeyVaultName "my-project-keyvault"
     
 .EXAMPLE
-    ./Deploy-Complete.ps1 -KeyVaultName "my-kv" -SkipInfrastructure
+    ./Deploy-All.ps1 -KeyVaultName "my-kv" -SkipInfrastructure
     
 .EXAMPLE
-    ./Deploy-Complete.ps1 -CreateServicePrincipals -KeyVaultName "my-kv"
+    ./Deploy-All.ps1 -CreateServicePrincipals -KeyVaultName "my-kv"
     
 .EXAMPLE
-    ./Deploy-Complete.ps1 -KeyVaultName "my-kv" -WhatIf
+    ./Deploy-All.ps1 -KeyVaultName "my-kv" -WhatIf
     
 .NOTES
     Prerequisites:
@@ -635,7 +635,7 @@ function Show-Summary {
         Write-ColorOutput "  • Run the sample application from: app/dotnet-client/OTELWorker/" $ColorInfo
         Write-ColorOutput "  • Monitor data in Fabric workspace: $($Config.WorkspaceName)" $ColorInfo
     } elseif ($InfrastructureSuccess) {
-        Write-ColorOutput "  • Re-run with Fabric artifacts: ./Deploy-Complete.ps1 -KeyVaultName $KeyVaultName -SkipInfrastructure" $ColorInfo
+        Write-ColorOutput "  • Re-run with Fabric artifacts: ./Deploy-All.ps1 -KeyVaultName $KeyVaultName -SkipInfrastructure" $ColorInfo
         Write-ColorOutput "  • Check Fabric tenant permissions if workspace creation failed" $ColorInfo
     } else {
         Write-ColorOutput "  • Review the errors above and fix any configuration issues" $ColorWarning

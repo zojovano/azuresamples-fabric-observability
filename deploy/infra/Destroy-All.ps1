@@ -35,16 +35,16 @@
     Show what would be removed without actually removing anything
     
 .EXAMPLE
-    ./Destroy-Complete.ps1
+    ./Destroy-All.ps1
     
 .EXAMPLE
-    ./Destroy-Complete.ps1 -WhatIf
+    ./Destroy-All.ps1 -WhatIf
     
 .EXAMPLE
-    ./Destroy-Complete.ps1 -SkipFabricArtifacts
+    ./Destroy-All.ps1 -SkipFabricArtifacts
     
 .EXAMPLE
-    ./Destroy-Complete.ps1 -RemoveServicePrincipals -Force
+    ./Destroy-All.ps1 -RemoveServicePrincipals -Force
     
 .NOTES
     ⚠️  WARNING: This script is DESTRUCTIVE and will remove all project resources!

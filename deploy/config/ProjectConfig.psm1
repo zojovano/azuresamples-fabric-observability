@@ -21,7 +21,7 @@ function Get-ProjectConfig {
     
     [CmdletBinding()]
     param(
-        [string]$ConfigPath = (Join-Path $PSScriptRoot ".." "config" "project-config.json")
+        [string]$ConfigPath = (Join-Path $PSScriptRoot "project-config.json")
     )
     
     if (-not (Test-Path $ConfigPath)) {

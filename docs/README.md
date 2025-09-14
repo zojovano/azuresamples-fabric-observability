@@ -255,7 +255,7 @@ After your local testing works:
 
 ### 🛠️ Manual Deployment
 
-The project uses a unified deployment script that automatically loads configuration from `config/project-config.json`:
+The project uses a unified deployment script that automatically loads configuration from `deploy/config/project-config.json`:
 
 #### Complete Deployment
 ```powershell

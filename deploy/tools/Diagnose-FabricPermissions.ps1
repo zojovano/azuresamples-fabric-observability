@@ -40,7 +40,7 @@ if (Test-Path $configModulePath) {
     $DatabaseName = $config.fabric.databaseName
     $CapacityName = $config.fabric.capacityName
 } else {
-    Write-Error "Configuration module not found. Please ensure config/project-config.json exists."
+    Write-Error "Configuration module not found. Please ensure deploy/config/project-config.json exists."
     exit 1
 }
 

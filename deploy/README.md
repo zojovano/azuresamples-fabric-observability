@@ -64,6 +64,9 @@ deploy/
 │       ├── config/           # Configuration files
 │       │   └── otel-config.yaml
 │       └── modules/          # Individual resource modules
+├── config/                   # Centralized project configuration
+│   ├── project-config.json   # Azure and Fabric configuration
+│   └── ProjectConfig.psm1    # PowerShell configuration module
 └── tools/                    # Development and deployment tools
     ├── DevSecretManager/     # .NET secret management tool
     └── Diagnose-FabricPermissions.ps1  # Fabric permissions diagnostic
@@ -172,7 +175,7 @@ pwsh deploy/tools/Diagnose-FabricPermissions.ps1 -SkipWorkspaceCreation
 Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This script consolidates all deployment functionality into a single, easy-to-use PowerShell script.
 
 ```powershell
-# Complete deployment (uses config/project-config.json for KeyVault name)
+# Complete deployment (uses deploy/config/project-config.json for KeyVault name)
 ./infra/Deploy-Complete.ps1
 
 # Or specify a different KeyVault
@@ -226,7 +229,7 @@ Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This scri
 
 ### Required Key Vault Secrets
 
-The KeyVault name is automatically loaded from `config/project-config.json` (currently: **`azuresamplesdevopskeys`**).
+The KeyVault name is automatically loaded from `deploy/config/project-config.json` (currently: **`azuresamplesdevopskeys`**).
 
 Your Key Vault must contain:
 - `azure-subscription-id` (required)
@@ -387,7 +390,7 @@ exporters:
 ```powershell
 # Deploy just the OTEL Collector Container Instance
 $resourceGroupName = "azuresamples-platformobservabilty-fabric"
-$configContent = Get-Content -Path "./config/otel-config.yaml" -Raw
+$configContent = Get-Content -Path "./infra/Bicep/config/otel-config.yaml" -Raw
 
 New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
   -TemplateFile ./modules/containerinstance.bicep `
@@ -739,7 +742,7 @@ exporters:
 ```powershell
 # Deploy just the OTEL Collector Container Instance
 $resourceGroupName = "azuresamples-platformobservabilty-fabric"
-$configContent = Get-Content -Path "./config/otel-config.yaml" -Raw
+$configContent = Get-Content -Path "./infra/Bicep/config/otel-config.yaml" -Raw
 
 New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
   -TemplateFile ./modules/containerinstance.bicep `

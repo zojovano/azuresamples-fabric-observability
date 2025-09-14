@@ -91,7 +91,7 @@ $ErrorActionPreference = "Stop"
 
 # Load centralized project configuration
 Write-Host "📋 Loading project configuration..." -ForegroundColor Cyan
-$configModulePath = Join-Path $PSScriptRoot "../../config/ProjectConfig.psm1"
+$configModulePath = Join-Path $PSScriptRoot "../config/ProjectConfig.psm1"
 if (-not (Test-Path $configModulePath)) {
     Write-Error "❌ Configuration module not found at: $configModulePath"
     exit 1

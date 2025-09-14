@@ -339,6 +339,36 @@ This ensures code quality and prevents introducing untested changes to the repos
 - **Documentation Consolidation Strategy**: All detailed documentation moved to `docs/README.md` - removed per-topic files like README-Deploy-Complete.md, README-Destroy-Complete.md in favor of single comprehensive guide
 - **Unified Deployment Scripts**: Created Deploy-Complete.ps1 and Destroy-Complete.ps1 with centralized configuration integration
 - **Git Integration Approach (September 2025)**: Replaced complex API-based deployment with Microsoft Fabric Git integration pattern using `fabric-artifacts/` folder, eliminating authentication and API complexity issues
+- **Folder Organization (September 2025)**: Restructured testing scripts to maintain clear separation between deployment and testing artifacts
+
+### **Folder Organization Rules**
+**CRITICAL**: Maintain strict separation between deployment and testing artifacts:
+
+- **`/deploy` folder**: Everything related to deployment of the sample
+  - `deploy/infra/` - Infrastructure deployment (Bicep templates, deployment scripts)
+  - `deploy/fabric-artifacts/` - Fabric artifacts for Git integration
+  - `deploy/tools/` - Development tools and utilities (NOT testing scripts)
+  - Examples: `Deploy-Complete.ps1`, `Destroy-Complete.ps1`, `DevSecretManager`, `Diagnose-FabricPermissions.ps1`
+
+- **`/tests` folder**: All automated testing artifacts
+  - `tests/` - PowerShell testing scripts and test data generation
+  - `tests/FabricObservability.IntegrationTests/` - .NET xUnit comprehensive integration tests
+  - `tests/data/` - Test data files and samples
+  - Examples: `Test-FabricIntegration-Git.ps1`, `Test-FabricLocal.ps1`, `Test-FabricAuth.ps1`, `Verify-DevEnvironment.ps1`
+
+**Key Principles**:
+- ✅ **Testing scripts belong in `/tests`** - regardless of what they test
+- ✅ **Deployment scripts belong in `/deploy`** - focus on infrastructure and artifact deployment
+- ✅ **Diagnostic tools belong in `/deploy/tools`** - they support deployment, not testing
+- ❌ **Never mix testing and deployment** - clear separation prevents confusion
+- ❌ **No `Test-*` scripts in `/deploy`** - all testing belongs in `/tests`
+
+**Recent Reorganization (September 2025)**:
+- Moved `Test-FabricLocal.ps1` from `/deploy/tools` → `/tests`
+- Moved `test-fabric-auth.ps1` from `/deploy/tools` → `/tests/Test-FabricAuth.ps1`  
+- Moved `Verify-DevEnvironment.ps1` from `/deploy/tools` → `/tests`
+- Kept `Diagnose-FabricPermissions.ps1` in `/deploy/tools` (diagnostic, not testing)
+- Kept `DevSecretManager` in `/deploy/tools` (development utility, not testing)
 
 ### **Deployment Anti-Patterns to Avoid**
 ❌ **Complex API-based deployment** - Use Git integration instead  

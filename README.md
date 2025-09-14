@@ -46,22 +46,36 @@ graph TD
         DIAG[Azure Diagnostic<br/>Settings]
     end
     
+    subgraph "OTEL Collector Components"
+        direction TB
+        EHRCV[Azure Event Hub Receiver<br/>azureeventhubreceiver]
+        ADXEXP[Azure Data Explorer Exporter<br/>azuredataexplorerexporter]
+        OTLPRCV[OTLP Receiver<br/>otlp]
+    end
+    
     %% Data Flow
     AS -->|Diagnostic Logs| EH
     APPS -->|OTLP gRPC/HTTP| ACI
-    EH -->|Event Stream| ACI
+    EH -->|Event Stream| EHRCV
     DIAG -->|Configure| AS
-    ACI -->|Processed Telemetry| RTI
+    EHRCV -.->|Inside ACI| ADXEXP
+    OTLPRCV -.->|Inside ACI| ADXEXP
+    ACI -->|Contains| EHRCV
+    ACI -->|Contains| ADXEXP
+    ACI -->|Contains| OTLPRCV
+    ADXEXP -->|Processed Telemetry| RTI
     
     %% Styling
     classDef azureService fill:#0078d4,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef fabricService fill:#742774,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef otelService fill:#f9ab00,stroke:#ffffff,stroke-width:2px,color:#000000
+    classDef otelComponent fill:#ff6b35,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef dataStore fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
     
     class AS,EH azureService
     class RTI,KQL fabricService
     class ACI,APPS otelService
+    class EHRCV,ADXEXP,OTLPRCV otelComponent
     class LOGS,METRICS,TRACES dataStore
 ```
 
@@ -148,10 +162,10 @@ Sample Event Hub diagnostic record from Azure App Service
 [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) distribution will be configured and deployed as a Azure Container Instance as a OTEL Collector Gateway. 
 Docker image "otel/opentelemetry-collector-contrib" 
 
-We will use "Azure Event Hub Receiver" which is part of the "OpenTelemetry Collector Contrib" distribution. 
+We will use [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) which is part of the "OpenTelemetry Collector Contrib" distribution. 
 ![alt text](./docs/assets/image010.png)
 
-and Azure Data Explorer Exporter
+and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md)
 
 ![alt text](./docs/assets/image011.png)
 

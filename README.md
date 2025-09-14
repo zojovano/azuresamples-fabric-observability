@@ -116,6 +116,60 @@ Create OTEL tables
 
 ## Deploy Azure Event Hub
 
+Azure Event Hub serves as the central ingestion point for diagnostic logs from Azure services in this observability solution. The OTEL Collector will connect to Event Hub to receive and process diagnostic data before forwarding it to Microsoft Fabric.
+
+> **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Create an event hub using Azure portal](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create)
+
+#### 1. Create Event Hub Namespace
+
+1. In the Azure portal, select **All services** → **Analytics** → **Event Hubs**
+2. On the **Event Hubs** page, select **Create**
+3. On the **Create namespace** page, configure:
+   - **Subscription**: Select your Azure subscription
+   - **Resource group**: Select or create a resource group
+   - **Namespace name**: Enter a unique name (e.g., `eh-otel-observability-{suffix}`)
+   - **Location**: Select your preferred region
+   - **Pricing tier**: Select **Standard** (required for diagnostic integration)
+   - **Throughput units**: Set to **1** (can auto-scale up to 20)
+   - **Enable Auto-Inflate**: ✅ Check this option
+   - **Maximum throughput units**: Set to **20**
+   - **Zone redundant**: ✅ Enable for high availability
+4. Select **Review + Create** → **Create**
+5. Wait for deployment completion and select **Go to resource**
+
+#### 2. Create Event Hub
+
+1. On the Event Hub namespace **Overview** page, select **+ Event Hub**
+2. Configure the event hub:
+   - **Name**: Enter `otel-diagnostics` (or your preferred name)
+   - **Partition count**: Set to **4** (balances throughput and cost)
+   - **Message retention**: Set to **7 days**
+   - **Capture**: Leave disabled (not needed for this scenario)
+3. Select **Review + create** → **Create**
+
+#### 3. Configure Authorization Rule
+
+1. In the Event Hub namespace, go to **Settings** → **Shared access policies**
+2. Verify that **RootManageSharedAccessKey** exists with **Listen**, **Send**, and **Manage** permissions
+3. Copy the **Primary Connection String** for later use in OTEL Collector configuration
+
+#### 4. Verify Consumer Group
+
+1. Navigate to your event hub → **Consumer groups**
+2. Confirm that **$Default** consumer group exists (created automatically)
+3. This will be used by the OTEL Collector to read events
+
+### Configuration Summary
+
+The Event Hub setup will include:
+- **SKU**: Standard tier with auto-inflate enabled
+- **Partitions**: 4 partitions for optimal throughput
+- **Retention**: 7 days message retention
+- **Throughput**: 1-20 throughput units with auto-scaling
+- **Zone redundancy**: Enabled for high availability
+
+### Sample Event Hub Record
+
 ![alt text](./docs/assets/image006.png)
 
 ![alt text](./docs/assets/image007.png)

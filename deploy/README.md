@@ -160,3 +160,237 @@ Previous versions used complex API-based deployment. The Git integration approac
 - **Offers built-in version control**
 
 For legacy API scripts, see commit history before September 2025.
+
+---
+
+## 🏗️ **Infrastructure as Code (Bicep) Deployment**
+
+This section provides comprehensive Bicep-based deployment instructions for automating the entire Azure infrastructure setup.
+
+### Prerequisites
+
+- Azure CLI or Azure PowerShell installed
+- Bicep CLI installed
+- Azure subscription with contributor access
+
+### Bicep Files Structure
+
+- `main.bicep` - Main orchestration template
+- `modules/` - Individual resource modules
+  - `fabriccapacity.bicep` - Microsoft Fabric capacity
+  - `kqldatabase.bicep` - Microsoft Fabric workspace and KQL database parameters
+  - `eventhub.bicep` - Event Hub namespace and hub
+  - `containerinstance.bicep` - Container Instance for OTEL Collector
+  - `appservice.bicep` - App Service for sample telemetry
+- `config/` - Configuration files
+  - `otel-config.yaml` - OTEL Collector configuration
+- `parameters.json` - Parameter values for deployment
+
+### Full Infrastructure Deployment
+
+1. Navigate to the Bicep directory
+```powershell
+cd deploy/infra/Bicep
+```
+
+2. Login to Azure
+```powershell
+Connect-AzAccount
+# Or using Azure CLI
+# az login
+```
+
+3. Set your subscription
+```powershell
+Set-AzContext -SubscriptionId "<your-subscription-id>"
+# Or using Azure CLI
+# az account set --subscription "<your-subscription-id>"
+```
+
+4. Deploy using the provided script
+```powershell
+./deploy.ps1 -EnvironmentName "dev" -Location "eastus"
+```
+
+### Individual Component Deployment
+
+#### Microsoft Fabric Capacity
+
+```powershell
+# Deploy just the Fabric capacity
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+$adminObjectId = (Get-AzADUser -UserPrincipalName "admin@contoso.com").Id
+
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/fabriccapacity.bicep `
+  -capacityName "fabric-capacity-observability" `
+  -skuName "F2" `
+  -adminObjectId $adminObjectId `
+  -location "eastus"
+```
+
+#### Event Hub Deployment
+
+The Event Hub deployment creates:
+
+1. Event Hub Namespace with Standard tier
+2. Event Hub for receiving diagnostic data
+3. Default consumer group
+4. Authorization rule with listen, send, and manage permissions
+
+```powershell
+# Deploy just the Event Hub resources
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/eventhub.bicep `
+  -namespaceName "evhns-otel" `
+  -eventHubName "evh-otel-diagnostics" `
+  -skuName "Standard" `
+  -location "eastus"
+```
+
+**Connecting Azure Resources to Event Hub:**
+
+After deployment, configure Azure Diagnostic Settings to send logs to the Event Hub:
+
+```powershell
+# Example: Connect App Service to Event Hub
+$resourceId = (Get-AzWebApp -Name "your-app-name" -ResourceGroupName "your-rg").Id
+$eventhubAuthorizationRuleId = (Get-AzEventHubNamespaceAuthorizationRule -ResourceGroupName $resourceGroupName -NamespaceName "evhns-otel-dev" -Name "RootManageSharedAccessKey").Id
+$eventhubName = "evh-otel-diagnostics"
+
+Set-AzDiagnosticSetting -ResourceId $resourceId `
+  -Name "otel-diagnostics" `
+  -EventHubAuthorizationRuleId $eventhubAuthorizationRuleId `
+  -EventHubName $eventhubName `
+  -Enabled $true `
+  -Category "AppServiceHTTPLogs","AppServiceConsoleLogs","AppServiceAppLogs","AppServiceAuditLogs" `
+  -MetricCategory "AllMetrics"
+```
+
+#### OTEL Collector Container Instance
+
+The Container Instance is configured with:
+
+1. Public IP address for receiving telemetry
+2. Exposed ports 4317 (OTLP gRPC) and 4318 (OTLP HTTP)
+3. A mounted config volume for the OTEL configuration
+4. Environment variables for connection strings and other configuration parameters
+
+**Configuration File Structure:**
+
+```yaml
+# Sample config.yaml structure
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  azureeventhub:
+    connection: ${EVENTHUB_CONNECTION_STRING}
+    format: "azure"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+exporters:
+  debug:
+    verbosity: basic
+  
+  azuredataexplorer:
+    cluster: ${ADX_CLUSTER_URI}
+    database: ${ADX_DATABASE}
+    routing_tables:
+      logs_table: "${LOGS_TABLE_NAME}"
+      metrics_table: "${METRICS_TABLE_NAME}"
+      traces_table: "${TRACES_TABLE_NAME}"
+    auth:
+      application_id: ${AAD_APP_ID}
+      application_key: ${AAD_APP_SECRET}
+      tenant_id: ${AAD_TENANT_ID}
+```
+
+**Deployment Example:**
+
+```powershell
+# Deploy just the OTEL Collector Container Instance
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+$configContent = Get-Content -Path "./config/otel-config.yaml" -Raw
+
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/containerinstance.bicep `
+  -containerGroupName "ci-otel-collector" `
+  -containerName "otel-collector" `
+  -containerImage "otel/opentelemetry-collector-contrib:latest" `
+  -configYamlContent $configContent `
+  -location "eastus"
+```
+
+#### Sample Application Services
+
+The App Service deployment creates:
+
+1. App Service Plan with the specified tier
+2. App Service for hosting the sample application
+3. Diagnostic settings to send logs and metrics to the Event Hub
+
+**Features:**
+
+- Linux-based App Service running .NET Core
+- HTTPS-only access
+- Configured to run from a deployment package
+- Diagnostic settings configured to send logs to Event Hub
+
+**Deployment Example:**
+
+```powershell
+# Deploy just the App Service
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+$eventhubNamespace = "evhns-otel"
+$eventhubName = "evh-otel-diagnostics"
+
+$eventhubAuthRuleId = (Get-AzEventHubNamespaceAuthorizationRule -ResourceGroupName $resourceGroupName -NamespaceName $eventhubNamespace -Name "RootManageSharedAccessKey").Id
+
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/appservice.bicep `
+  -appServicePlanName "asp-otel-sample" `
+  -appServiceName "app-otel-sample" `
+  -sku @{name="B1"; tier="Basic"} `
+  -diagnosticEventHubName $eventhubName `
+  -diagnosticEventHubAuthorizationRuleId $eventhubAuthRuleId `
+  -location "eastus"
+```
+
+**Sample Application Deployment:**
+
+After the App Service is created, deploy your application using:
+
+1. **ZIP deployment:**
+```powershell
+Compress-Archive -Path .\app\* -DestinationPath .\app.zip
+az webapp deployment source config-zip --resource-group $resourceGroupName --name "app-otel-sample-dev" --src .\app.zip
+```
+
+2. **GitHub Actions:**
+Configure a GitHub Actions workflow to build and deploy your application automatically.
+
+### Post-Deployment Configuration
+
+After Bicep deployment, you'll need to:
+
+1. Configure environment variables for the OTEL collector container with actual connection strings
+2. Update the diagnostic settings on any resources you want to monitor
+3. Deploy your applications to the App Service
+4. Complete the Microsoft Fabric workspace setup in the Fabric portal:
+   - Create the KQL Database using the provided schema
+   - Set up permissions for the database
+   - Configure OTEL connector for ingestion from the Event Hub

@@ -1,15 +1,74 @@
 # OTEL Fabric Observability - Test Automation
 
-This directory contains comprehensive test automation for the Microsoft Fabric OTEL observability solution. The tests validate both infrastructure deployment and end-to-end data streaming functionality.
+This directory contains comprehensive test automation for the Microsoft Fabric OTEL observability solution using modern **Pester 5.x** testing framework. The tests validate both infrastructure deployment and end-to-end data streaming functionality.
 
-## 📊 Test Overview
+## 🎯 **NEW: Unified Pester Test Suite**
 
-The test suite validates:
-- **Infrastructure Deployment**: Fabric workspace, database, and table creation
-- **OTEL Table Schema**: Correct structure and configuration
-- **EventHub Integration**: Message transmission and reception
-- **Data Streaming**: End-to-end data flow from EventHub to Fabric
-- **Query Performance**: Basic performance validation
+**All tests have been consolidated into a single, comprehensive Pester file:**
+```powershell
+# Run complete test suite
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1"
+
+# Run specific test categories
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -Tag "Environment","Authentication"
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -Tag "Azure","Fabric","OTEL"
+
+# Quick validation (skip slow tests)
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -ExcludeTag "Slow"
+```
+
+## 📊 Test Coverage
+
+The unified Pester suite validates:
+
+### 🛠️ **Environment & Setup**
+- DevContainer environment validation  
+- PowerShell 7.0+ verification
+- Git configuration and project structure
+- Required tool availability (Azure CLI, Fabric CLI, .NET)
+
+### 🔐 **Authentication & Connectivity**  
+- Azure CLI authentication status
+- Azure subscription access validation
+- Fabric CLI installation and configuration
+- Service principal authentication testing
+
+### ☁️ **Azure Infrastructure**
+- Resource group existence and accessibility
+- Key Vault permissions (when configured)
+- Bicep template syntax validation
+- Infrastructure readiness assessment
+
+### 🏗️ **Fabric Workspace & Database**
+- Workspace listing and accessibility
+- KQL database operations and validation  
+- OTEL table schema verification
+- Query execution capability testing
+
+### 📡 **OTEL Data Pipeline**
+- OTEL Collector configuration validation
+- Docker containerization readiness
+- Worker application structure verification
+- Event Hub integration testing
+
+### 🔗 **Git Integration for Deployment**
+- Git artifacts folder structure validation
+- KQL table definition file verification
+- Schema definition accuracy testing
+- Deployment script availability and guidance
+
+## 🏷️ **Test Tags for Targeted Execution**
+
+| Tag | Description | Example Usage |
+|-----|-------------|---------------|
+| `Environment` | DevContainer and tool validation | `-Tag "Environment"` |
+| `Authentication` | Auth and connectivity tests | `-Tag "Authentication"` |
+| `Azure` | Azure infrastructure validation | `-Tag "Azure"` |
+| `Fabric` | Fabric workspace and database tests | `-Tag "Fabric"` |
+| `OTEL` | OTEL pipeline and configuration | `-Tag "OTEL"` |
+| `GitIntegration` | Git deployment automation | `-Tag "GitIntegration"` |
+| `Performance` | Performance and timing tests | `-Tag "Performance"` |
+| `Slow` | Tests taking >30 seconds | `-ExcludeTag "Slow"` for quick runs |
 
 ## 🚀 Quick Start
 
@@ -17,47 +76,73 @@ The test suite validates:
 
 Before running tests, ensure you have:
 
-1. **Azure CLI** installed and configured
-2. **Microsoft Fabric CLI** installed
-3. **Required utilities**: `jq`, `bc` (for Bash version)
-4. **Azure Authentication**: Service principal or user login
-5. **Resource Group**: Infrastructure deployed via main workflow
+1. **Pester 5.x** installed: `Install-Module -Name Pester -Force`
+2. **Azure CLI** installed and configured
+3. **Microsoft Fabric CLI** (auto-installed by tests if missing)
+4. **PowerShell 7.0+** (required for cross-platform support)
+5. **DevContainer Environment** (recommended for consistency)
 
-### Environment Variables
+### Basic Test Execution
 
-Set these environment variables for customization:
-
-```bash
-export RESOURCE_GROUP_NAME="your-resource-group"
-export DATA_COUNT="100"                    # Number of test records per type
-export DELAY_BETWEEN_BATCHES="1"          # Delay in seconds between batches
-export PERFORMANCE_THRESHOLD_MS="5000"    # Query performance threshold
-```
-
-## 🔧 Test Scripts
-
-### 1. Integration Tests
-
-**PowerShell Version** (Cross-platform):
 ```powershell
-.\tests\Test-FabricIntegration-Git.ps1
+# Complete validation (recommended first run)
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -Output Detailed
+
+# Quick environment check
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -Tag "Environment" -Output Normal
+
+# Authentication and connectivity validation  
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -Tag "Authentication" -Output Detailed
+
+# Infrastructure readiness check
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -Tag "Azure","Fabric" -Output Detailed
 ```
 
-**Key Features**:
-- ✅ Comprehensive validation of Fabric deployment
-- 📊 JUnit XML output for GitHub Actions
-- 🎯 GitHub step summary generation
-- 🔍 Detailed error reporting
-- ⚡ **Smart Early Exit**: Skips time-consuming EventHub tests (300s timeout) when critical prerequisites fail
+### Advanced Test Scenarios
 
-**Performance Optimization**:
-The test script includes intelligent early exit logic that prevents long wait times:
-- **Prerequisites Check**: Requires 4 critical tests to pass before running EventHub tests
-- **Required Tests**: Prerequisites, Workspace, Database, and Tables must all pass
-- **Benefits**: Avoids 300-second EventHub streaming timeouts when foundational issues exist
-- **Clear Feedback**: Shows exactly which prerequisites failed and why tests were skipped
+```powershell
+# Continuous Integration mode (fast, essential tests only)
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -ExcludeTag "Slow","Manual" -CI
 
-### 2. Test Data Generator
+# Development validation (skip manual intervention tests)
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -ExcludeTag "Manual" -Output Detailed
+
+# Performance and integration testing (includes slower tests)
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -Tag "Performance","Integration" -Output Detailed
+
+# Full test suite with JUnit output for CI/CD
+Invoke-Pester -Path "./tests/Azure-Fabric-OTEL.Tests.ps1" -OutputFormat JUnitXml -OutputPath "TestResults.xml"
+```
+
+## 🔧 **Legacy Test Scripts** (Deprecated - Use Pester Instead)
+
+⚠️ **These individual scripts are deprecated in favor of the unified Pester suite:**
+
+### Individual PowerShell Scripts
+
+- **Test-FabricIntegration-Git.ps1** - Git integration validation *(replaced by GitIntegration tags)*
+- **Test-FabricAuth.ps1** - Authentication testing *(replaced by Authentication tags)*  
+- **Test-FabricLocal.ps1** - Local development testing *(replaced by Environment tags)*
+- **Verify-DevEnvironment.ps1** - Environment validation *(replaced by Environment tags)*
+
+### .NET xUnit Integration Tests
+
+- **FabricObservability.IntegrationTests/** - C# test project *(replaced by Fabric tags)*
+  - FabricWorkspaceTests.cs *(covered by Fabric context)*
+  - KqlDatabaseTests.cs *(covered by Fabric context)*
+  - OtelTablesTests.cs *(covered by OTEL context)*
+
+### Migration Guide from Legacy Tests
+
+| Legacy Script | New Pester Command |
+|---------------|-------------------|
+| `./Test-FabricIntegration-Git.ps1` | `Invoke-Pester -Tag "GitIntegration"` |
+| `./Test-FabricAuth.ps1` | `Invoke-Pester -Tag "Authentication"` |
+| `./Test-FabricLocal.ps1` | `Invoke-Pester -Tag "Environment","Authentication"` |
+| `./Verify-DevEnvironment.ps1` | `Invoke-Pester -Tag "Environment"` |
+| `dotnet test FabricObservability.IntegrationTests` | `Invoke-Pester -Tag "Fabric","OTEL"` |
+
+## 🧪 **Test Data Generation**
 
 **PowerShell Version**:
 ```powershell

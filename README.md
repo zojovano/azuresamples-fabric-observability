@@ -92,28 +92,6 @@ The following sections describe Azure Portal deployment and configuration based 
 > **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#-infrastructure-as-code-bicep-deployment)
 
 
-## Deploy Microsoft Fabric for OTEL Observability
-
-Follow Microsoft Learn article for [configuring OTEL collection for Azure Data Explorer (or Microsoft Fabric Real-Time Intelligence)](https://learn.microsoft.com/azure/data-explorer/open-telemetry-connector). 
-
-Create Fabric Eventhouse
-![alt text](./docs/assets/image001.png)
-
-Create OTEL tables
-
-```kusto
-.create-merge table <Logs-Table-Name> (Timestamp:datetime, ObservedTimestamp:datetime, TraceID:string, SpanID:string, SeverityText:string, SeverityNumber:int, Body:string, ResourceAttributes:dynamic, LogsAttributes:dynamic) 
-
-.create-merge table <Metrics-Table-Name> (Timestamp:datetime, MetricName:string, MetricType:string, MetricUnit:string, MetricDescription:string, MetricValue:real, Host:string, ResourceAttributes:dynamic,MetricAttributes:dynamic) 
-
-.create-merge table <Traces-Table-Name> (TraceID:string, SpanID:string, ParentID:string, SpanName:string, SpanStatus:string, SpanKind:string, StartTime:datetime, EndTime:datetime, ResourceAttributes:dynamic, TraceAttributes:dynamic, Events:dynamic, Links:dynamic)
-```
-
-![alt text](./docs/assets/image002.png)
-
-
-
-
 ## Deploy Azure Event Hub
 
 Azure Event Hub serves as the central ingestion point for diagnostic logs from Azure services in this observability solution. The OTEL Collector will connect to Event Hub to receive and process diagnostic data before forwarding it to Microsoft Fabric.
@@ -436,6 +414,25 @@ The sample App Services setup includes:
 ![alt text](./docs/assets/image012.png)
 
 ![alt text](./docs/assets/image013.png)
+
+## Deploy Microsoft Fabric for OTEL Observability
+
+Follow Microsoft Learn article for [configuring OTEL collection for Azure Data Explorer (or Microsoft Fabric Real-Time Intelligence)](https://learn.microsoft.com/azure/data-explorer/open-telemetry-connector). 
+
+Create Fabric Eventhouse
+![alt text](./docs/assets/image001.png)
+
+Create OTEL tables
+
+```kusto
+.create-merge table <Logs-Table-Name> (Timestamp:datetime, ObservedTimestamp:datetime, TraceID:string, SpanID:string, SeverityText:string, SeverityNumber:int, Body:string, ResourceAttributes:dynamic, LogsAttributes:dynamic) 
+
+.create-merge table <Metrics-Table-Name> (Timestamp:datetime, MetricName:string, MetricType:string, MetricUnit:string, MetricDescription:string, MetricValue:real, Host:string, ResourceAttributes:dynamic,MetricAttributes:dynamic) 
+
+.create-merge table <Traces-Table-Name> (TraceID:string, SpanID:string, ParentID:string, SpanName:string, SpanStatus:string, SpanKind:string, StartTime:datetime, EndTime:datetime, ResourceAttributes:dynamic, TraceAttributes:dynamic, Events:dynamic, Links:dynamic)
+```
+
+![alt text](./docs/assets/image002.png)
 
 
 ## References

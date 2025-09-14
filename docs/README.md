@@ -7,10 +7,10 @@ This guide covers development environment setup, deployment procedures, and trou
 | Section | Purpose | When to Use |
 |---------|---------|-------------|
 | [🚀 **Environment Setup**](#environment-setup) | DevContainer and local development | Setting up development environment |
+| [🧪 **Local Development**](#local-development) | Secret management and testing | Development and testing work |
 | [🏗️ **Deployment Procedures**](#deployment-procedures) | Step-by-step deployment guide | Deploying the sample |
-| [� **Infrastructure Removal**](#infrastructure-removal) | Complete resource cleanup | Removing all project resources |
-| [�🔧 **Troubleshooting**](#troubleshooting) | Common issues and solutions | When encountering problems |
-| [🧪 **Local Development**](LOCAL_DEVELOPMENT_SETUP.md) | Detailed development guide | In-depth development work |
+| [🔥 **Infrastructure Removal**](#infrastructure-removal) | Complete resource cleanup | Removing all project resources |
+| [🔧 **Troubleshooting**](#troubleshooting) | Common issues and solutions | When encountering problems |
 
 ---
 
@@ -25,42 +25,58 @@ The sample includes a complete DevContainer for consistent development experienc
 - [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 - Docker or Podman container runtime
 
-#### Quick Setup
-```bash
-# Clone and open in DevContainer
-git clone https://github.com/zojovano/azuresamples-fabric-observability.git
-cd azuresamples-fabric-observability
-code .
-# Click "Reopen in Container" when prompted
-```
+#### Getting Started
 
-#### Git Configuration (Required)
-**Option A: Environment Variables (Persists across rebuilds)**
-```bash
-# On your HOST system (Windows)
-setx GIT_USER_NAME "Your Name"
-setx GIT_USER_EMAIL "your@email.com"
+1. **Open in DevContainer:**
+   ```bash
+   # Clone and open in VS Code
+   git clone https://github.com/zojovano/azuresamples-fabric-observability.git
+   cd azuresamples-fabric-observability
+   code .
+   
+   # When prompted, click "Reopen in Container"
+   # Or use Command Palette: "Dev Containers: Reopen in Container"
+   ```
 
-# On your HOST system (Linux/Mac)
-export GIT_USER_NAME="Your Name"
-export GIT_USER_EMAIL="your@email.com"
-# Add to ~/.bashrc for persistence
-```
+2. **Configure Git (Required for commits):**
+   
+   **Option A: Environment Variables (Recommended - persists across rebuilds)**
+   ```bash
+   # On your HOST system (not in container):
+   # Windows:
+   setx GIT_USER_NAME "Your Name"
+   setx GIT_USER_EMAIL "your.email@example.com"
+   
+   # Linux/Mac:
+   export GIT_USER_NAME="Your Name"
+   export GIT_USER_EMAIL="your.email@example.com"
+   # Add to ~/.bashrc for persistence
+   ```
+   
+   **Option B: Interactive Setup (run inside container after rebuild)**
+   ```bash
+   ./.devcontainer/setup-git-config.sh
+   # Or with parameters:
+   ./.devcontainer/setup-git-config.sh "Your Name" "your.email@example.com"
+   ```
 
-**Option B: Interactive Setup (Run after each rebuild)**
-```bash
-# Inside DevContainer
-./.devcontainer/setup-git-config.sh
-```
+3. **Verify DevContainer Environment** (recommended first step):
+   ```bash
+   # Verify all required tools are installed
+   pwsh deploy/tools/Verify-DevEnvironment.ps1
+   
+   # Include authentication check  
+   pwsh deploy/tools/Verify-DevEnvironment.ps1 -CheckAuth
+   ```
 
-#### Verification
-```bash
-# Verify all required tools are installed
-pwsh deploy/tools/Verify-DevEnvironment.ps1
-
-# Include authentication check  
-pwsh deploy/tools/Verify-DevEnvironment.ps1 -CheckAuth
-```
+#### What's Included
+- **Azure CLI** with Bicep extension
+- **Microsoft Fabric CLI** for Fabric management  
+- **.NET 8.0** SDK for C# development
+- **PowerShell 7.5.2** for scripting
+- **Python 3.11** with pip
+- **Git** with VS Code credential integration
+- **All VS Code extensions** for Azure, .NET, PowerShell development
 
 ### Manual Environment Setup
 
@@ -90,6 +106,119 @@ sudo dpkg -i powershell_7.5.2-1.deb_amd64.deb
 wget https://dot.net/v1/dotnet-install.sh
 bash dotnet-install.sh --version 8.0.100
 ```
+
+---
+
+## 🧪 Local Development
+
+### Secret Management Options
+
+#### Option 1: User Secrets (Recommended for Development)
+
+1. **Setup secrets interactively:**
+   ```powershell
+   pwsh deploy/tools/Test-FabricLocal.ps1 -SetupSecrets
+   ```
+
+2. **Test authentication:**
+   ```powershell
+   pwsh deploy/tools/Test-FabricLocal.ps1 -TestAuth
+   ```
+
+3. **Run deployment:**
+   ```powershell
+   pwsh deploy/tools/Test-FabricLocal.ps1 -RunDeploy
+   ```
+
+#### Option 2: Azure Key Vault
+
+1. **Test with Key Vault:**
+   ```powershell
+   pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -TestAuth
+   ```
+
+2. **Deploy with Key Vault:**
+   ```powershell
+   pwsh deploy/tools/Test-FabricLocal.ps1 -Mode KeyVault -KeyVaultName "your-keyvault" -RunDeploy
+   ```
+
+#### Option 3: Environment Variables
+
+1. **Set environment variables:**
+   ```powershell
+   $env:AZURE_CLIENT_ID = "your-client-id"
+   $env:AZURE_CLIENT_SECRET = "your-client-secret"
+   $env:AZURE_TENANT_ID = "your-tenant-id"
+   ```
+
+2. **Test with environment:**
+   ```powershell
+   pwsh deploy/tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
+   ```
+
+### 🔧 Secret Manager Tool
+
+The included .NET tool (`deploy/tools/DevSecretManager`) provides secure secret management:
+
+```bash
+# Build the tool
+cd deploy/tools/DevSecretManager
+dotnet build
+
+# Set secrets
+dotnet run set --key "Azure:ClientId" --value "your-client-id"
+dotnet run set --key "Azure:ClientSecret" --value "your-client-secret"
+
+# List configured secrets (without values)
+dotnet run list
+
+# Test authentication
+dotnet run test
+
+# Import from Key Vault
+dotnet run import-from-keyvault --vault-name "your-vault" --secret-name "AZURE-CLIENT-ID" --local-key "Azure:ClientId"
+```
+
+### 🔐 Security Features
+
+- **User Secrets**: Stored outside source control using .NET user secrets
+- **Key Vault Integration**: Direct import from Azure Key Vault
+- **Secret Masking**: Values are masked in output for security
+- **Encrypted Storage**: Uses .NET's secure user secrets mechanism
+
+### 📋 Required Secrets
+
+| Secret | Description | Example |
+|--------|-------------|---------|
+| `Azure:ClientId` | Service Principal Application ID | `12345678-1234-1234-1234-123456789012` |
+| `Azure:ClientSecret` | Service Principal Secret | `your-secret-value` |
+| `Azure:TenantId` | Azure Tenant ID | `87654321-4321-4321-4321-210987654321` |
+| `Azure:SubscriptionId` | Azure Subscription ID | `11111111-2222-3333-4444-555555555555` |
+| `Azure:ResourceGroupName` | Resource Group Name | `azuresamples-platformobservabilty-fabric` |
+| `Fabric:WorkspaceName` | Fabric Workspace Name | `fabric-otel-workspace` |
+| `Fabric:DatabaseName` | Fabric Database Name | `otelobservabilitydb` |
+
+### 🧪 Testing Workflow
+
+1. **Setup**: Configure secrets once using your preferred method
+2. **Test**: Verify authentication works locally
+3. **Deploy**: Run full deployment locally to test changes
+4. **Commit**: Push working changes to GitHub Actions
+
+### 🛠️ Development Benefits
+
+- **Fast Iteration**: Test authentication changes locally
+- **Secure Storage**: No secrets in source control
+- **Multiple Options**: Choose the method that fits your workflow
+- **Detailed Logging**: See exactly what's happening during authentication
+- **Safe Testing**: Test without triggering GitHub Actions
+
+### 📝 Local Development Best Practices
+
+After your local testing works:
+1. Verify the same service principal works in GitHub Actions
+2. Ensure GitHub Secrets match your local configuration
+3. Push your tested changes with confidence!
 
 ---
 
@@ -245,6 +374,22 @@ fab auth login
 fab auth whoami
 ```
 
+### 🔍 Local Development Issues
+
+#### Authentication Failures
+- Verify service principal has correct permissions
+- Check tenant and subscription IDs are correct
+- Ensure Fabric CLI is properly installed
+
+#### Missing Secrets
+- Run `dotnet run list` in the DevSecretManager to check configuration
+- Use `-TestAuth` to verify all required secrets are present
+
+#### Key Vault Access
+- Ensure you're authenticated with Azure CLI: `az login`
+- Verify Key Vault access permissions
+- Check secret names match expected values
+
 ### 🏗️ Deployment Issues
 
 #### Bicep Template Failures
@@ -366,7 +511,7 @@ deployment_mode:
 ### Support
 - **Issues**: Use GitHub Issues for bug reports
 - **Discussions**: Use GitHub Discussions for questions
-- **Local Development**: See [LOCAL_DEVELOPMENT_SETUP.md](LOCAL_DEVELOPMENT_SETUP.md)
+- **Local Development**: All development guidance is included in this document
 
 ---
 

@@ -1,6 +1,27 @@
 # Microsoft Fabric OTEL Deployment
 
-This folder contains deployment scripts and artifacts for the Microsoft Fabric OTEL observability solution.
+This folder contains deployment scripts and art**OR manually in Fabric portal:**
+- Use Source Control panel → Update from Git
+
+### Fabric Artifacts Structure
+
+The `fabric-artifacts/` folder contains KQL table definitions that are synchronized with the workspace via Git integration:
+
+- **tables/** - KQL table definitions for OTEL data
+  - `otel-logs.kql` - OTELLogs table schema
+  - `otel-metrics.kql` - OTELMetrics table schema  
+  - `otel-traces.kql` - OTELTraces table schema
+- **otelobservabilitydb_auto.Eventhouse/** - Fabric-generated structure
+
+The deployment process works as follows:
+1. KQL tables are defined in .kql files
+2. Workspace is connected to this Git repository folder
+3. Changes are committed from Fabric workspace to Git
+4. Updates flow from Git to workspace automatically
+
+---
+
+## 🛠️ **Development Tools**ts for the Microsoft Fabric OTEL observability solution.
 
 ## 🎯 **Current Deployment Approach: Git Integration**
 
@@ -26,18 +47,26 @@ This folder contains deployment scripts and artifacts for the Microsoft Fabric O
 ```
 deploy/
 ├── fabric-artifacts/          # Git integration folder (synced with Fabric)
-│   ├── README.md             # Git integration documentation
+│   ├── README.md             # Git integration documentation  
 │   ├── tables/               # KQL table definitions
 │   │   ├── otel-logs.kql     # OTELLogs table schema
 │   │   ├── otel-metrics.kql  # OTELMetrics table schema
 │   │   └── otel-traces.kql   # OTELTraces table schema
 │   └── otelobservabilitydb_auto.Eventhouse/  # Fabric-generated structure
 ├── infra/                    # Infrastructure deployment scripts
-│   ├── Deploy-FabricArtifacts-Git.ps1        # Main Git integration script
-│   ├── Deploy-FabricArtifacts-Git.ps1       # Simplified Git guidance and sync script
-│   ├── Deploy-Complete.ps1                   # Full infrastructure deployment
+│   ├── Deploy-Complete.ps1                   # Unified deployment script
+│   ├── Destroy-Complete.ps1                  # Complete infrastructure removal
+│   ├── Deploy-FabricArtifacts-Git.ps1       # Git integration script
+│   ├── Setup-Authentication.ps1              # Authentication helper
 │   └── Bicep/                # Azure infrastructure templates
-└── tools/                    # Development and testing tools
+│       ├── main.bicep        # Main Bicep template
+│       ├── parameters.json   # Parameter values
+│       ├── config/           # Configuration files
+│       │   └── otel-config.yaml
+│       └── modules/          # Individual resource modules
+└── tools/                    # Development and deployment tools
+    ├── DevSecretManager/     # .NET secret management tool
+    └── Diagnose-FabricPermissions.ps1  # Fabric permissions diagnostic
 ```
 
 ## 🚀 **Deployment Process**
@@ -76,7 +105,356 @@ cd deploy/infra
 **OR manually in Fabric portal:**
 - Use Source Control panel → Update from Git
 
-## 🔍 **Verification Steps**
+## �️ **Development Tools**
+
+The `tools/` directory contains essential development and deployment utilities for the project:
+
+### Available Tools
+
+| Tool | Description | Usage |
+|------|-------------|-------|
+| [`DevSecretManager/`](tools/DevSecretManager/) | .NET console app for secure credential management | `dotnet run --project deploy/tools/DevSecretManager` |
+| [`Diagnose-FabricPermissions.ps1`](tools/Diagnose-FabricPermissions.ps1) | Fabric workspace permissions diagnostic | `pwsh deploy/tools/Diagnose-FabricPermissions.ps1` |
+
+### Secret Management
+
+The tools support multiple authentication approaches:
+
+#### .NET Secret Manager (Recommended for Local Development)
+```powershell
+# Navigate to DevSecretManager
+cd deploy/tools/DevSecretManager
+
+# Set a secret
+dotnet run set --key "Azure:ClientId" --value "your-client-id"
+
+# Get a secret
+dotnet run get --key "Azure:ClientId"
+
+# List all secrets
+dotnet run list
+
+# Test authentication
+dotnet run test
+
+# Import from Key Vault
+dotnet run import-from-keyvault --vault-name "your-vault" --secret-name "AZURE-CLIENT-ID" --local-key "Azure:ClientId"
+```
+
+#### Security Features
+- **User Secrets**: Stored outside source control using .NET user secrets
+- **Key Vault Integration**: Direct import from Azure Key Vault
+- **Secret Masking**: Values are masked in output for security
+- **Encrypted Storage**: Uses .NET's secure user secrets mechanism
+
+### Diagnostic Tools
+
+#### Diagnose-FabricPermissions.ps1
+Helps diagnose Service Principal permissions for Fabric workspace creation and provides workarounds when tenant settings are not configured.
+
+```powershell
+# Basic diagnostics
+pwsh deploy/tools/Diagnose-FabricPermissions.ps1
+
+# Get manual workspace creation instructions
+pwsh deploy/tools/Diagnose-FabricPermissions.ps1 -CreateWorkspaceManually
+
+# Skip workspace creation
+pwsh deploy/tools/Diagnose-FabricPermissions.ps1 -SkipWorkspaceCreation
+```
+
+---
+
+## 🚀 **Infrastructure Deployment**
+
+### Unified Deployment Script (Recommended)
+
+Use the **`Deploy-Complete.ps1`** script for all deployment scenarios. This script consolidates all deployment functionality into a single, easy-to-use PowerShell script.
+
+```powershell
+# Complete deployment (uses config/project-config.json for KeyVault name)
+./infra/Deploy-Complete.ps1
+
+# Or specify a different KeyVault
+./infra/Deploy-Complete.ps1 -KeyVaultName "your-keyvault-name"
+```
+
+### Infrastructure Scripts Overview
+
+| Script | Status | Purpose |
+|--------|--------|---------|
+| **`Deploy-Complete.ps1`** | ✅ **RECOMMENDED** | Single script for all deployment scenarios |
+| **`Destroy-Complete.ps1`** | ⚠️ **DESTRUCTIVE** | Complete infrastructure removal |
+| `Deploy-FabricArtifacts-Git.ps1` | ✅ Active | Git integration setup and guidance |
+| `Setup-Authentication.ps1` | ✅ Active | Authentication helper |
+
+### Quick Start
+
+#### Prerequisites
+- Azure CLI (authenticated)
+- PowerShell Az Module  
+- Microsoft Fabric CLI
+- Azure Key Vault with required secrets
+
+#### Simple Deployment
+```powershell
+# 1. Complete deployment (auto-detects KeyVault from config)
+./infra/Deploy-Complete.ps1
+
+# 2. Infrastructure only
+./infra/Deploy-Complete.ps1 -SkipFabricArtifacts
+
+# 3. Fabric artifacts only  
+./infra/Deploy-Complete.ps1 -SkipInfrastructure
+
+# 4. Preview mode
+./infra/Deploy-Complete.ps1 -WhatIf
+```
+
+#### Complete Removal (DESTRUCTIVE)
+```powershell
+# ⚠️ PREVIEW what will be destroyed (RECOMMENDED FIRST)
+./infra/Destroy-Complete.ps1 -WhatIf
+
+# 🔥 Complete destruction (requires confirmation)
+./infra/Destroy-Complete.ps1
+
+# Partial removal options
+./infra/Destroy-Complete.ps1 -SkipFabricArtifacts  # Keep Fabric data
+./infra/Destroy-Complete.ps1 -SkipInfrastructure   # Keep Azure resources
+```
+
+### Required Key Vault Secrets
+
+The KeyVault name is automatically loaded from `config/project-config.json` (currently: **`azuresamplesdevopskeys`**).
+
+Your Key Vault must contain:
+- `azure-subscription-id` (required)
+- `azure-tenant-id` (required) 
+- `azure-client-id` (optional - can be created)
+- `azure-client-secret` (optional - can be created)
+- `fabric-workspace-name` (optional - defaults available)
+- `fabric-database-name` (optional - defaults available)
+- `resource-group-name` (required)
+
+### Advanced Scenarios
+
+#### Create Service Principals Automatically
+```powershell
+# Creates service principals and populates Key Vault secrets
+./infra/Deploy-Complete.ps1 -KeyVaultName "my-kv" -CreateServicePrincipals
+```
+
+#### Skip Workspace Creation (Tenant Permissions Issues)
+```powershell
+# Skip if tenant admin hasn't configured Fabric permissions
+./infra/Deploy-Complete.ps1 -KeyVaultName "my-kv" -SkipWorkspaceCreation
+```
+
+#### Custom Admin User
+```powershell
+# Specify admin user for Fabric capacity
+./infra/Deploy-Complete.ps1 -KeyVaultName "my-kv" -AdminUserEmail "admin@company.com"
+```
+
+---
+
+## 🏗️ **Infrastructure as Code (Bicep) Deployment**
+
+This section provides comprehensive Bicep-based deployment instructions for automating the entire Azure infrastructure setup.
+
+### Bicep Files Structure
+
+- `infra/Bicep/main.bicep` - Main orchestration template
+- `infra/Bicep/modules/` - Individual resource modules
+  - `fabriccapacity.bicep` - Microsoft Fabric capacity
+  - `kqldatabase.bicep` - Microsoft Fabric workspace and KQL database parameters
+  - `eventhub.bicep` - Event Hub namespace and hub
+  - `containerinstance.bicep` - Container Instance for OTEL Collector
+  - `appservice.bicep` - App Service for sample telemetry
+- `infra/Bicep/config/` - Configuration files
+  - `otel-config.yaml` - OTEL Collector configuration
+- `infra/Bicep/parameters.json` - Parameter values for deployment
+
+### Full Infrastructure Deployment
+
+1. Navigate to the Bicep directory
+```powershell
+cd deploy/infra/Bicep
+```
+
+2. Login to Azure
+```powershell
+Connect-AzAccount
+# Or using Azure CLI
+# az login
+```
+
+3. Set your subscription
+```powershell
+Set-AzContext -SubscriptionId "<your-subscription-id>"
+# Or using Azure CLI
+# az account set --subscription "<your-subscription-id>"
+```
+
+4. Deploy using the provided script
+```powershell
+./deploy.ps1 -EnvironmentName "dev" -Location "eastus"
+```
+
+### Individual Component Deployment
+
+#### Microsoft Fabric Capacity
+
+```powershell
+# Deploy just the Fabric capacity
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+$adminObjectId = (Get-AzADUser -UserPrincipalName "admin@contoso.com").Id
+
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/fabriccapacity.bicep `
+  -capacityName "fabric-capacity-observability" `
+  -skuName "F2" `
+  -adminObjectId $adminObjectId `
+  -location "eastus"
+```
+
+#### Event Hub Deployment
+
+The Event Hub deployment creates:
+
+1. Event Hub Namespace with Standard tier
+2. Event Hub for receiving diagnostic data
+3. Default consumer group
+4. Authorization rule with listen, send, and manage permissions
+
+```powershell
+# Deploy just the Event Hub resources
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/eventhub.bicep `
+  -eventhubNamespace "evhns-otel-dev" `
+  -eventhubName "evh-otel-diagnostics" `
+  -location "eastus"
+```
+
+**Connecting Azure Resources to Event Hub:**
+
+After deployment, configure Azure Diagnostic Settings to send logs to the Event Hub:
+
+```powershell
+# Example: Connect App Service to Event Hub
+$resourceId = (Get-AzWebApp -Name "your-app-name" -ResourceGroupName "your-rg").Id
+$eventhubAuthorizationRuleId = (Get-AzEventHubNamespaceAuthorizationRule -ResourceGroupName $resourceGroupName -NamespaceName "evhns-otel-dev" -Name "RootManageSharedAccessKey").Id
+$eventhubName = "evh-otel-diagnostics"
+
+Set-AzDiagnosticSetting -ResourceId $resourceId `
+  -Name "otel-diagnostics" `
+  -EventHubAuthorizationRuleId $eventhubAuthorizationRuleId `
+  -EventHubName $eventhubName `
+  -LogCategory "AppServiceHTTPLogs" `
+  -MetricCategory "AllMetrics"
+```
+
+#### OTEL Collector Container Instance
+
+The Container Instance is configured with:
+
+1. Public IP address for receiving telemetry
+2. Exposed ports 4317 (OTLP gRPC) and 4318 (OTLP HTTP)
+3. A mounted config volume for the OTEL configuration
+4. Environment variables for connection strings and other configuration parameters
+
+**Configuration File Structure:**
+
+```yaml
+# Sample config.yaml structure
+extensions:
+  health_check:
+
+receivers:
+  otlp:
+
+processors:
+  batch:
+
+exporters:
+  debug:
+```
+
+**Deployment Example:**
+
+```powershell
+# Deploy just the OTEL Collector Container Instance
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+$configContent = Get-Content -Path "./config/otel-config.yaml" -Raw
+
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/containerinstance.bicep `
+  -containerInstanceName "ci-otel-collector" `
+  -configContent $configContent `
+  -location "eastus"
+```
+
+#### Sample Application Services
+
+The App Service deployment creates:
+
+1. App Service Plan with the specified tier
+2. App Service for hosting the sample application
+3. Diagnostic settings to send logs and metrics to the Event Hub
+
+**Features:**
+
+- Linux-based App Service running .NET Core
+- HTTPS-only access
+- Configured to run from a deployment package
+- Diagnostic settings configured to send logs to Event Hub
+
+**Deployment Example:**
+
+```powershell
+# Deploy just the App Service
+$resourceGroupName = "azuresamples-platformobservabilty-fabric"
+$eventhubNamespace = "evhns-otel"
+$eventhubName = "evh-otel-diagnostics"
+
+$eventhubAuthRuleId = (Get-AzEventHubNamespaceAuthorizationRule -ResourceGroupName $resourceGroupName -NamespaceName $eventhubNamespace -Name "RootManageSharedAccessKey").Id
+
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile ./modules/appservice.bicep `
+  -appName "app-otel-sample-dev" `
+  -eventhubAuthorizationRuleId $eventhubAuthRuleId `
+  -eventhubName $eventhubName `
+  -location "eastus"
+```
+
+**Sample Application Deployment:**
+
+After the App Service is created, deploy your application using:
+
+1. **ZIP deployment:**
+```powershell
+Compress-Archive -Path .\app\* -DestinationPath .\app.zip
+az webapp deployment source config-zip --resource-group $resourceGroupName --name "app-otel-sample-dev" --src .\app.zip
+```
+
+2. **GitHub Actions:**
+Configure a GitHub Actions workflow to build and deploy your application automatically.
+
+### Post-Deployment Configuration
+
+After Bicep deployment, you'll need to:
+
+1. Configure environment variables for the OTEL collector container with actual connection strings
+2. Update the diagnostic settings on any resources you want to monitor
+3. Deploy your applications to the App Service
+4. Complete the Microsoft Fabric workspace setup in the Fabric portal:
+   - Create the KQL Database using the provided schema
+   - Configure data ingestion from Event Hub
+   - Configure OTEL connector for ingestion from the Event Hub
+
+---
 
 After deployment, verify tables are created:
 
@@ -160,6 +538,43 @@ Previous versions used complex API-based deployment. The Git integration approac
 - **Offers built-in version control**
 
 For legacy API scripts, see commit history before September 2025.
+
+---
+
+## 🔧 **Troubleshooting**
+
+### Git sync not working?
+- Check workspace Git integration settings
+- Verify repository permissions
+- Ensure correct folder path: `deploy/fabric-artifacts`
+
+### Tables not created?
+- Check if Git sync completed successfully
+- Verify KQL syntax in table definition files
+- Check Fabric portal for error messages
+
+### Authentication issues?
+- Run: `fab auth login`
+- Verify Fabric workspace access permissions
+- Check Azure CLI authentication: `az login`
+
+### Development Tools Issues?
+- For DevSecretManager: Run `dotnet build` in the tool directory
+- For permission diagnostics: Use `Diagnose-FabricPermissions.ps1 -CreateWorkspaceManually`
+- For secret management: Verify Key Vault access permissions
+
+---
+
+## 📚 **Additional Resources**
+
+- **Complete Documentation**: [docs/README.md](../docs/README.md)
+- **Testing Scripts**: Located in [tests/](../tests/) folder
+- **Local Development**: Use tools in this directory for development and testing
+- **DevContainer**: This project is designed for DevContainer development
+
+---
+
+*This consolidated documentation replaces multiple scattered README files with a single comprehensive deployment guide.*
 
 ---
 

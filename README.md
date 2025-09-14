@@ -95,11 +95,6 @@ The following sections describe Azure Portal deployment and configuration based 
 
 Azure Event Hub serves as the central ingestion point for diagnostic logs from Azure services in this observability solution. The OTEL Collector will connect to Event Hub to receive and process diagnostic data before forwarding it to Microsoft Fabric.
 
-![alt text](./docs/assets/image006.png)
-
-![alt text](./docs/assets/image007.png)
-
-![alt text](./docs/assets/image008.png)
 
 > **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Create an event hub using Azure portal](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create)
 
@@ -262,6 +257,12 @@ Deploy Azure App Services that will generate diagnostic logs and send them to th
 2. Go to **Monitoring** → **Metrics**
 3. Check for **Incoming Messages** to confirm diagnostic data is flowing
 4. In your OTEL Collector logs, you should see events being processed
+
+![alt text](./docs/assets/image006.png)
+
+![alt text](./docs/assets/image007.png)
+
+![alt text](./docs/assets/image008.png)
 
 ### Configuration Summary
 

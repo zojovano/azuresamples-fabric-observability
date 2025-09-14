@@ -213,10 +213,80 @@ Sample Event Hub diagnostic record from Azure App Service
 
 ## Deploy OTEL contrib distribution as Azure Diagnostic receiver
 
+The OpenTelemetry Collector serves as the central processing gateway in this solution, receiving diagnostic data from Azure Event Hub and application telemetry via OTLP protocols. It processes and routes all telemetry data to Microsoft Fabric Real-Time Intelligence for analysis and monitoring.
+
+> **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Deploy a container instance in Azure using the Azure portal](https://learn.microsoft.com/en-us/azure/container-instances/container-instances-quickstart-portal)
+
 [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) distribution will be configured and deployed as a Azure Container Instance as a OTEL Collector Gateway. 
 Docker image "otel/opentelemetry-collector-contrib" 
 
-We will use [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) which is part of the "OpenTelemetry Collector Contrib" distribution. 
+We will use [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) which is part of the "OpenTelemetry Collector Contrib" distribution.
+
+#### 1. Create Azure Container Instance
+
+1. In the Azure portal, select **Create a resource** → **Containers** → **Container Instances**
+2. On the **Basics** page, configure:
+   - **Subscription**: Select your Azure subscription
+   - **Resource group**: Select the same resource group as your Event Hub
+   - **Container name**: Enter `otel-collector-gateway`
+   - **Region**: Select the same region as your Event Hub
+   - **Image source**: Select **Other registry**
+   - **Image type**: **Public**
+   - **Image**: `otel/opentelemetry-collector-contrib:latest`
+   - **OS type**: **Linux**
+   - **Size**: 
+     - **CPU**: **2 cores**
+     - **Memory**: **4 GB**
+
+#### 2. Configure Networking
+
+1. Select the **Networking** tab
+2. Configure networking:
+   - **Networking type**: **Public**
+   - **DNS name label**: Enter a unique label (e.g., `otel-collector-{suffix}`)
+   - **Ports**: Configure the following ports:
+     - **Port 1**: `4317` (TCP) - OTLP gRPC receiver
+     - **Port 2**: `8888` (TCP) - Metrics endpoint (optional)
+     - **Port 3**: `13133` (TCP) - Health check endpoint (optional)
+
+#### 3. Configure Advanced Settings
+
+1. Select the **Advanced** tab
+2. Set **Restart policy**: **Always**
+3. Configure **Environment variables** (if needed for authentication)
+4. **Command override**: Leave empty to use default OTEL Collector startup
+
+#### 4. Add Configuration File
+
+Before deployment, you need to create a configuration file. You can either:
+
+**Option A: Use Azure File Share**
+1. Create an Azure Storage Account and File Share
+2. Upload your `config.yaml` file to the file share
+3. Mount the file share to the container at `/etc/otelcol-contrib/config.yaml`
+
+**Option B: Use init container or sidecar pattern**
+1. Build a custom image with your configuration included
+2. Use the custom image instead of the base collector image
+
+#### 5. Deploy and Verify
+
+1. Select **Review + create** → **Create**
+2. Wait for deployment completion
+3. Navigate to the container instance resource
+4. Verify the container status shows **Running**
+5. Check the **Logs** tab to ensure OTEL Collector started successfully
+6. Test connectivity to the OTLP endpoint: `http://<dns-name>.<region>.azurecontainer.io:4317`
+
+### Configuration Summary
+
+The OTEL Collector deployment includes:
+- **Image**: `otel/opentelemetry-collector-contrib:latest`
+- **Compute**: 2 CPU cores, 4 GB memory
+- **Networking**: Public endpoint with OTLP gRPC on port 4317
+- **Components**: Azure Event Hub receiver and Azure Data Explorer exporter
+- **Restart policy**: Always restart on failure
+
 ![alt text](./docs/assets/image010.png)
 
 and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md)
@@ -289,7 +359,80 @@ Deployed Azure Container with OTEL Collector
 
 ## Deploy telemetry sample Azure services
 
-Deploy two Azure App Services and configure Diagnostic settings to send the telemetry to configured Azure Event Hub.
+Deploy Azure App Services that will generate diagnostic logs and send them to the configured Azure Event Hub. These services serve as sample data sources to demonstrate the observability solution in action.
+
+> **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Deploy a Python web app to Azure App Service](https://learn.microsoft.com/en-us/azure/app-service/quickstart-python)
+
+#### 1. Create First App Service
+
+1. In the Azure portal, search for **App Services** and select **App Services**
+2. Select **Create** → **Web App**
+3. On the **Basics** tab, configure:
+   - **Subscription**: Select your Azure subscription
+   - **Resource group**: Select the same resource group as your other resources
+   - **Name**: Enter `otel-sample-app-01-{suffix}` (must be globally unique)
+   - **Publish**: **Code**
+   - **Runtime stack**: **Python 3.12** (or your preferred stack)
+   - **Operating System**: **Linux**
+   - **Region**: Select the same region as your other resources
+   - **App Service Plan**: 
+     - **Create new**: `otel-sample-plan`
+     - **Pricing tier**: **Basic B1** (for diagnostic logging support)
+4. Select **Review + create** → **Create**
+
+#### 2. Create Second App Service
+
+1. Repeat the same process for a second App Service
+2. Use name: `otel-sample-app-02-{suffix}`
+3. Use the **same App Service Plan** created above to save costs
+
+#### 3. Configure Diagnostic Settings for App Service 1
+
+1. Navigate to your first App Service
+2. In the left menu, select **Monitoring** → **Diagnostic settings**
+3. Select **Add diagnostic setting**
+4. Configure the diagnostic setting:
+   - **Diagnostic setting name**: `send-to-eventhub`
+   - **Logs**: Select the following categories:
+     - ✅ **AppServiceHTTPLogs**
+     - ✅ **AppServiceConsoleLogs**
+     - ✅ **AppServiceAppLogs**
+     - ✅ **AppServicePlatformLogs**
+   - **Destination details**: 
+     - ✅ **Stream to an event hub**
+     - **Event hub namespace**: Select your created Event Hub namespace
+     - **Event hub name**: Select your created event hub
+     - **Event hub policy name**: **RootManageSharedAccessKey**
+5. Select **Save**
+
+#### 4. Configure Diagnostic Settings for App Service 2
+
+1. Navigate to your second App Service
+2. Repeat the same diagnostic settings configuration as App Service 1
+3. Use the same Event Hub namespace and event hub for consistency
+
+#### 5. Generate Sample Traffic
+
+1. Navigate to both App Services
+2. Copy the **URL** from the Overview page of each app
+3. Open the URLs in your browser to generate HTTP requests
+4. Refresh the pages multiple times to create diagnostic log entries
+5. The diagnostic logs will automatically flow to your Event Hub
+
+#### 6. Verify Diagnostic Log Flow
+
+1. Navigate to your Event Hub namespace
+2. Go to **Monitoring** → **Metrics**
+3. Check for **Incoming Messages** to confirm diagnostic data is flowing
+4. In your OTEL Collector logs, you should see events being processed
+
+### Configuration Summary
+
+The sample App Services setup includes:
+- **Two App Services**: Running on Basic B1 tier for diagnostic logging support
+- **Diagnostic Settings**: Configured to send HTTP, Console, App, and Platform logs
+- **Event Hub Integration**: All diagnostic logs stream to the central Event Hub
+- **Sample Traffic**: Manual browsing generates realistic log data for testing
 
 ![alt text](./docs/assets/image012.png)
 

@@ -34,7 +34,6 @@ git add . && git commit -m "Update schema" && git push
 
 **Key Git Integration Files:**
 - `deploy/fabric-artifacts/tables/*.kql` - Table schema definitions
-- `deploy/fabric-artifacts/README.md` - Git setup documentation (if exists)
 - `Deploy-All.ps1` - **Unified deployment script** (replaces Deploy-Complete.ps1)
 - `Deploy-FabricArtifacts-Git.ps1` - **Fabric-specific Git sync script**
 - `deploy/README.md` - Comprehensive deployment documentation
@@ -113,9 +112,7 @@ cd deploy/infra/Bicep && .\deploy.ps1
 ```
 
 ### Fabric CLI Authentication Pattern
-```powershell
-# Service principal (CI/CD)
-fab auth login --service-principal --client-id $clientId --client-secret $clientSecret --tenant-id $tenantId
+
 
 # Interactive (local dev)
 fab auth login
@@ -218,7 +215,6 @@ dotnet --version # .NET SDK
 **Main Branch Strategy (Updated September 2024)**: DevContainer-focused validation workflow that eliminates Key Vault dependencies that were causing consistent failures.
 
 **Cleaned Up Workflow (ci-cd-pipeline.yml)**:
-1. **Unit Tests**: .NET xUnit professional testing framework (no Azure dependencies)
 2. **Template Validation**: Bicep syntax validation without deployment
 3. **Script Validation**: PowerShell script syntax checking
 4. **Documentation Validation**: DevContainer setup and essential docs verification
@@ -245,7 +241,6 @@ Infrastructure uses Azure Verified Modules pattern:
 - `modules/containerinstance.bicep` - OTEL Collector container
 - `modules/kqldatabase.bicep` - Fabric workspace and database parameters
 
-## Critical File Locations
 
 ## Critical File Locations
 

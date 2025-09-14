@@ -3,12 +3,16 @@
 
 ## Problem (Use Case)
 
-The company strategy focus is to leverage Microsoft Fabric as a main data platform. Traditionally, Infra and Operations teams has leveraged various third-party technologies for collection, storing and platform telemetry analysis.
-The company now wouldl like to leverage Microsoft Fabric investments 
+The company strategy focus is to leverage Microsoft Fabric as a main data platform. The Operations team is responsible for operating a larger number of applications across the enterprise, and as such, the team already uses Microsoft Fabric environment for a set of operational reports and dashboards. 
+
+Traditionally, Infra and Operations teams has leveraged various third-party technologies for collection, storing and platform telemetry analysis. However, with the existing Microsoft Fabric investment and expertise, the company now would like to leverage Microsoft Fabric investments for comprehensive platform observability rather than maintaining separate monitoring infrastructure.
 
 ## Solution
 
 We will use [OTEL Gateway Deployment pattern](https://opentelemetry.io/docs/collector/deployment/gateway/) with containerized version of OTEL Collector.
+
+The solution implements a centralized telemetry processing architecture where Azure services send diagnostic data to Azure Event Hub, while applications emit telemetry directly via OTLP protocols. An OTEL Collector running in Azure Container Instance acts as a gateway, processing and routing all telemetry data to Microsoft Fabric Real-Time Intelligence. The data is then structured into dedicated OTEL tables (Logs, Metrics, Traces) within a KQL database for analysis and monitoring.
+
 ![alt text](./docs/assets/image005.png)
 
 ```mermaid
@@ -61,7 +65,6 @@ graph TD
     class LOGS,METRICS,TRACES dataStore
 ```
 
-Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container instance (with OTELContrib Collector) => Microsoft Fabric Real-Time Intelligence (KQL Database)
 
 ## Summary of Steps
 
@@ -69,6 +72,10 @@ Telemetry collection flow: Azure Resource => Azure Event Hub => Azure Container 
 - Deploy Azure Event Hub for Azure Diagnostic exports
 - Deploy OTEL contrib distribution as Azure Diagnostic receiver
 - Deploy telemetry sample Azure services
+
+The following sections describe Azure Portal deployment and configuration based steps for manual setup and understanding of the solution components.
+
+> **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#-infrastructure-as-code-bicep-deployment)
 
 
 ## Deploy Microsoft Fabric for OTEL Observability
@@ -89,8 +96,6 @@ Create OTEL tables
 ```
 
 ![alt text](./docs/assets/image002.png)
-
-> **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#-infrastructure-as-code-bicep-deployment)
 
 
 
@@ -136,8 +141,6 @@ Sample Event Hub diagnostic record from Azure App Service
     ]
 }
 ```
-
-> **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#event-hub-deployment)
 
 
 ## Deploy OTEL contrib distribution as Azure Diagnostic receiver
@@ -213,8 +216,6 @@ Deployed Azure Container with OTEL Collector
 
 ![alt text](./docs/assets/image009.png)
 
-> **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#otel-collector-container-instance)
-
 
 
 
@@ -225,8 +226,6 @@ Deploy two Azure App Services and configure Diagnostic settings to send the tele
 ![alt text](./docs/assets/image012.png)
 
 ![alt text](./docs/assets/image013.png)
-
-> **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#sample-application-services)
 
 
 ## References

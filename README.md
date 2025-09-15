@@ -301,7 +301,8 @@ and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemet
 
 ![alt text](./docs/assets/image011.png)
 
-You can search for other available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
+> [!NOTE]
+> You can find for other available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
 
 The custom container uses the following OTEL configuration (config.yaml):
 

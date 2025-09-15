@@ -1,11 +1,15 @@
 # Microsoft Fabric and OTEL based Platform Observability Sample
 
 
-## Problem (Use Case)
+## Context
 
-The company strategy focus is to leverage Microsoft Fabric as a main data platform. The Operations team is responsible for operating a larger number of applications across the enterprise, and as such, the team already uses Microsoft Fabric environment for a set of operational reports and dashboards. 
+The company has made significant investment into Microsoft Fabric which is becoming one shop stop for most of the Data Analysis use cases. The platform is deployed and owned by Data Platforms team who is "sister" department of centralized Operations team.
+The Operations team so far has leveraged various third-party technologies for system monitoring and alerting. The team would like to improve the monitoring platforms and processes and adopt modern Observability patterns and standards.
 
-Traditionally, Infra and Operations teams has leveraged various third-party technologies for collection, storing and platform telemetry analysis. However, with the existing Microsoft Fabric investment and expertise, the company now would like to leverage Microsoft Fabric investments for comprehensive platform observability rather than maintaining separate monitoring infrastructure.
+## Problem
+
+Even though, Monitoring data analysis patterns are similar to any other generic data analysis use cases, the team has dedicated Monitoring data analysis platform. The team would like to explore opportunities to leverage economies of scale and use existing more generic Data platforms instead.
+
 
 ## Solution
 
@@ -438,6 +442,11 @@ Create OTEL tables
 
 ![alt text](./docs/assets/image002.png)
 
+## Summary
+
+This sample demonstrates how organizations can modernize their observability infrastructure by consolidating monitoring workloads onto Microsoft Fabric. Instead of maintaining separate third-party tools, the solution leverages existing data platform investments to create a unified telemetry processing pipeline. The architecture uses OpenTelemetry standards to collect data from multiple sources, processes it through a containerized gateway, and stores it in a structured format for real-time analytics. This approach reduces operational complexity while providing comprehensive visibility into application and infrastructure performance.
+
+> **Important Disclaimer**: Microsoft's Well-Architected Framework and best practices recommend using Azure Monitor's native observability capabilities for production monitoring scenarios. Azure Monitor provides comprehensive out-of-the-box features including Application Insights, Log Analytics, and built-in alerting that require minimal custom development. This sample is intended for educational purposes and specific use cases where organizations have strategic investments in Microsoft Fabric as their primary data platform. For most observability requirements, Azure Monitor's native capabilities offer better operational efficiency, support, and feature richness compared to custom implementations.
 
 ## References
 - https://learn.microsoft.com/en-us/azure/data-explorer/open-telemetry-connector?context=%2Ffabric%2Fcontext%2Fcontext-rti&pivots=fabric&tabs=command-line

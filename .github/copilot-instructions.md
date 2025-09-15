@@ -1,6 +1,4 @@
-# Copilot Instructions for Azure
-
-### **Fabric Deployment: Git Integration Pattern (Current Approach)**
+# Copilot Instructions for Azure### **Fabric Deployment: Git Integration Pattern (Current Approach)**
 **Since September 2025, the project uses a Git-based deployment approach that eliminates API complexity:**
 
 **How Git Integration Works:**
@@ -25,22 +23,23 @@ edit deploy/fabric-artifacts/tables/otel-logs.kql
 # 2. Commit changes to Git (already done)
 git add . && git commit -m "Update schema" && git push
 
-# 3. Run unified deployment script
-./deploy/infra/Deploy-All.ps1
+# 3. Run simplified deployment script
+./deploy/infra/Deploy-FabricArtifacts-Git.ps1
 
-# 4. Optional: Fabric-only deployment with Git sync
+# 4. Optional: Automated sync (requires Fabric CLI auth)
 ./deploy/infra/Deploy-FabricArtifacts-Git.ps1 -TriggerSync
 ```
 
 **Key Git Integration Files:**
 - `deploy/fabric-artifacts/tables/*.kql` - Table schema definitions
-- `Deploy-All.ps1` - **Unified deployment script** (replaces Deploy-Complete.ps1)
-- `Deploy-FabricArtifacts-Git.ps1` - **Fabric-specific Git sync script**
+- `deploy/fabric-artifacts/README.md` - Git setup documentation  
+- `Deploy-FabricArtifacts-Git.ps1` - **Simplified guidance and optional sync script**
 - `deploy/README.md` - Comprehensive deployment documentation
 
 **Fabric Workspace Structure After Git Integration:**
 ```
 deploy/fabric-artifacts/
+├── README.md
 ├── tables/
 │   ├── otel-logs.kql
 │   ├── otel-metrics.kql
@@ -57,29 +56,26 @@ deploy/fabric-artifacts/
 ```
 
 ### **Git Integration Deployment Pattern**
-**Current approach (September 2025+)**: All Fabric artifacts deployment uses Git integration with **unified deployment scripts**.
+**Current approach (September 2025+)**: All Fabric artifacts deployment uses Git integration with **simplified guidance script**.
 
 **How it works:**
 1. **Schema storage**: Table definitions in `deploy/fabric-artifacts/tables/*.kql`
 2. **Git connection**: Fabric workspace connected to `deploy/fabric-artifacts/` folder
-3. **Unified deployment**: `Deploy-All.ps1` handles complete infrastructure and Fabric deployment
-4. **Fabric-specific deployment**: `Deploy-FabricArtifacts-Git.ps1` for Fabric-only operations
+3. **Guidance script**: `Deploy-FabricArtifacts-Git.ps1` provides step-by-step instructions
+4. **Optional automation**: `-TriggerSync` parameter attempts automated Git sync via Azure CLI
 5. **No complex searches**: Git integration handles workspace automatically
 
 **Deployment script purpose:**
-- `Deploy-All.ps1` - **Unified deployment script** for complete infrastructure and Fabric setup
-- `Deploy-FabricArtifacts-Git.ps1` - **Fabric-specific deployment** with Git sync capabilities
-- `Destroy-All.ps1` - **Complete infrastructure removal** (replaces Destroy-Complete.ps1)
-- **Primary function**: Streamlined deployment with centralized configuration
-- **Secondary function**: Optional automated Git sync via Azure CLI (if Fabric CLI authenticated)
+- `Deploy-FabricArtifacts-Git.ps1` - **Simplified guidance and optional automated sync**
+- **Primary function**: Verify Git folder structure and provide clear deployment steps
+- **Secondary function**: Optional automated sync via Azure CLI (if Fabric CLI authenticated)
 - **NOT for workspace searching** - Git integration handles workspace automatically
 - **NOT for complex API-based deployment** - Git sync replaces complex API calls
 
 **When to use manual vs automated sync:**
 - **Manual sync** (recommended): Use Fabric portal Source Control panel for reliable deployment
 - **Automated sync** (optional): Use `-TriggerSync` parameter if Fabric CLI is authenticated and Azure CLI available
-- **Unified deployment**: Use `Deploy-All.ps1` for complete end-to-end deployment
-- **Fabric-only**: Use `Deploy-FabricArtifacts-Git.ps1` for Fabric workspace operations only
+- **Guidance-only**: Run script without parameters for step-by-step instructions
 
 ## Architecture Overview
 
@@ -109,14 +105,6 @@ cd deploy/infra/Bicep && .\deploy.ps1
 
 # Comprehensive testing
 .\tests\Test-FabricIntegration-Git.ps1
-```
-
-### Fabric CLI Authentication Pattern
-
-
-# Interactive (local dev)
-fab auth login
-fab auth whoami  # Always verify
 ```
 
 ### KQL Table Deployment Pattern
@@ -196,25 +184,16 @@ dotnet --version # .NET SDK
 ## Integration Points
 
 ### OTEL Collector Configuration
-**Custom Container Approach**: The project uses a custom container with embedded configuration rather than a .NET project.
-
-**Key Files**:
-- `app/otel-eh-receiver/config.yaml` - OTEL collector pipeline configuration
-- `app/otel-eh-receiver/Dockerfile` - Custom container build with embedded config
-- `app/otel-eh-receiver/OTELCollectorDockerRun.ps1` - Container build and run automation
-- `app/otel-eh-receiver/run-collector.ps1` - Local execution script
-
-**Pipeline Configuration**:
+`app/otel-eh-receiver/config.yaml` defines the gateway pipeline:
 - **Receivers**: `otlp` (gRPC 4317) + `azureeventhub`
 - **Processors**: `batch`
 - **Exporters**: `debug` + `azuredataexplorer`
-
-**Container Build Process**: Configuration file is embedded during Docker build, eliminating need for separate .NET project compilation.
 
 ### GitHub Actions Integration
 **Main Branch Strategy (Updated September 2024)**: DevContainer-focused validation workflow that eliminates Key Vault dependencies that were causing consistent failures.
 
 **Cleaned Up Workflow (ci-cd-pipeline.yml)**:
+1. **Unit Tests**: .NET xUnit professional testing framework (no Azure dependencies)
 2. **Template Validation**: Bicep syntax validation without deployment
 3. **Script Validation**: PowerShell script syntax checking
 4. **Documentation Validation**: DevContainer setup and essential docs verification
@@ -241,16 +220,14 @@ Infrastructure uses Azure Verified Modules pattern:
 - `modules/containerinstance.bicep` - OTEL Collector container
 - `modules/kqldatabase.bicep` - Fabric workspace and database parameters
 
-
 ## Critical File Locations
 
-**Deployment Scripts**: `deploy/infra/Deploy-All.ps1` (unified deployment), `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Destroy-All.ps1` (complete removal)
+**Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Install-FabricCLI.ps1` (legacy helper)
 **KQL Definitions**: `deploy/fabric-artifacts/tables/*.kql` (Git integration)
-**Test Suite**: `tests/Azure-Fabric-OTEL.Tests.ps1` (unified Pester tests), `tests/FabricObservability.IntegrationTests/` (.NET integration tests)
-**OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline), `app/otel-eh-receiver/Dockerfile` (custom container)
+**Test Suite**: `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
+**OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline)
 **Sample App**: `app/dotnet-client/OTELWorker/` (.NET worker with OTEL instrumentation)
-**Git Integration**: `deploy/fabric-artifacts/` folder for Fabric workspace sync
-**Container Scripts**: `app/otel-eh-receiver/OTELCollectorDockerRun.ps1` (container build/run), `app/otel-eh-receiver/run-collector.ps1` (local execution)
+**Git Integration**: `deploy/fabric-artifacts/` folder for Fabric workspace sync, `deploy/fabric-artifacts/README.md` (setup guide)
 
 ## Debugging Commands
 
@@ -344,46 +321,14 @@ This ensures code quality and prevents introducing untested changes to the repos
 - **Reference previous decisions** explicitly when building on existing work
 - **Maintain decision trail** for future context (what was changed and why)
 
-**Recent Architectural Changes (September 2025)**:
-- **Unified Deployment Scripts**: Renamed Deploy-Complete.ps1 → Deploy-All.ps1 and Destroy-Complete.ps1 → Destroy-All.ps1 for standardization
-- **Custom Container Approach**: Transformed app/otel-eh-receiver from .NET project to simple custom container with embedded configuration
-- **Testing Consolidation**: Created unified Azure-Fabric-OTEL.Tests.ps1 Pester test suite replacing individual testing scripts
-- **Documentation Modernization**: Updated README files and removed obsolete script references
-- **Git Integration Refinement**: Enhanced Deploy-FabricArtifacts-Git.ps1 with proper unified deployment integration
-- **Project Structure Simplification**: Removed unnecessary .NET project artifacts in favor of container-first approach
-- **Folder Organization (September 2025)**: Restructured testing scripts to maintain clear separation between deployment and testing artifacts
-- **GitHub Actions Cleanup (September 2024)**: Removed Key Vault dependencies that were causing "Public network access disabled" failures
-- **DevContainer Focus (September 2024)**: Simplified main branch workflow to focus on local development validation
-- **Git Integration Foundation (September 2025)**: Established Microsoft Fabric Git integration pattern using `fabric-artifacts/` folder
-
-### **Folder Organization Rules**
-**CRITICAL**: Maintain strict separation between deployment and testing artifacts:
-
-- **`/deploy` folder**: Everything related to deployment of the sample
-  - `deploy/infra/` - Infrastructure deployment (Bicep templates, deployment scripts)
-  - `deploy/fabric-artifacts/` - Fabric artifacts for Git integration
-  - `deploy/tools/` - Development tools and utilities (NOT testing scripts)
-  - Examples: `Deploy-All.ps1`, `Destroy-All.ps1`, `DevSecretManager`, `Diagnose-FabricPermissions.ps1`
-
-- **`/tests` folder**: All automated testing artifacts
-  - `tests/` - PowerShell testing scripts and test data generation
-  - `tests/FabricObservability.IntegrationTests/` - .NET xUnit comprehensive integration tests
-  - `tests/data/` - Test data files and samples
-  - Examples: `Test-FabricIntegration-Git.ps1`, `Test-FabricLocal.ps1`, `Test-FabricAuth.ps1`, `Verify-DevEnvironment.ps1`
-
-**Key Principles**:
-- ✅ **Testing scripts belong in `/tests`** - regardless of what they test
-- ✅ **Deployment scripts belong in `/deploy`** - focus on infrastructure and artifact deployment
-- ✅ **Diagnostic tools belong in `/deploy/tools`** - they support deployment, not testing
-- ❌ **Never mix testing and deployment** - clear separation prevents confusion
-- ❌ **No `Test-*` scripts in `/deploy`** - all testing belongs in `/tests`
-
-**Recent Reorganization (September 2025)**:
-- Moved `Test-FabricLocal.ps1` from `/deploy/tools` → `/tests`
-- Moved `test-fabric-auth.ps1` from `/deploy/tools` → `/tests/Test-FabricAuth.ps1`  
-- Moved `Verify-DevEnvironment.ps1` from `/deploy/tools` → `/tests`
-- Kept `Diagnose-FabricPermissions.ps1` in `/deploy/tools` (diagnostic, not testing)
-- Kept `DevSecretManager` in `/deploy/tools` (development utility, not testing)
+**Recent Architectural Changes (September 2024)**:
+- **GitHub Actions Cleanup**: Removed Key Vault dependencies that were causing "Public network access disabled" failures across all deployment jobs
+- **DevContainer Focus**: Simplified main branch workflow to focus on local development validation rather than full CI/CD deployment
+- **Folder Consolidation**: Moved `infra/` → `deploy/infra/` and `tools/` → `deploy/tools/` to create unified deployment structure
+- **Branch Strategy Clarification**: Main branch for DevContainer development, `ci-cd` branch for enterprise deployment patterns
+- **Documentation Consolidation Strategy**: All detailed documentation moved to `docs/README.md` - removed per-topic files like README-Deploy-Complete.md, README-Destroy-Complete.md in favor of single comprehensive guide
+- **Unified Deployment Scripts**: Created Deploy-Complete.ps1 and Destroy-Complete.ps1 with centralized configuration integration
+- **Git Integration Approach (September 2025)**: Replaced complex API-based deployment with Microsoft Fabric Git integration pattern using `fabric-artifacts/` folder, eliminating authentication and API complexity issues
 
 ### **Deployment Anti-Patterns to Avoid**
 ❌ **Complex API-based deployment** - Use Git integration instead  

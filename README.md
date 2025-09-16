@@ -1,11 +1,11 @@
-# Microsoft Fabric and OTEL based Platform Observability Sample
+# Azure OTEL telemetry collection with Azure Diagnostic, Event Hubs and Microsoft Fabric
 
 > Disclaimer: This sample builds upon the official Microsoft Learn tutorial for the OpenTelemetry connector to Azure Data Explorer / Microsoft Fabric Real-Time Intelligence: https://learn.microsoft.com/azure/data-explorer/open-telemetry-connector. It does not replace that guidance; instead, it extends it to demonstrate a broader platform observability pattern. Key additions in this repository:
 > 1. Uses Azure Event Hub as a diagnostic log aggregation point for Azure resource platform logs (via Diagnostic Settings) before they enter the OTEL pipeline.
 > 2. Configures an OpenTelemetry Collector (contrib distribution) to ingest telemetry from both OTLP (direct application emission) and Azure Event Hub (diagnostic export stream).
 > 3. Exports unified traces, metrics, and logs into Microsoft Fabric (KQL Database / Eventhouse) using the Azure Data Explorer exporter for consolidated analysis.
 > 4. Provides Git-based synchronization pattern for Fabric artifact (table) definitions through `deploy/fabric-artifacts/`.
-> 5. Offers opinionated containerization and deployment guidance (ACI gateway pattern) plus documentation structure for incremental modernization.
+> 5. Provides sample for containerized OTEL collector by using the gateway pattern
 
 
 

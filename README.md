@@ -86,9 +86,9 @@ graph TD
 
 ## Summary of Steps
 
-- Deploy Microsoft Fabric for OTEL Observability use
+- Deploy Microsoft Fabric as an Observability data analysis platform
 - Deploy Azure Event Hub for Azure Diagnostic exports
-- Deploy OTEL contrib distribution as Azure Diagnostic receiver
+- Deploy OTEL Collector as Azure Diagnostic receiver and Fabric exporter
 - Deploy telemetry sample Azure services
 
 The following sections describe Azure Portal deployment and configuration based steps for manual setup and understanding of the solution components.
@@ -114,8 +114,7 @@ Azure Event Hub serves as the central ingestion point for diagnostic logs from A
    - **Pricing tier**: Select **Standard** (required for diagnostic integration)
    - **Throughput units**: Set to **1** (can auto-scale up to 20)
    - **Enable Auto-Inflate**: ✅ Check this option
-   - **Maximum throughput units**: Set to **20**
-   - **Zone redundant**: ✅ Enable for high availability
+   - **Maximum throughput units**: (balance throughput and cost)
 4. Select **Review + Create** → **Create**
 5. Wait for deployment completion and select **Go to resource**
 
@@ -141,14 +140,6 @@ Azure Event Hub serves as the central ingestion point for diagnostic logs from A
 2. Confirm that **$Default** consumer group exists (created automatically)
 3. This will be used by the OTEL Collector to read events
 
-### Configuration Summary
-
-The Event Hub setup will include:
-- **SKU**: Standard tier with auto-inflate enabled
-- **Partitions**: 4 partitions for optimal throughput
-- **Retention**: 7 days message retention
-- **Throughput**: 1-20 throughput units with auto-scaling
-- **Zone redundancy**: Enabled for high availability
 
 ### Sample Event Hub Record
 
@@ -268,18 +259,8 @@ Deploy Azure App Services that will generate diagnostic logs and send them to th
 
 ![alt text](./docs/assets/image008.png)
 
-### Configuration Summary
 
-The sample App Services setup includes:
-- **Two App Services**: Running on Basic B1 tier for diagnostic logging support
-- **Diagnostic Settings**: Configured to send HTTP, Console, App, and Platform logs
-- **Event Hub Integration**: All diagnostic logs stream to the central Event Hub
-- **Sample Traffic**: Manual browsing generates realistic log data for testing
-
-
-
-
-## Deploy OTEL contrib distribution as Azure Diagnostic receiver
+## Deploy OTEL contrib distribution Collector as Azure Diagnostic receiver and Fabric Exporter
 
 The OpenTelemetry Collector serves as the central processing gateway in this solution, receiving diagnostic data from Azure Event Hub and application telemetry via OTLP protocols. It processes and routes all telemetry data to Microsoft Fabric Real-Time Intelligence for analysis and monitoring.
 
@@ -289,15 +270,27 @@ This solution uses a custom-built container image that includes the [OpenTelemet
 
 #### 1. Build Custom OTEL Collector Container
 
-The custom container is built with the OTEL configuration embedded. The configuration includes:
+Build a Docker image by using otel/opentelemetry-collector-contrib base image. 
+Following is the example of a Dockerfile
 
-- [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) for processing Azure diagnostic logs
-- [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md) for sending data to Microsoft Fabric
-- OTLP Receiver for direct application telemetry
+```dockerfile
+FROM otel/opentelemetry-collector-contrib:latest
 
-![alt text](./docs/assets/image010.png)
+# Copy the config file into the container
+COPY config.yaml /etc/otel/config.yaml
 
-and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md)
+# docker pull otel/opentelemetry-collector-contrib:0.116.1
+
+ENTRYPOINT ["/otelcol-contrib"]
+
+# Set the command to run the OpenTelemetry Collector with the config file
+CMD ["--config", "/etc/otel/config.yaml"]
+EXPOSE 4317/tcp 4318/tcp 55678/tcp 55679/tcp
+```
+
+
+The custom container is built with the OTEL configuration embedded. The configuration sample:
+
 
 ![alt text](./docs/assets/image011.png)
 
@@ -358,6 +351,12 @@ service:
       processors: [batch]
       exporters: [debug,azuredataexplorer]
 ```
+The configuration includes use of [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) for processing Azure diagnostic logs and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md) for sending data to Microsoft Fabric
+Default OTLP protocol receiver is also enabled (useful for a troubleshooting).
+
+![alt text](./docs/assets/image010.png)
+
+![alt text](./docs/assets/image011.png)
 
 
 #### 2. Create Azure Container Instance
@@ -409,19 +408,6 @@ service:
 6. Test connectivity to the OTLP endpoint: `http://<dns-name>.<region>.azurecontainer.io:4317`
 
 ![alt text](./docs/assets/image009.png)
-
-### Configuration Summary
-
-The custom OTEL Collector deployment includes:
-- **Custom Image**: Pre-built with embedded OTEL configuration
-- **Compute**: 2 CPU cores, 4 GB memory
-- **Networking**: Public endpoint with OTLP gRPC on port 4317
-- **Components**: Azure Event Hub receiver and Azure Data Explorer exporter
-- **Configuration**: Embedded config file with environment variable overrides
-
-
-
-
 
 
 ## Deploy Microsoft Fabric for OTEL Observability

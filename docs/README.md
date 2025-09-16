@@ -156,35 +156,34 @@ bash dotnet-install.sh --version 8.0.100
    pwsh deploy/tools/Test-FabricLocal.ps1 -Mode Environment -TestAuth
    ```
 
-### 🔧 Secret Manager Tool
+### 🔧 Secret Handling (Updated)
 
-The included .NET tool (`deploy/tools/DevSecretManager`) provides secure secret management:
+The former `DevSecretManager` tool has been removed. Use one of these approaches instead:
 
-```bash
-# Build the tool
-cd deploy/tools/DevSecretManager
-dotnet build
+1. **Key Vault (preferred for shared/team scenarios)**
+   - Store: subscription ID, tenant ID, client ID, client secret
+   - Deployment scripts or local scripts can retrieve them via Azure CLI / Az PowerShell
 
-# Set secrets
-dotnet run set --key "Azure:ClientId" --value "your-client-id"
-dotnet run set --key "Azure:ClientSecret" --value "your-client-secret"
+2. **Environment Variables (fast local iteration)**
+   ```powershell
+   $env:AZURE_SUBSCRIPTION_ID="<sub-id>"
+   $env:AZURE_TENANT_ID="<tenant-id>"
+   $env:AZURE_CLIENT_ID="<client-id>"
+   $env:AZURE_CLIENT_SECRET="<client-secret>"
+   ```
 
-# List configured secrets (without values)
-dotnet run list
+3. **User Secrets (optional .NET local only)**
+   - Still supported by .NET if you run `dotnet user-secrets set`, but no custom wrapper tool is provided.
 
-# Test authentication
-dotnet run test
+4. **Pester Diagnostics**
+   ```powershell
+   Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions
+   ```
 
-# Import from Key Vault
-dotnet run import-from-keyvault --vault-name "your-vault" --secret-name "AZURE-CLIENT-ID" --local-key "Azure:ClientId"
-```
-
-### 🔐 Security Features
-
-- **User Secrets**: Stored outside source control using .NET user secrets
-- **Key Vault Integration**: Direct import from Azure Key Vault
-- **Secret Masking**: Values are masked in output for security
-- **Encrypted Storage**: Uses .NET's secure user secrets mechanism
+Security recommendations:
+- Never commit secrets to Git.
+- Prefer Key Vault for anything beyond personal experimentation.
+- Rotate credentials periodically and update environment variables / Key Vault accordingly.
 
 ### 📋 Required Secrets
 
@@ -386,7 +385,7 @@ fab auth whoami
 - Ensure Fabric CLI is properly installed
 
 #### Missing Secrets
-- Run `dotnet run list` in the DevSecretManager to check configuration
+- Use Key Vault or environment variables instead of the removed DevSecretManager tool
 - Use `-TestAuth` to verify all required secrets are present
 
 #### Key Vault Access

@@ -82,8 +82,7 @@ deploy/
 ├── config/                   # Centralized project configuration
 │   ├── project-config.json   # Azure and Fabric configuration
 │   └── ProjectConfig.psm1    # PowerShell configuration module
-└── tools/                    # Development and deployment tools
-  └── DevSecretManager/     # .NET secret management tool
+└── tools/                    # (Removed - legacy tooling eliminated)
 ```
 
 ## 🚀 **Deployment Process**
@@ -122,7 +121,7 @@ cd deploy/infra
 **OR manually in Fabric portal:**
 - Use Source Control panel → Update from Git
 
-## �️ **Development Tools**
+## �️ **Development Tools (Deprecated)**
 
 The `tools/` directory contains essential development and deployment utilities for the project:
 
@@ -579,47 +578,16 @@ For legacy API scripts, see commit history before September 2025.
 - Verify Fabric workspace access permissions
 - Check Azure CLI authentication: `az login`
 
-### Development Tools Issues?
-- For DevSecretManager: Run `dotnet build` in the tool directory
-- For permission diagnostics: Use Pester `Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions`
-- For secret management: Verify Key Vault access permissions
+## 🧰 Deprecated Tools
 
----
+The previous `deploy/tools` folder (including `DevSecretManager` and diagnostic scripts) has been removed to simplify the repository and rely on:
 
-## 📚 **Additional Resources**
+- Central config: `deploy/config/project-config.json`
+- Environment variables for ad-hoc overrides
+- Azure Key Vault (referenced by deployment scripts) for secret management
+- Integrated Pester diagnostics: `Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions`
 
-- **Complete Documentation**: [docs/README.md](../docs/README.md)
-- **Testing Scripts**: Located in [tests/](../tests/) folder
-- **Local Development**: Use tools in this directory for development and testing
-- **DevContainer**: This project is designed for DevContainer development
-
----
-
-*This consolidated documentation replaces multiple scattered README files with a single comprehensive deployment guide.*
-
----
-
-## 🏗️ **Infrastructure as Code (Bicep) Deployment**
-
-This section provides comprehensive Bicep-based deployment instructions for automating the entire Azure infrastructure setup.
-
-### Prerequisites
-
-- Azure CLI or Azure PowerShell installed
-- Bicep CLI installed
-- Azure subscription with contributor access
-
-### Bicep Files Structure
-
-- `main.bicep` - Main orchestration template
-- `modules/` - Individual resource modules
-  - `fabriccapacity.bicep` - Microsoft Fabric capacity
-  - `kqldatabase.bicep` - Microsoft Fabric workspace and KQL database parameters
-  - `eventhub.bicep` - Event Hub namespace and hub
-  - `containerinstance.bicep` - Container Instance for OTEL Collector
-  - `appservice.bicep` - App Service for sample telemetry
-- `config/` - Configuration files
-  - `otel-config.yaml` - OTEL Collector configuration
+If you previously used `DevSecretManager`, migrate secrets to Key Vault or environment variables instead.
 - `parameters.json` - Parameter values for deployment
 
 ### Full Infrastructure Deployment

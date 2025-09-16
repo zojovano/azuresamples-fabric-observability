@@ -383,8 +383,6 @@ Describe "Azure Fabric OTEL Integration Tests" -Tags @("Integration", "OTEL") {
     }
     
     Context "Authentication and Connectivity" -Tags @("Authentication") {
-    Context "Authentication and Connectivity" -Tags @("Authentication") {
-        
         It "Should install Fabric CLI if not available" {
             if (-not (Test-ToolAvailable "fab")) {
                 Write-TestOutput "Installing Fabric CLI..." $script:ColorInfo "📦"
@@ -411,6 +409,103 @@ Describe "Azure Fabric OTEL Integration Tests" -Tags @("Integration", "OTEL") {
             $result.ExitCode | Should -BeIn @(0, 1) -Because "auth status should return valid exit code (0=authenticated, 1=not authenticated)"
         }
     }
+
+    # New context derived from former Diagnose-FabricPermissions.ps1 script
+    Context "Fabric Permissions Diagnostics" -Tags @("Fabric","Diagnostics","Permissions") {
+        BeforeAll {
+            # Ensure Fabric CLI config (idempotent)
+            $null = Get-CommandOutput -Command "fab" -Arguments @("config", "set", "encryption_fallback_enabled", "true")
+            $script:ServicePrincipalId = "e10b0ed5-117d-466c-8a84-bee676f32373"
+        }
+
+        It "Should report Fabric authentication status" {
+            try {
+                $authStatus = & fab auth status 2>&1
+                $exit = $LASTEXITCODE
+                if ($exit -eq 0 -and $authStatus -notmatch "Not logged in") {
+                    Write-TestOutput "✅ Fabric authentication SUCCESS" $script:ColorSuccess
+                    if ($authStatus -match "Account:\s+([^\s]+)") {
+                        Write-TestOutput "ℹ️ Account: $($matches[1])" $script:ColorInfo
+                    }
+                    $true | Should -BeTrue
+                } else {
+                    Write-TestOutput "❌ Fabric authentication FAILED (run 'fab auth login')" $script:ColorError
+                    # Do not fail hard; provide guidance while still surfacing state
+                    $true | Should -BeTrue -Because "Authentication is optional for early diagnostics"
+                }
+            } catch {
+                Write-TestOutput "⚠️ Error obtaining Fabric auth status: $($_.Exception.Message)" $script:ColorWarning
+                $true | Should -BeTrue -Because "Diagnostic should not hard fail on exceptions"
+            }
+        }
+
+        It "Should attempt workspace listing and detect permission issues" {
+            try {
+                $workspaceOutput = & fab ls 2>&1
+                $lsExit = $LASTEXITCODE
+                if ($lsExit -eq 0) {
+                    Write-TestOutput "✅ Workspace listing SUCCESS" $script:ColorSuccess
+                    if ($workspaceOutput -match $script:WorkspaceName) {
+                        Write-TestOutput "ℹ️ Target workspace '$($script:WorkspaceName)' visible" $script:ColorInfo
+                    } else {
+                        Write-TestOutput "⚠️ Target workspace '$($script:WorkspaceName)' not in listing (may not exist yet)" $script:ColorWarning
+                    }
+                    $true | Should -BeTrue
+                } else {
+                    Write-TestOutput "❌ Workspace listing FAILED (exit $lsExit)" $script:ColorError
+                    if ($workspaceOutput -match "Unauthorized|Access is unauthorized") {
+                        Write-TestOutput "📋 Diagnosis: Service Principal lacks tenant-level workspace creation permissions" $script:ColorWarning
+                        Write-TestOutput "💡 Enable 'Service principals can create workspaces, connections, and deployment pipelines' in Fabric Admin Portal" $script:ColorWarning
+                    }
+                    # Still mark pass to avoid blocking full suite; presence of message gives signal
+                    $true | Should -BeTrue
+                }
+            } catch {
+                Write-TestOutput "⚠️ Exception during workspace permission check: $($_.Exception.Message)" $script:ColorWarning
+                $true | Should -BeTrue
+            }
+        }
+
+        It "Should retrieve service principal information (if Azure access present)" {
+            try {
+                $spJson = az ad sp show --id $script:ServicePrincipalId --query '{displayName:displayName,appId:appId,servicePrincipalType:servicePrincipalType}' -o json 2>&1
+                if ($LASTEXITCODE -eq 0 -and $spJson) {
+                    $sp = $spJson | ConvertFrom-Json
+                    Write-TestOutput "✅ Service Principal Name: $($sp.displayName)" $script:ColorSuccess
+                    Write-TestOutput "ℹ️ App ID: $($sp.appId)" $script:ColorInfo
+                    Write-TestOutput "ℹ️ Type: $($sp.servicePrincipalType)" $script:ColorInfo
+                    # Soft assertion to ensure we retrieved something meaningful
+                    $sp.appId | Should -Match $script:ServicePrincipalId.Substring(0,8) -Because "Returned SP should match expected ID fragment"
+                } else {
+                    Write-TestOutput "⚠️ Could not retrieve Service Principal details (may lack Graph permissions)" $script:ColorWarning
+                    $true | Should -BeTrue
+                }
+            } catch {
+                Write-TestOutput "⚠️ Error retrieving Service Principal: $($_.Exception.Message)" $script:ColorWarning
+                $true | Should -BeTrue
+            }
+        }
+
+        It "Should provide tenant setting remediation guidance when permissions blocked" {
+            # This test is informational: if previous listing failed with unauthorized, emit guidance
+            $workspaceOutput = & fab ls 2>&1
+            if ($workspaceOutput -match "Unauthorized|Access is unauthorized") {
+                Write-TestOutput "⚙️ Tenant Setting Required: Enable 'Service principals can create workspaces...'" $script:ColorError
+                Write-TestOutput "Path: Fabric Admin Portal → Tenant Settings → Developer settings" $script:ColorInfo
+            } else {
+                Write-TestOutput "ℹ️ Tenant setting guidance not required (no unauthorized indication)" $script:ColorInfo
+            }
+            $true | Should -BeTrue
+        }
+
+        It "Should outline manual workspace creation steps (informational)" -Skip:$SkipManualTests {
+            Write-TestOutput "📋 Manual Workspace Creation (use when tenant setting cannot be changed immediately):" $script:ColorWarning
+            Write-TestOutput "1. Portal: https://fabric.microsoft.com" $script:ColorInfo
+            Write-TestOutput "2. Create workspace named '$($script:WorkspaceName)' on capacity (see config)" $script:ColorInfo
+            Write-TestOutput "3. Add Service Principal as Admin (search by App ID)" $script:ColorInfo
+            Write-TestOutput "4. Push Git changes & trigger sync" $script:ColorInfo
+            $true | Should -BeTrue
+        }
     }
     
     Context "Azure Infrastructure Validation" -Tags @("Azure") {

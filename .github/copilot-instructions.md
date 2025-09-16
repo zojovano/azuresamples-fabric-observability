@@ -184,7 +184,7 @@ dotnet --version # .NET SDK
 ## Integration Points
 
 ### OTEL Collector Configuration
-`app/otel-eh-receiver/config.yaml` defines the gateway pipeline:
+`app/otel-collector/config.yaml` defines the gateway pipeline:
 - **Receivers**: `otlp` (gRPC 4317) + `azureeventhub`
 - **Processors**: `batch`
 - **Exporters**: `debug` + `azuredataexplorer`
@@ -225,7 +225,7 @@ Infrastructure uses Azure Verified Modules pattern:
 **Deployment Scripts**: `deploy/infra/Deploy-FabricArtifacts-Git.ps1` (Git integration), `deploy/infra/Install-FabricCLI.ps1` (legacy helper)
 **KQL Definitions**: `deploy/fabric-artifacts/tables/*.kql` (Git integration)
 **Test Suite**: `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
-**OTEL Config**: `app/otel-eh-receiver/config.yaml` (collector pipeline)
+**OTEL Config**: `app/otel-collector/config.yaml` (collector pipeline)
 **Sample App**: `app/dotnet-client/OTELWorker/` (.NET worker with OTEL instrumentation)
 **Git Integration**: `deploy/fabric-artifacts/` folder for Fabric workspace sync, `deploy/fabric-artifacts/README.md` (setup guide)
 

@@ -221,7 +221,7 @@ Describe "Azure Fabric OTEL Integration Tests" -Tags @("Integration", "OTEL") {
             $requiredPaths = @(
                 "deploy/infra/Bicep/main.bicep",
                 "deploy/infra/Deploy-FabricArtifacts-Git.ps1",
-                "app/otel-eh-receiver/config.yaml",
+                "app/otel-collector/config.yaml",
                 "config/project-config.json"
             )
             
@@ -536,7 +536,7 @@ Describe "Azure Fabric OTEL Integration Tests" -Tags @("Integration", "OTEL") {
     Context "OTEL Data Pipeline Configuration" -Tags @("OTEL") {
         
         It "Should have OTEL Collector configuration file" {
-            $configPath = Join-Path $PSScriptRoot "../app/otel-eh-receiver/config.yaml"
+            $configPath = Join-Path $PSScriptRoot "../app/otel-collector/config.yaml"
             Test-Path $configPath | Should -BeTrue -Because "OTEL Collector config is required"
             
             $configContent = Get-Content $configPath -Raw
@@ -546,7 +546,7 @@ Describe "Azure Fabric OTEL Integration Tests" -Tags @("Integration", "OTEL") {
         }
         
         It "Should have Docker configuration for OTEL Collector" {
-            $dockerPath = Join-Path $PSScriptRoot "../app/otel-eh-receiver/Dockerfile"
+            $dockerPath = Join-Path $PSScriptRoot "../app/otel-collector/Dockerfile"
             Test-Path $dockerPath | Should -BeTrue -Because "Dockerfile is required for containerization"
             
             $dockerContent = Get-Content $dockerPath -Raw

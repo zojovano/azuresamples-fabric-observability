@@ -121,67 +121,15 @@ cd deploy/infra
 **OR manually in Fabric portal:**
 - Use Source Control panel → Update from Git
 
-## �️ **Development Tools (Deprecated)**
+## 🧰 Deprecated Tools
 
-The `tools/` directory contains essential development and deployment utilities for the project:
+Legacy tooling (DevSecretManager, standalone diagnostics) has been removed. Use instead:
 
-### Available Tools
+- Key Vault or environment variables for secrets
+- Central config file: `deploy/config/project-config.json`
+- Integrated diagnostics: `Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions`
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| [`DevSecretManager/`](tools/DevSecretManager/) | .NET console app for secure credential management | `dotnet run --project deploy/tools/DevSecretManager` |
-| Fabric Permissions Diagnostics (Pester) | Integrated workspace/auth permission diagnostics | `Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions` |
-
-### Secret Management
-
-The tools support multiple authentication approaches:
-
-#### .NET Secret Manager (Recommended for Local Development)
-```powershell
-# Navigate to DevSecretManager
-cd deploy/tools/DevSecretManager
-
-# Set a secret
-dotnet run set --key "Azure:ClientId" --value "your-client-id"
-
-# Get a secret
-dotnet run get --key "Azure:ClientId"
-
-# List all secrets
-dotnet run list
-
-# Test authentication
-dotnet run test
-
-# Import from Key Vault
-dotnet run import-from-keyvault --vault-name "your-vault" --secret-name "AZURE-CLIENT-ID" --local-key "Azure:ClientId"
-```
-
-#### Security Features
-- **User Secrets**: Stored outside source control using .NET user secrets
-- **Key Vault Integration**: Direct import from Azure Key Vault
-- **Secret Masking**: Values are masked in output for security
-- **Encrypted Storage**: Uses .NET's secure user secrets mechanism
-
-### Diagnostic Tools
-
-#### Fabric Permissions Diagnostics (Integrated)
-Legacy standalone script `Diagnose-FabricPermissions.ps1` has been removed. Its functionality now lives in the test suite.
-
-```powershell
-# Run diagnostic context (non-blocking informational tests)
-Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions
-
-# Skip manual guidance test if desired
-Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions -Passthru | Out-Null
-```
-
-What it reports:
-- Fabric CLI authentication status
-- Workspace listing & unauthorized detection
-- Service Principal metadata (App ID, type)
-- Tenant setting remediation guidance if blocked
-- Manual workspace creation steps (skippable)
+Historical references remain in commit history; no tool folder persists in current tree.
 
 ---
 

@@ -83,8 +83,7 @@ deploy/
 │   ├── project-config.json   # Azure and Fabric configuration
 │   └── ProjectConfig.psm1    # PowerShell configuration module
 └── tools/                    # Development and deployment tools
-    ├── DevSecretManager/     # .NET secret management tool
-    └── Diagnose-FabricPermissions.ps1  # Fabric permissions diagnostic
+  └── DevSecretManager/     # .NET secret management tool
 ```
 
 ## 🚀 **Deployment Process**
@@ -132,7 +131,7 @@ The `tools/` directory contains essential development and deployment utilities f
 | Tool | Description | Usage |
 |------|-------------|-------|
 | [`DevSecretManager/`](tools/DevSecretManager/) | .NET console app for secure credential management | `dotnet run --project deploy/tools/DevSecretManager` |
-| [`Diagnose-FabricPermissions.ps1`](tools/Diagnose-FabricPermissions.ps1) | Fabric workspace permissions diagnostic | `pwsh deploy/tools/Diagnose-FabricPermissions.ps1` |
+| Fabric Permissions Diagnostics (Pester) | Integrated workspace/auth permission diagnostics | `Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions` |
 
 ### Secret Management
 
@@ -167,19 +166,23 @@ dotnet run import-from-keyvault --vault-name "your-vault" --secret-name "AZURE-C
 
 ### Diagnostic Tools
 
-#### Diagnose-FabricPermissions.ps1
-Helps diagnose Service Principal permissions for Fabric workspace creation and provides workarounds when tenant settings are not configured.
+#### Fabric Permissions Diagnostics (Integrated)
+Legacy standalone script `Diagnose-FabricPermissions.ps1` has been removed. Its functionality now lives in the test suite.
 
 ```powershell
-# Basic diagnostics
-pwsh deploy/tools/Diagnose-FabricPermissions.ps1
+# Run diagnostic context (non-blocking informational tests)
+Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions
 
-# Get manual workspace creation instructions
-pwsh deploy/tools/Diagnose-FabricPermissions.ps1 -CreateWorkspaceManually
-
-# Skip workspace creation
-pwsh deploy/tools/Diagnose-FabricPermissions.ps1 -SkipWorkspaceCreation
+# Skip manual guidance test if desired
+Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions -Passthru | Out-Null
 ```
+
+What it reports:
+- Fabric CLI authentication status
+- Workspace listing & unauthorized detection
+- Service Principal metadata (App ID, type)
+- Tenant setting remediation guidance if blocked
+- Manual workspace creation steps (skippable)
 
 ---
 
@@ -578,7 +581,7 @@ For legacy API scripts, see commit history before September 2025.
 
 ### Development Tools Issues?
 - For DevSecretManager: Run `dotnet build` in the tool directory
-- For permission diagnostics: Use `Diagnose-FabricPermissions.ps1 -CreateWorkspaceManually`
+- For permission diagnostics: Use Pester `Invoke-Pester -Path tests/RunAllTests.ps1 -Tag Fabric,Diagnostics,Permissions`
 - For secret management: Verify Key Vault access permissions
 
 ---

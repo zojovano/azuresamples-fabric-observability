@@ -554,7 +554,7 @@ Describe "Azure Fabric OTEL Integration Tests" -Tags @("Integration", "OTEL") {
         }
         
         It "Should validate OTEL Worker application structure" {
-            $workerPath = Join-Path $PSScriptRoot "../app/OTELDotNetClient"
+            $workerPath = Join-Path $PSScriptRoot "../app/OTELdotNetClient"
             Test-Path $workerPath | Should -BeTrue -Because "OTEL Worker application should exist"
             
             $projectFile = Join-Path $workerPath "OTELWorker.csproj"

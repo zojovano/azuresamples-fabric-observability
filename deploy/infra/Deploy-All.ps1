@@ -632,7 +632,7 @@ function Show-Summary {
     Write-ColorOutput "Next Steps:" $ColorInfo "🎯"
     if ($InfrastructureSuccess -and $FabricSuccess) {
         Write-ColorOutput "  • Test the deployment with: deploy/tools/Test-FabricLocal.ps1" $ColorInfo
-    Write-ColorOutput "  • Run the sample application from: app/OTELDotNetClient/" $ColorInfo
+    Write-ColorOutput "  • Run the sample application from: app/OTELdotNetClient/" $ColorInfo
         Write-ColorOutput "  • Monitor data in Fabric workspace: $($Config.WorkspaceName)" $ColorInfo
     } elseif ($InfrastructureSuccess) {
         Write-ColorOutput "  • Re-run with Fabric artifacts: ./Deploy-All.ps1 -KeyVaultName $KeyVaultName -SkipInfrastructure" $ColorInfo

@@ -226,7 +226,7 @@ Infrastructure uses Azure Verified Modules pattern:
 **KQL Definitions**: `deploy/fabric-artifacts/tables/*.kql` (Git integration)
 **Test Suite**: `tests/Test-FabricIntegration-Git.ps1` (Git integration), `tests/FabricObservability.IntegrationTests/` (.NET)
 **OTEL Config**: `app/otel-collector/config.yaml` (collector pipeline)
-**Sample App**: `app/OTELDotNetClient/` (.NET worker with OTEL instrumentation)
+**Sample App**: `app/OTELdotNetClient/` (.NET worker with OTEL instrumentation)
 **Git Integration**: `deploy/fabric-artifacts/` folder for Fabric workspace sync, `deploy/fabric-artifacts/README.md` (setup guide)
 
 ## Debugging Commands

@@ -297,15 +297,7 @@ EXPOSE 4317/tcp 4318/tcp 55678/tcp 55679/tcp
 ```
 
 
-The custom container is built with the OTEL configuration embedded. The configuration sample:
-
-
-![alt text](./docs/assets/image011.png)
-
-> [!NOTE]
-> You can find for other available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
-
-The custom container uses the following OTEL configuration (config.yaml):
+The custom container is built with the OTEL configuration embedded and uses the following OTEL configuration (config.yaml):
 
 ```yml
 extensions:
@@ -365,6 +357,9 @@ Default OTLP protocol receiver is also enabled (useful for a troubleshooting).
 ![alt text](./docs/assets/image010.png)
 
 ![alt text](./docs/assets/image011.png)
+
+> [!NOTE]
+> You can find for other available extensions in the [OTEL registry](https://opentelemetry.io/ecosystem/registry/).
 
 
 #### 2. Create Azure Container Instance

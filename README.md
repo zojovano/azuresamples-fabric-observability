@@ -429,6 +429,34 @@ Create OTEL tables
 
 ![alt text](./docs/assets/image002.png)
 
+## Configure Microsoft Fabric Workspace Git Synchronization (Optional but Recommended)
+
+To enable repeatable, version-controlled deployment of your KQL database schema and OTEL table definitions, connect your Microsoft Fabric workspace to this repository via the built-in Git integration feature. In this project, all Fabric artifacts intended for synchronization live under:
+
+`deploy/fabric-artifacts/`
+
+Key contents:
+- `tables/` – Independent KQL table definition snippets (`otel-logs.kql`, `otel-metrics.kql`, `otel-traces.kql`) using idempotent `.create-merge` patterns
+- Auto-generated subfolders (e.g., `otelobservabilitydb_auto.Eventhouse/`) produced by Fabric after an initial sync, containing platform-managed metadata and consolidated `DatabaseSchema.kql`
+
+High-level workflow:
+1. Author or modify table definitions in `deploy/fabric-artifacts/tables/`
+2. Commit and push changes to `main` (or your working branch)
+3. Use the Fabric portal Source Control panel to pull/sync updates into the workspace
+4. (Optional) Run the guidance script `./deploy/infra/Deploy-FabricArtifacts-Git.ps1` for validation or to trigger sync if CLI auth is configured
+
+Why use Git integration:
+- Eliminates manual API-based table creation steps
+- Provides full change history and easy rollback
+- Reduces deployment drift between environments
+- Improves collaboration across data and platform teams
+
+This repository intentionally avoids duplicating Microsoft’s official configuration wizard instructions. For the authoritative setup guide (connecting a workspace/folder, choosing branch & sync direction, managing sync status), refer to Microsoft Learn:
+
+https://learn.microsoft.com/fabric/cicd/git-integration/ (Fabric Git integration overview)
+
+After the connection is established, any commit to the tracked folder can be synchronized from the Fabric portal; no custom automation is required for standard workflows.
+
 ## Summary
 
 This sample demonstrates how organizations can modernize their observability infrastructure by consolidating monitoring workloads onto Microsoft Fabric. Instead of maintaining separate third-party tools, the solution leverages existing data platform investments to create a unified telemetry processing pipeline. The architecture uses OpenTelemetry standards to collect data from multiple sources, processes it through a containerized gateway, and stores it in a structured format for real-time analytics. This approach reduces operational complexity while providing comprehensive visibility into application and infrastructure performance.

@@ -1,4 +1,4 @@
-# Azure OTEL telemetry collection with Azure Diagnostic, Event Hubs and Microsoft Fabric
+# Azure OTEL telemetry collection with Azure Diagnostics, Event Hubs, and Microsoft Fabric
 
 > Disclaimer: This sample builds upon the official Microsoft Learn tutorial for the OpenTelemetry connector to Azure Data Explorer / Microsoft Fabric Real-Time Intelligence: https://learn.microsoft.com/azure/data-explorer/open-telemetry-connector. It does not replace that guidance; instead, it extends it to demonstrate a broader platform observability pattern. Key additions in this repository:
 > 1. Uses Azure Event Hub as a diagnostic log aggregation point for Azure resource platform logs (via Diagnostic Settings) before they enter the OTEL pipeline.
@@ -11,17 +11,17 @@
 
 ## Context
 
-The company has made significant investment into Microsoft Fabric which is becoming one shop stop for most of the Data Analysis use cases. The platform is deployed and owned by Data Platforms team who is "sister" department of centralized Operations team.
-The Operations team so far has leveraged various third-party technologies for system monitoring and alerting. The team would like to improve the monitoring platforms and processes and adopt modern Observability patterns and standards.
+The company has made significant investment into Microsoft Fabric, which is becoming a one-stop shop for most data analysis use cases. The platform is deployed and owned by the Data Platforms team, a sister department of the centralized Operations team.
+The Operations team has so far leveraged various third-party technologies for system monitoring and alerting. The team would like to improve monitoring platforms and processes and adopt modern observability patterns and standards.
 
 ## Problem
 
-Even though, Monitoring data analysis patterns are similar to any other generic data analysis use cases, the team has dedicated Monitoring data analysis platform. The team would like to explore opportunities to leverage economies of scale and use existing more generic Data platforms instead.
+Although monitoring data analysis patterns are similar to other generic data analysis use cases, the team maintains a dedicated monitoring data analysis platform. The team would like to explore opportunities to leverage economies of scale and use existing, more general-purpose data platforms instead.
 
 
 ## Solution
 
-We will use [OTEL Gateway Deployment pattern](https://opentelemetry.io/docs/collector/deployment/gateway/) with containerized version of OTEL Collector.
+We will use the [OTEL Gateway Deployment pattern](https://opentelemetry.io/docs/collector/deployment/gateway/) with a containerized version of the OTEL Collector.
 
 The solution implements a centralized telemetry processing architecture where Azure services send diagnostic data to Azure Event Hub, while applications emit telemetry directly via OTLP protocols. An OTEL Collector running in Azure Container Instance acts as a gateway, processing and routing all telemetry data to Microsoft Fabric Real-Time Intelligence. The data is then structured into dedicated OTEL tables (Logs, Metrics, Traces) within a KQL database for analysis and monitoring.
 
@@ -94,18 +94,18 @@ graph TD
 
 ## Summary of Steps
 
-- Deploy Microsoft Fabric as an Observability data analysis platform
-- Deploy Azure Event Hub for Azure Diagnostic exports
-- Deploy OTEL Collector as Azure Diagnostic receiver and Fabric exporter
-- Deploy telemetry sample Azure services
+- Deploy Microsoft Fabric as the observability data analysis platform
+- Deploy Azure Event Hub for diagnostic exports
+- Deploy the OTEL Collector as Azure diagnostics receiver and Fabric exporter
+- Deploy sample Azure services for generating telemetry
 
-The following sections describe Azure Portal deployment and configuration based steps for manual setup and understanding of the solution components.
+The following sections provide Azure portal–based deployment and configuration steps for manual setup and understanding of the components.
 
 > **Note:** For Infrastructure as Code (Bicep) deployment, see the [Deployment Guide](./deploy/README.md#-infrastructure-as-code-bicep-deployment)
 
 ## Deploy Azure Event Hub
 
-Azure Event Hub serves as the central ingestion point for diagnostic logs from Azure services in this observability solution. The OTEL Collector will connect to Event Hub to receive and process diagnostic data before forwarding it to Microsoft Fabric.
+Azure Event Hub is the central ingestion point for diagnostic logs from Azure services. The OTEL Collector connects to the hub to receive and process diagnostic data before forwarding it to Microsoft Fabric.
 
 
 > **Reference**: Follow the complete tutorial in Microsoft Learn: [Quickstart: Create an event hub using Azure portal](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create)
@@ -279,7 +279,7 @@ This solution uses a custom-built container image that includes the [OpenTelemet
 #### 1. Build Custom OTEL Collector Container
 
 Build a Docker image by using otel/opentelemetry-collector-contrib base image. 
-Following is the example of a Dockerfile
+The following is an example Dockerfile:
 
 ```dockerfile
 FROM otel/opentelemetry-collector-contrib:latest
@@ -351,8 +351,8 @@ service:
       processors: [batch]
       exporters: [debug,azuredataexplorer]
 ```
-The configuration includes use of [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) for processing Azure diagnostic logs and [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md) for sending data to Microsoft Fabric
-Default OTLP protocol receiver is also enabled (useful for a troubleshooting).
+The configuration includes use of the [Azure Event Hub Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/azureeventhubreceiver/README.md) for processing Azure diagnostic logs and the [Azure Data Explorer Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/azuredataexplorerexporter/README.md) for sending data to Microsoft Fabric.
+The default OTLP protocol receiver is also enabled (useful for troubleshooting).
 
 ![alt text](./docs/assets/image010.png)
 

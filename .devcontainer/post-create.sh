@@ -24,13 +24,6 @@ sudo apt-get install -y \
     ca-certificates \
     gnupg
 
-# Install latest PowerShell 7.5.3 from GitHub releases
-echo "🔧 Installing PowerShell 7.5.3 from GitHub releases..."
-wget -q https://github.com/PowerShell/PowerShell/releases/download/v7.5.3/powershell_7.5.3-1.deb_amd64.deb
-sudo dpkg -i powershell_7.5.3-1.deb_amd64.deb
-rm powershell_7.5.3-1.deb_amd64.deb
-echo "✅ PowerShell 7.5.3 installed successfully"
-
 # Install Azure CLI bicep extension
 echo "🔧 Installing Azure CLI extensions..."
 az extension add --name bicep --upgrade
@@ -127,11 +120,19 @@ echo "Pester version: $(pwsh -Command "(Get-InstalledModule -Name Pester -ErrorA
 export PATH="$HOME/.local/bin:$PATH"
 echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Installation pending - restart terminal')"
 
-# Verify PowerShell 7.5.3 installation
-if pwsh -Command "if (\$PSVersionTable.PSVersion -ge [Version]'7.5.3') { Write-Host 'PowerShell 7.5.3+ confirmed' } else { Write-Host 'PowerShell version check failed' }" 2>/dev/null; then
-    echo "✅ PowerShell 7.5.3+ installation verified"
+# PowerShell installation is handled via the DevContainer 'powershell' feature
+echo "🔧 PowerShell is provided by the DevContainer feature (powershell). Verifying 'pwsh' presence and version..."
+if command -v pwsh >/dev/null 2>&1; then
+    pwshVersion=$(pwsh --version 2>/dev/null || echo "unknown")
+    echo "✅ pwsh found: ${pwshVersion}"
+    # Verify minimal version
+    if pwsh -Command "if (\$PSVersionTable.PSVersion -ge [Version]'7.5.3') { exit 0 } else { exit 2 }" 2>/dev/null; then
+        echo "✅ PowerShell 7.5.3+ confirmed"
+    else
+        echo "⚠️ PowerShell version is older than 7.5.3; consider rebuilding the DevContainer to pick up feature version"
+    fi
 else
-    echo "⚠️ PowerShell version verification failed"
+    echo "⚠️ pwsh not found. Ensure the DevContainer feature 'powershell' was applied and rebuild the container"
 fi
 
 # Create sample configuration files

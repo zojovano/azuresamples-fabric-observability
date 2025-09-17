@@ -24,12 +24,12 @@ sudo apt-get install -y \
     ca-certificates \
     gnupg
 
-# Install latest PowerShell 7.5.2 from GitHub releases
-echo "🔧 Installing PowerShell 7.5.2 from GitHub releases..."
-wget -q https://github.com/PowerShell/PowerShell/releases/download/v7.5.2/powershell_7.5.2-1.deb_amd64.deb
-sudo dpkg -i powershell_7.5.2-1.deb_amd64.deb
-rm powershell_7.5.2-1.deb_amd64.deb
-echo "✅ PowerShell 7.5.2 installed successfully"
+# Install latest PowerShell 7.5.3 from GitHub releases
+echo "🔧 Installing PowerShell 7.5.3 from GitHub releases..."
+wget -q https://github.com/PowerShell/PowerShell/releases/download/v7.5.3/powershell_7.5.3-1.deb_amd64.deb
+sudo dpkg -i powershell_7.5.3-1.deb_amd64.deb
+rm powershell_7.5.3-1.deb_amd64.deb
+echo "✅ PowerShell 7.5.3 installed successfully"
 
 # Install Azure CLI bicep extension
 echo "🔧 Installing Azure CLI extensions..."
@@ -42,6 +42,10 @@ pip3 install --user ms-fabric-cli
 
 # Ensure the local bin directory is in PATH
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+
+# Install Pester for PowerShell tests so tests run reliably in the container
+echo "🔧 Installing Pester PowerShell module for tests..."
+pwsh -Command "Install-Module -Name Pester -Force -SkipPublisherCheck -Scope AllUsers" || echo "⚠️ Pester installation failed (continuing)"
 
 # Install .NET tools
 echo "🔨 Installing .NET tools..."
@@ -117,14 +121,15 @@ echo "✅ Validating installations..."
 echo "Azure CLI version: $(az version --output tsv --query '"azure-cli"' 2>/dev/null || echo 'Not available')"
 echo ".NET version: $(dotnet --version 2>/dev/null || echo 'Not available')"
 echo "PowerShell version: $(pwsh --version 2>/dev/null || echo 'Not available')"
+echo "Pester version: $(pwsh -Command "(Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue).Version.ToString()" 2>/dev/null || echo 'Pester not installed')"
 
 # Check Fabric CLI with PATH update
 export PATH="$HOME/.local/bin:$PATH"
 echo "Fabric CLI version: $(fab --version 2>/dev/null || echo 'Installation pending - restart terminal')"
 
-# Verify PowerShell 7.5.2 installation
-if pwsh -Command "if (\$PSVersionTable.PSVersion -ge [Version]'7.5.2') { Write-Host 'PowerShell 7.5.2+ confirmed' } else { Write-Host 'PowerShell version check failed' }" 2>/dev/null; then
-    echo "✅ PowerShell 7.5.2+ installation verified"
+# Verify PowerShell 7.5.3 installation
+if pwsh -Command "if (\$PSVersionTable.PSVersion -ge [Version]'7.5.3') { Write-Host 'PowerShell 7.5.3+ confirmed' } else { Write-Host 'PowerShell version check failed' }" 2>/dev/null; then
+    echo "✅ PowerShell 7.5.3+ installation verified"
 else
     echo "⚠️ PowerShell version verification failed"
 fi
